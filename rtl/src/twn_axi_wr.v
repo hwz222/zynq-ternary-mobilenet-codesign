@@ -53,7 +53,8 @@ module twn_axi_wr #(
     assign awsize  = SZ[2:0];
     assign awburst = 2'b01;              // INCR
     assign awcache = 4'b0011;
-    assign awprot  = 3'b000;
+    // [1] = 1: Non-secure, so the SMMU can translate and check it (see twn_axi_rd.v)
+    assign awprot  = 3'b010;
     assign wstrb   = {(DATA_W/8){1'b1}};
 
     localparam IDLE=0, AWA=1, WD=2, WR=3, FIN=4;

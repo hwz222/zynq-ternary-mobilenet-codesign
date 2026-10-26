@@ -48,7 +48,9 @@ module twn_axi_rd #(
     assign arsize  = SZ[2:0];
     assign arburst = 2'b01;              // INCR
     assign arcache = 4'b0011;
-    assign arprot  = 3'b000;
+    // [1] = 1: Non-secure. The Linux SMMU driver programs only the Non-secure stream
+    // mapping; a Secure transaction (3'b000, before v1.1) is never translated or checked.
+    assign arprot  = 3'b010;
 
     localparam IDLE=0, ADDR=1, DATA=2, FIN=3;
     reg [1:0] st;
