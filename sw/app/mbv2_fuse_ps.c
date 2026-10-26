@@ -40,6 +40,9 @@
 #define OFF_ACT       0x00100000u                      /* the slot region          */
 #define OFF_IN        (OFF_ACT + FUSE_N_SLOTS * FUSE_SLOT_STRIDE)
 #define OFF_OUT       (OFF_IN + 0x00100000u)
+/* the whole map ends at OFF_HD_OUT + 2 * HD_OUT_SLOT_BYTES (asserted below the
+ * head's regions); the kernel driver's DMA buffer must be at least this big */
+#define FUSE_ARENA_NEED 0x00600000u
 
 /* the last block (16) writes out_slot = 16 % 2 = 0, so the backbone tensor
  * lands at the base of slot 0, int8 */
@@ -59,7 +62,7 @@ static int       g_ready;
 void mbv2_fuse_init(const uint8_t *weight_file, size_t weight_bytes) {
     if (g_ready) return;
     fuse_hal_init();
-    g_arena_v = (uint8_t *)fuse_arena_init(&g_arena_pa, FUSE_ARENA_SZ_DEFAULT);
+    g_arena_v = (uint8_t *)fuse_arena_init(&g_arena_pa, FUSE_ARENA_NEED);
 
     /* the weight file is tools/pack_fuse_weights.py's output; the descriptors
      * carry the offsets into it */
@@ -234,6 +237,8 @@ void mbv2_fuse_write_input(const int8_t *input_i8, uint8_t *dst) {
 
 #define HD_FIN_STRIDE 16                          /* op64's OC padded 14 -> 16 */
 #define HD_OUT_SLOT_BYTES ((size_t)HD_FIN_STRIDE * NET_OUT_H * NET_OUT_W * 4)
+_Static_assert(OFF_HD_OUT + 2 * HD_OUT_SLOT_BYTES <= FUSE_ARENA_NEED,
+               "the arena map outgrew FUSE_ARENA_NEED");
 
 /* the head's four operators, by 0-based index into OPS[] */
 #define HD_OP0 61

@@ -17,7 +17,12 @@ PTHREAD ?= -pthread
 DEF     ?=
 OUT     ?= ../build/arm
 
-COMMON = mbv2_fuse_ps.c pl_hal_fuse.c mbv2_ps.c pl_hal_zynq.c ../../models/mbv2_pose/model_meta.c ../net/mbv2_pose.c
+# HAL=uio (default): registers through UIO, buffer through /dev/mem (pl_hal_fuse.c)
+# HAL=drv: the twn_fuse kernel driver, linux/driver/twn_fuse (pl_hal_fuse_drv.c)
+HAL     ?= uio
+HAL_SRC  = $(if $(filter drv,$(HAL)),pl_hal_fuse_drv.c,pl_hal_fuse.c)
+
+COMMON = mbv2_fuse_ps.c $(HAL_SRC) pl_hal_fuse_enc.c mbv2_ps.c pl_hal_zynq.c ../../models/mbv2_pose/model_meta.c ../net/mbv2_pose.c
 
 all: $(OUT)/mbv2_fuse_test $(OUT)/mbv2_fuse_pipe $(OUT)/mbv2_cam_fuse $(OUT)/mbv2_fuse_eval
 

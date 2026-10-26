@@ -3,6 +3,7 @@
 #   make prepare    once: copy the project's kernel build directory to $(KOUT) and run
 #                   modules_prepare there (the PetaLinux project itself is never written)
 #   make            build twn_fuse.ko
+#   make test       build test/twn_errtest (the driver's refusals, run on the board)
 #   make clean
 #
 # The module only loads on a kernel built by the same project: check with
@@ -21,6 +22,8 @@ export PATH   := $(SDK_DIR)/sysroots/x86_64-petalinux-linux/usr/bin/aarch64-xili
 # the SDK environment script sets user-space CFLAGS/LDFLAGS that break a kernel build
 unexport CFLAGS LDFLAGS CPPFLAGS CC LD
 
+SYSROOT   ?= $(SDK_DIR)/sysroots/cortexa72-cortexa53-xilinx-linux
+
 KMAKE = $(MAKE) -C $(KSRC) O=$(KOUT) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
 
 all:
@@ -32,7 +35,13 @@ prepare:
 	cp -a $(KWORK)/kernel-build-artifacts $(KOUT)
 	$(KMAKE) modules_prepare
 
+test: test/twn_errtest
+
+test/twn_errtest: test/twn_errtest.c twn_fuse_ioctl.h
+	$(CROSS_COMPILE)gcc --sysroot=$(SYSROOT) -O2 -Wall -o $@ $<
+
 clean:
 	$(KMAKE) M=$(CURDIR) clean
+	rm -f test/twn_errtest
 
-.PHONY: all prepare clean
+.PHONY: all prepare test clean

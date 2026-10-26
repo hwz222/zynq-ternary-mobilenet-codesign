@@ -63,3 +63,4 @@ models/*/fixtures/
 Module.symvers
 modules.order
 .tmp_versions/
+linux/driver/twn_fuse/test/twn_errtest
