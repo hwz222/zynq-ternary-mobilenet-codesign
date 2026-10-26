@@ -21,6 +21,10 @@
 #   HK        pin the ssh host key fingerprint instead of reading it with ssh-keyscan
 #   T         ssh timeout in seconds (default 600)
 #   PLINK, PSCP  paths of plink.exe / pscp.exe (default: the PuTTY install under C:/Program Files)
+#   HAL       drv (default): the apps for the twn_fuse driver, build/arm-drv (the v1.1 image);
+#             uio: the UIO apps, build/arm (a v1.0.0 image)
+#   FIX       mpii: models/mbv2_pose/fixtures (not in the public repository); synthetic:
+#             models/mbv2_pose/fixtures_synthetic. Default: mpii if present, else synthetic
 #
 # The board's root file system is an initramfs: /home/root is empty after every reboot, so the
 # order is always BOOT.BIN first, reboot, then `data`. The ssh host key changes at every boot,
@@ -90,23 +94,30 @@ reboot_and_wait() {
     wait_up "$old" "$t0"
 }
 
-# The device tree names the accelerator's UIO device; that name tells this card from a second card
-# that answers on the same address. The uio number is not fixed, so the names of all uio devices
-# are read. It does not show that the bitstream is loaded (`verify` does).
+# The accelerator's device tells this card from a second card that answers on the same address:
+# /dev/twn_fuse on a v1.1 image, or a UIO device with one of the accelerator's names on a v1.0.0
+# image (the uio number is not fixed, so the names of all uio devices are read). It does not show
+# that the bitstream is loaded (`verify` does).
 assert_card() {
     local l n="" u
+    if bssh '[ -c /dev/twn_fuse ]' 2>/dev/null; then echo "board: /dev/twn_fuse (twn_fuse driver)"; return 0; fi
     l=$(bssh 'for d in /sys/class/uio/uio*; do [ -e "$d/name" ] && echo "$(basename $d) $(cat $d/name)"; done' 2>/dev/null | tr -d '\r')
     while read -r u n; do
         case "$n" in twn_fuse|fuse_0|twn_fuse_top|mbv2_fuse|twn_top|mbv2_layer) echo "board: $u = $n"; return 0;; esac
     done <<UIO
 $l
 UIO
-    die "no uio device named twn_fuse/fuse_0/twn_fuse_top/mbv2_fuse/twn_top/mbv2_layer (got: $(echo $l)) -- wrong board; nothing was written"
+    die "no /dev/twn_fuse and no uio device named twn_fuse/fuse_0/twn_fuse_top/mbv2_fuse/twn_top/mbv2_layer (got: $(echo $l)) -- wrong board; nothing was written"
 }
 
-APPS="$ROOT/build/arm"
+if [ "${HAL:-drv}" = drv ]; then APPS="$ROOT/build/arm-drv"; else APPS="$ROOT/build/arm"; fi
 VEC="$ROOT/golden/p1_golden/vec"
 MODEL="$ROOT/models/mbv2_pose"
+case "${FIX:-}" in
+    mpii)      FIXDIR="$MODEL/fixtures" ;;
+    synthetic) FIXDIR="$MODEL/fixtures_synthetic" ;;
+    *) if [ -f "$MODEL/fixtures/fix_0.bin" ]; then FIXDIR="$MODEL/fixtures"; else FIXDIR="$MODEL/fixtures_synthetic"; fi ;;
+esac
 
 case "${1:-help}" in
 
@@ -169,7 +180,8 @@ data)
     bscp "$MODEL/model_mbv2.bin"               "/home/root/data/model_mbv2.bin"
     # holds the head's weights for the PL engine; without it the head refuses to start
     bscp "$MODEL/model_mbv2_packed.bin"        "/home/root/data/model_mbv2_packed.bin"
-    for i in 0 1 2 3; do bscp "$MODEL/fixtures/fix_$i.bin" "/home/root/golden/fix_$i.bin"; done
+    echo "apps from $APPS, fixtures from $FIXDIR"
+    for i in 0 1 2 3; do bscp "$FIXDIR/fix_$i.bin" "/home/root/golden/fix_$i.bin"; done
     bssh "chmod +x /home/root/mbv2_fuse_test /home/root/mbv2_fuse_pipe; sync"
     echo "== board against tree, sha16 -- all 9 files must match =="
     bad=0; n=0
@@ -179,7 +191,7 @@ data)
           mbv2_fuse_*)         l="$APPS/$f";;
           data/fuse_weights.bin) l="$VEC/fuse_weights.bin";;
           data/*)              l="$MODEL/${f#data/}";;
-          golden/*)            l="$MODEL/fixtures/${f#golden/}";;
+          golden/*)            l="$FIXDIR/${f#golden/}";;
         esac
         b=$(bsha "/home/root/$f"); t=$(sha16 "$l"); n=$((n+1))
         if [ -n "$b" ] && [ "$b" = "$t" ]; then r=ok; else r=MISMATCH; bad=$((bad+1)); fi

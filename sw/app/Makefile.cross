@@ -15,12 +15,12 @@ OPT     ?= -O3 -funroll-loops -ftree-vectorize
 PTHREAD ?= -pthread
 # -D switches decided by the build script (FUSE_CLK_MHZ, the PL clock used to convert cycle counts)
 DEF     ?=
-OUT     ?= ../build/arm
 
-# HAL=uio (default): registers through UIO, buffer through /dev/mem (pl_hal_fuse.c)
-# HAL=drv: the twn_fuse kernel driver, linux/driver/twn_fuse (pl_hal_fuse_drv.c)
-HAL     ?= uio
+# HAL=drv (default since v1.1): the twn_fuse kernel driver, linux/driver/twn_fuse (pl_hal_fuse_drv.c)
+# HAL=uio: registers through UIO, buffer through /dev/mem (pl_hal_fuse.c), for a v1.0.0 image
+HAL     ?= drv
 HAL_SRC  = $(if $(filter drv,$(HAL)),pl_hal_fuse_drv.c,pl_hal_fuse.c)
+OUT     ?= $(if $(filter drv,$(HAL)),../build/arm-drv,../build/arm)
 
 COMMON = mbv2_fuse_ps.c $(HAL_SRC) pl_hal_fuse_enc.c mbv2_ps.c pl_hal_zynq.c ../../models/mbv2_pose/model_meta.c ../net/mbv2_pose.c
 

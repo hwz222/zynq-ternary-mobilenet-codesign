@@ -1,0 +1,634 @@
+=== inputs ===
+  789975906e9cae24  2026-10-27 01:03:49  twn_fuse_top.v
+  c34b76ae32124a61  2026-10-26 21:32:06  twn_hd_seq.v
+  c143810952c376a4  2026-10-27 01:06:08  twn_csr.v
+  8a80bc088996dcc4  2026-10-26 21:32:06  twn_hd_compute.v
+  8deee3fb2aa80a80  2026-10-26 21:32:06  twn_axi_rd.v
+  413871e156443de7  2026-10-26 21:32:06  twn_axi_wr.v
+  0686f82ff57b6c2f  2026-10-26 21:32:06  tb_hd_int.v
+  5f660e1441e6f323  2026-10-26 21:32:06  tb_ddr_model.v
+  vectors generated 2026-10-12T14:03:04Z  fixture 0  git 5f740d2
+  13 vector files, all beat counts as expected
+  chain hd_op61_out.hex == hd_op62_in.hex  sha f25e1e3c525dbb6d
+  chain hd_op62_out.hex == hd_op63_in.hex  sha bf1e65eca808dba1
+  chain hd_op63_out.hex == hd_op64_in.hex  sha 6ba8861d1cc93f34
+  bus model requested: RLAT=0 STALL=0
+
+############ arm 1: INTACT -- this one is the gate ############
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+[twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+=== tb_hd_int: the head as an integrated path ===
+  CSR head window 0x0100..0x013c, requant window 0x0400..0x07fc,
+  hd_start, three movers, HP2, DDR
+[tb_hd_int] BUS MODEL RLAT=0 STALL=0
+--- structural checks, before anything runs ---
+  output stream: engine out_sv -> writer w_valid, writer w_ready -> engine out_sr  OK
+  requant path: twn_hd_seq S_RQ -> engine m0_we / bias_we / sh_we  driven
+  head DDR loaded: op61 input + four weight tensors
+    the three intermediate tensors are left X ON PURPOSE -- they are
+    what the head must produce, and X propagates if it does not.
+--- the four head descriptors, through the CSR window ---
+  HD_COMMIT reads 000000f3 -- sticky mask [7:4] = f, last operator [1:0] = 3
+  all four operators committed at least once
+--- the requantisation tables ---
+  window isolation: 16 block-table writes -> 16 d_wr_en pulses;
+                    256 requant writes    -> 256 hd_rq_we pulses
+  HD_RQ_STAT reads 0000100f -- 256 words written, per-operator mask f
+--- starting the head (HD_CTRL[0]) ---
+  head reported DONE (HD_CTRL = 00000004) after 183752 polls, 736704 cycles
+--- HP2 traffic ---
+  [hd_act] window 0x70000000 + 49152 words:  122 AR, 31232 R beats, 106 AW, 27136 W beats, 0 protocol/region errors
+  [hd_w] window 0x78000000 + 16384 words:  49 AR, 12320 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- HP0/HP1 traffic (the backbone was never started; both must be 0 AR / 0 AW) ---
+  [act] window 0x60100000 + 45056 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+  [weight] window 0x60000000 + 46312 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- the requantisation table standing in the engine when each operator started ---
+  op61  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op62  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op63  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op64  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+--- inter-operator timing: residual write drain vs the gap that hides it ---
+  op61  residual drain after e_done 1 cycles   gap e_done(prev)->e_start -1 cycles
+  op62  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  op63  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  op64  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  DRAINRACE reachable=0 maxdrain=1 maxgap=71
+    -> skipping S_DRAIN cannot change a byte in THIS environment: the
+       requant reload alone outlasts the residual drain. twn_axi_wr has
+       no write FIFO and tb_ddr_model answers B on wlast. The directed
+       test for the race is tb_hd_seq.v's check 3.
+--- per operator, every byte the head wrote into DDR ---
+op61  modeA  8x8 IC=320 -> 16x16 OC=32
+      bytes compared 8192   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 512   (expected 512)
+      BIT-EXACT
+op62  modeB  16x16 IC=32 -> 32x32 OC=32
+      bytes compared 32768   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 2048   (expected 2048)
+      BIT-EXACT
+op63  modeB  32x32 IC=32 -> 64x64 OC=32
+      bytes compared 131072   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 8192   (expected 8192)
+      BIT-EXACT
+op64  type4  64x64 IC=32 -> 64x64 OC=16
+      bytes compared 262144   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 16384   (expected 16384)
+      BIT-EXACT
+--- verdict ---
+  TOTAL  bytes compared 434176   bytes wrong 0   never written 0
+  structural failures : 0
+  data / control failures : 0
+
+############ arm 2: intact + HD_SEQ_BREAK_DRAIN (destructive) ############
+#  Skips the write drain only. The mode-A re-issue is left alone, so this
+#  arm fails on the DRAIN or not at all -- it can no longer die of
+#  starvation and be scored as a catch.
+#
+#  ?”´ WHETHER IT CAN FAIL AT ALL IS A MEASUREMENT, NOT AN ASSUMPTION.
+#  The race needs the residual write drain (e_done -> m_out_done) to
+#  outlast the gap to the next e_start. Arm 1 prints both numbers as
+#  DRAINRACE reachable=/maxdrain=/maxgap=, and the verdict below REQUIRES
+#  this arm to fail only when reachable=1. Measured 2026-08-15: it is 0 --
+#  twn_axi_wr has no write FIFO and tb_ddr_model answers B on wlast, so
+#  the drain is a couple of cycles while the requant reload alone is ~68.
+#  That is a fact about this bench, and the rule turns itself back on if a
+#  FIFO or a real interconnect ever changes it. The directed test for the
+#  race is tb_hd_seq.v check 3, which holds the drain off for 200 cycles.
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+[twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+=== tb_hd_int: the head as an integrated path ===
+  CSR head window 0x0100..0x013c, requant window 0x0400..0x07fc,
+  hd_start, three movers, HP2, DDR
+[tb_hd_int] BUS MODEL RLAT=0 STALL=0
+--- structural checks, before anything runs ---
+  output stream: engine out_sv -> writer w_valid, writer w_ready -> engine out_sr  OK
+  requant path: twn_hd_seq S_RQ -> engine m0_we / bias_we / sh_we  driven
+  head DDR loaded: op61 input + four weight tensors
+    the three intermediate tensors are left X ON PURPOSE -- they are
+    what the head must produce, and X propagates if it does not.
+--- the four head descriptors, through the CSR window ---
+  HD_COMMIT reads 000000f3 -- sticky mask [7:4] = f, last operator [1:0] = 3
+  all four operators committed at least once
+--- the requantisation tables ---
+  window isolation: 16 block-table writes -> 16 d_wr_en pulses;
+                    256 requant writes    -> 256 hd_rq_we pulses
+  HD_RQ_STAT reads 0000100f -- 256 words written, per-operator mask f
+--- starting the head (HD_CTRL[0]) ---
+  head reported DONE (HD_CTRL = 00000004) after 183751 polls, 736700 cycles
+--- HP2 traffic ---
+  [hd_act] window 0x70000000 + 49152 words:  122 AR, 31232 R beats, 106 AW, 27136 W beats, 0 protocol/region errors
+  [hd_w] window 0x78000000 + 16384 words:  49 AR, 12320 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- HP0/HP1 traffic (the backbone was never started; both must be 0 AR / 0 AW) ---
+  [act] window 0x60100000 + 45056 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+  [weight] window 0x60000000 + 46312 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- the requantisation table standing in the engine when each operator started ---
+  op61  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op62  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op63  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op64  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+--- inter-operator timing: residual write drain vs the gap that hides it ---
+  op61  residual drain after e_done 1 cycles   gap e_done(prev)->e_start -1 cycles
+  op62  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 70 cycles
+  op63  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 70 cycles
+  op64  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 70 cycles
+  DRAINRACE reachable=0 maxdrain=1 maxgap=70
+    -> skipping S_DRAIN cannot change a byte in THIS environment: the
+       requant reload alone outlasts the residual drain. twn_axi_wr has
+       no write FIFO and tb_ddr_model answers B on wlast. The directed
+       test for the race is tb_hd_seq.v's check 3.
+--- per operator, every byte the head wrote into DDR ---
+op61  modeA  8x8 IC=320 -> 16x16 OC=32
+      bytes compared 8192   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 512   (expected 512)
+      BIT-EXACT
+op62  modeB  16x16 IC=32 -> 32x32 OC=32
+      bytes compared 32768   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 2048   (expected 2048)
+      BIT-EXACT
+op63  modeB  32x32 IC=32 -> 64x64 OC=32
+      bytes compared 131072   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 8192   (expected 8192)
+      BIT-EXACT
+op64  type4  64x64 IC=32 -> 64x64 OC=16
+      bytes compared 262144   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 16384   (expected 16384)
+      BIT-EXACT
+--- verdict ---
+  TOTAL  bytes compared 434176   bytes wrong 0   never written 0
+  structural failures : 0
+  data / control failures : 0
+
+############ arm 3: intact + HD_SEQ_BREAK_PASS (destructive) ############
+#  Drops the mode-A input re-issue only. op61 is fed a sixteenth of its
+#  input; the drain wait is left alone.
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+[twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+=== tb_hd_int: the head as an integrated path ===
+  CSR head window 0x0100..0x013c, requant window 0x0400..0x07fc,
+  hd_start, three movers, HP2, DDR
+[tb_hd_int] BUS MODEL RLAT=0 STALL=0
+--- structural checks, before anything runs ---
+  output stream: engine out_sv -> writer w_valid, writer w_ready -> engine out_sr  OK
+  requant path: twn_hd_seq S_RQ -> engine m0_we / bias_we / sh_we  driven
+  head DDR loaded: op61 input + four weight tensors
+    the three intermediate tensors are left X ON PURPOSE -- they are
+    what the head must produce, and X propagates if it does not.
+--- the four head descriptors, through the CSR window ---
+  HD_COMMIT reads 000000f3 -- sticky mask [7:4] = f, last operator [1:0] = 3
+  all four operators committed at least once
+--- the requantisation tables ---
+  window isolation: 16 block-table writes -> 16 d_wr_en pulses;
+                    256 requant writes    -> 256 hd_rq_we pulses
+  HD_RQ_STAT reads 0000100f -- 256 words written, per-operator mask f
+--- starting the head (HD_CTRL[0]) ---
+FAIL tb_hd_int: STALLED -- 200000 cycles with no AXI activity on HP2
+   sequencer  st=2 op=0 busy=1 done=0  hd_slot=0
+   pass_left  15   (mode A re-issues the input reader)
+   in  mover  busy=0 done=0   AR 5 bursts, 1280 R beats
+   w   mover  busy=1 done=0   AR 6 bursts, 1280 R beats
+   out mover  busy=1 done=0   AW 1 bursts, 0 W beats
+   in stream  mover drives sv=0, engine's in_sr (== reader s_ready)=1
+   w  stream  mover drives sv=1, engine's w_sr  (== reader s_ready)=0
+   out stream engine drives sv=0, writer drives ready=1
+   requant    S_RQ replay: m0_we=0 bias_we=0 sh_we=0 wa=31
+  the run was ABANDONED after the stall above; the table below reports
+  how far the head got, and every byte it never wrote is counted as such.
+--- HP2 traffic ---
+  [hd_act] window 0x70000000 + 49152 words:  5 AR, 1280 R beats, 1 AW, 0 W beats, 0 protocol/region errors
+  [hd_w] window 0x78000000 + 16384 words:  6 AR, 1280 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- HP0/HP1 traffic (the backbone was never started; both must be 0 AR / 0 AW) ---
+  [act] window 0x60100000 + 45056 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+  [weight] window 0x60000000 + 46312 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- the requantisation table standing in the engine when each operator started ---
+  op61  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op62  NEVER STARTED -- no table to report
+  op63  NEVER STARTED -- no table to report
+  op64  NEVER STARTED -- no table to report
+--- inter-operator timing: residual write drain vs the gap that hides it ---
+  op61  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  op62  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  op63  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  op64  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  DRAINRACE reachable=0 maxdrain=0 maxgap=0
+    -> skipping S_DRAIN cannot change a byte in THIS environment: the
+       requant reload alone outlasts the residual drain. twn_axi_wr has
+       no write FIFO and tb_ddr_model answers B on wlast. The directed
+       test for the race is tb_hd_seq.v's check 3.
+--- per operator, every byte the head wrote into DDR ---
+op61  modeA  8x8 IC=320 -> 16x16 OC=32
+      bytes compared 8192   bytes wrong 8192   max|diff| 0
+      of the wrong bytes, 8192 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 512)
+      FIRST BAD ADDRESS 0x0070020000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000007010000010003001201000200
+      FAIL op61: the writer moved 0 beats, the descriptor asked for 512
+op62  modeB  16x16 IC=32 -> 32x32 OC=32
+      bytes compared 32768   bytes wrong 32768   max|diff| 0
+      of the wrong bytes, 32768 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 2048)
+      FIRST BAD ADDRESS 0x0070030000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00010400020000030000000000000200
+      FAIL op62: the writer moved 0 beats, the descriptor asked for 2048
+op63  modeB  32x32 IC=32 -> 64x64 OC=32
+      bytes compared 131072   bytes wrong 131072   max|diff| 0
+      of the wrong bytes, 131072 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 8192)
+      FIRST BAD ADDRESS 0x0070040000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000000000000000000000000000000
+      FAIL op63: the writer moved 0 beats, the descriptor asked for 8192
+op64  type4  64x64 IC=32 -> 64x64 OC=16
+      bytes compared 262144   bytes wrong 262144   max|diff| 0
+      of the wrong bytes, 262144 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 16384)
+      FIRST BAD ADDRESS 0x0070080000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000000000000000000000000000000
+      FAIL op64: the writer moved 0 beats, the descriptor asked for 16384
+--- verdict ---
+  TOTAL  bytes compared 434176   bytes wrong 434176   never written 434176
+  structural failures : 0
+  data / control failures : 12
+
+############ arm 4: intact + HD_INT_SKIP_RQ (destructive) ############
+#  The requantisation window is not written at all. If this still reports
+#  4/4 bit-exact, the tables are not load-bearing and arm 1 proves nothing
+#  about them.
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+[twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+=== tb_hd_int: the head as an integrated path ===
+  CSR head window 0x0100..0x013c, requant window 0x0400..0x07fc,
+  hd_start, three movers, HP2, DDR
+[tb_hd_int] BUS MODEL RLAT=0 STALL=0
+--- structural checks, before anything runs ---
+  output stream: engine out_sv -> writer w_valid, writer w_ready -> engine out_sr  OK
+  requant path: twn_hd_seq S_RQ -> engine m0_we / bias_we / sh_we  driven
+  head DDR loaded: op61 input + four weight tensors
+    the three intermediate tensors are left X ON PURPOSE -- they are
+    what the head must produce, and X propagates if it does not.
+--- the four head descriptors, through the CSR window ---
+  HD_COMMIT reads 000000f3 -- sticky mask [7:4] = f, last operator [1:0] = 3
+  all four operators committed at least once
+--- the requantisation tables ---
+  HD_INT_SKIP_RQ: the requant window is NOT programmed (destructive arm)
+--- starting the head (HD_CTRL[0]) ---
+FAIL tb_hd_int: STALLED -- 200000 cycles with no AXI activity on HP2
+   sequencer  st=2 op=1 busy=1 done=0  hd_slot=0
+   pass_left  0   (mode A re-issues the input reader)
+   in  mover  busy=1 done=0   AR 81 bursts, 20576 R beats
+   w   mover  busy=0 done=0   AR 44 bursts, 11264 R beats
+   out mover  busy=1 done=0   AW 3 bursts, 512 W beats
+   in stream  mover drives sv=1, engine's in_sr (== reader s_ready)=0
+   w  stream  mover drives sv=0, engine's w_sr  (== reader s_ready)=0
+   out stream engine drives sv=0, writer drives ready=1
+   requant    S_RQ replay: m0_we=0 bias_we=0 sh_we=0 wa=31
+  the run was ABANDONED after the stall above; the table below reports
+  how far the head got, and every byte it never wrote is counted as such.
+--- HP2 traffic ---
+  [hd_act] window 0x70000000 + 49152 words:  81 AR, 20576 R beats, 3 AW, 512 W beats, 0 protocol/region errors
+  [hd_w] window 0x78000000 + 16384 words:  44 AR, 11264 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- HP0/HP1 traffic (the backbone was never started; both must be 0 AR / 0 AW) ---
+  [act] window 0x60100000 + 45056 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+  [weight] window 0x60000000 + 46312 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- the requantisation table standing in the engine when each operator started ---
+  op61  m0 32/32 wrong   bias 32/32 wrong   shift 32/32 wrong
+      FAIL: op61 started with a requantisation table that is not its own.
+  op62  m0 32/32 wrong   bias 32/32 wrong   shift 32/32 wrong
+      FAIL: op62 started with a requantisation table that is not its own.
+  op63  NEVER STARTED -- no table to report
+  op64  NEVER STARTED -- no table to report
+--- inter-operator timing: residual write drain vs the gap that hides it ---
+  op61  residual drain after e_done 1 cycles   gap e_done(prev)->e_start -1 cycles
+  op62  residual drain after e_done -1 cycles   gap e_done(prev)->e_start 71 cycles
+  op63  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  op64  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  DRAINRACE reachable=0 maxdrain=1 maxgap=71
+    -> skipping S_DRAIN cannot change a byte in THIS environment: the
+       requant reload alone outlasts the residual drain. twn_axi_wr has
+       no write FIFO and tb_ddr_model answers B on wlast. The directed
+       test for the race is tb_hd_seq.v's check 3.
+--- per operator, every byte the head wrote into DDR ---
+op61  modeA  8x8 IC=320 -> 16x16 OC=32
+      bytes compared 8192   bytes wrong 8192   max|diff| 0
+      of the wrong bytes, 8192 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 512   (expected 512)
+      FIRST BAD ADDRESS 0x0070020000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000007010000010003001201000200
+op62  modeB  16x16 IC=32 -> 32x32 OC=32
+      bytes compared 32768   bytes wrong 32768   max|diff| 0
+      of the wrong bytes, 32768 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 2048)
+      FIRST BAD ADDRESS 0x0070030000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00010400020000030000000000000200
+      FAIL op62: the writer moved 0 beats, the descriptor asked for 2048
+op63  modeB  32x32 IC=32 -> 64x64 OC=32
+      bytes compared 131072   bytes wrong 131072   max|diff| 0
+      of the wrong bytes, 131072 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 8192)
+      FIRST BAD ADDRESS 0x0070040000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000000000000000000000000000000
+      FAIL op63: the writer moved 0 beats, the descriptor asked for 8192
+op64  type4  64x64 IC=32 -> 64x64 OC=16
+      bytes compared 262144   bytes wrong 262144   max|diff| 0
+      of the wrong bytes, 262144 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 16384)
+      FIRST BAD ADDRESS 0x0070080000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000000000000000000000000000000
+      FAIL op64: the writer moved 0 beats, the descriptor asked for 16384
+--- verdict ---
+  TOTAL  bytes compared 434176   bytes wrong 434176   never written 434176
+  structural failures : 0
+  data / control failures : 12
+
+############ arm 5: intact, ONE golden byte flipped ############
+#  Proves the comparison walks real data and localises.
+  perturbed hd_op63_out.hex beat 4096: 00000000000000000000000000000000 -> 00000000000000000000000000000001
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+[twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+=== tb_hd_int: the head as an integrated path ===
+  CSR head window 0x0100..0x013c, requant window 0x0400..0x07fc,
+  hd_start, three movers, HP2, DDR
+[tb_hd_int] BUS MODEL RLAT=0 STALL=0
+--- structural checks, before anything runs ---
+  output stream: engine out_sv -> writer w_valid, writer w_ready -> engine out_sr  OK
+  requant path: twn_hd_seq S_RQ -> engine m0_we / bias_we / sh_we  driven
+  head DDR loaded: op61 input + four weight tensors
+    the three intermediate tensors are left X ON PURPOSE -- they are
+    what the head must produce, and X propagates if it does not.
+--- the four head descriptors, through the CSR window ---
+  HD_COMMIT reads 000000f3 -- sticky mask [7:4] = f, last operator [1:0] = 3
+  all four operators committed at least once
+--- the requantisation tables ---
+  window isolation: 16 block-table writes -> 16 d_wr_en pulses;
+                    256 requant writes    -> 256 hd_rq_we pulses
+  HD_RQ_STAT reads 0000100f -- 256 words written, per-operator mask f
+--- starting the head (HD_CTRL[0]) ---
+  head reported DONE (HD_CTRL = 00000004) after 183752 polls, 736704 cycles
+--- HP2 traffic ---
+  [hd_act] window 0x70000000 + 49152 words:  122 AR, 31232 R beats, 106 AW, 27136 W beats, 0 protocol/region errors
+  [hd_w] window 0x78000000 + 16384 words:  49 AR, 12320 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- HP0/HP1 traffic (the backbone was never started; both must be 0 AR / 0 AW) ---
+  [act] window 0x60100000 + 45056 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+  [weight] window 0x60000000 + 46312 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- the requantisation table standing in the engine when each operator started ---
+  op61  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op62  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op63  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op64  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+--- inter-operator timing: residual write drain vs the gap that hides it ---
+  op61  residual drain after e_done 1 cycles   gap e_done(prev)->e_start -1 cycles
+  op62  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  op63  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  op64  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  DRAINRACE reachable=0 maxdrain=1 maxgap=71
+    -> skipping S_DRAIN cannot change a byte in THIS environment: the
+       requant reload alone outlasts the residual drain. twn_axi_wr has
+       no write FIFO and tb_ddr_model answers B on wlast. The directed
+       test for the race is tb_hd_seq.v's check 3.
+--- per operator, every byte the head wrote into DDR ---
+op61  modeA  8x8 IC=320 -> 16x16 OC=32
+      bytes compared 8192   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 512   (expected 512)
+      BIT-EXACT
+op62  modeB  16x16 IC=32 -> 32x32 OC=32
+      bytes compared 32768   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 2048   (expected 2048)
+      BIT-EXACT
+op63  modeB  32x32 IC=32 -> 64x64 OC=32
+      bytes compared 131072   bytes wrong 1   max|diff| 1
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 8192   (expected 8192)
+      FIRST BAD ADDRESS 0x0070050000  (beat 4096 lane 0 = oy 32 ox 0 oc 0)
+        got  00000000000000000000000000000000
+        want 00000000000000000000000000000001
+op64  type4  64x64 IC=32 -> 64x64 OC=16
+      bytes compared 262144   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 16384   (expected 16384)
+      BIT-EXACT
+--- verdict ---
+  TOTAL  bytes compared 434176   bytes wrong 1   never written 0
+  structural failures : 0
+  data / control failures : 1
+
+############ arm 6: BB2HD, A_BB2HD = 1 -- a gate ############
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+[twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+=== tb_hd_int: the head as an integrated path ===
+  CSR head window 0x0100..0x013c, requant window 0x0400..0x07fc,
+  hd_start, three movers, HP2, DDR
+[tb_hd_int] BUS MODEL RLAT=0 STALL=0
+--- structural checks, before anything runs ---
+  output stream: engine out_sv -> writer w_valid, writer w_ready -> engine out_sr  OK
+  requant path: twn_hd_seq S_RQ -> engine m0_we / bias_we / sh_we  driven
+  head DDR loaded: op61 input + four weight tensors
+    the three intermediate tensors are left X ON PURPOSE -- they are
+    what the head must produce, and X propagates if it does not.
+--- the four head descriptors, through the CSR window ---
+  HD_COMMIT reads 000000f3 -- sticky mask [7:4] = f, last operator [1:0] = 3
+  all four operators committed at least once
+--- the requantisation tables ---
+  window isolation: 16 block-table writes -> 16 d_wr_en pulses;
+                    256 requant writes    -> 256 hd_rq_we pulses
+  HD_RQ_STAT reads 0000100f -- 256 words written, per-operator mask f
+--- starting the head (HD_CTRL[0]) ---
+  BB2HD: A_BB2HD = 1 -- op61 must read slot 1, op64 must write box B
+  head reported DONE (HD_CTRL = 00000004) after 183752 polls, 736709 cycles
+--- HP2 traffic ---
+  [hd_act] window 0x70000000 + 65536 words:  122 AR, 31232 R beats, 106 AW, 27136 W beats, 0 protocol/region errors
+  [hd_w] window 0x78000000 + 16384 words:  49 AR, 12320 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- HP0/HP1 traffic (the backbone was never started; both must be 0 AR / 0 AW) ---
+  [act] window 0x60100000 + 45056 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+  [weight] window 0x60000000 + 46312 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- the requantisation table standing in the engine when each operator started ---
+  op61  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op62  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op63  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op64  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+--- inter-operator timing: residual write drain vs the gap that hides it ---
+  op61  residual drain after e_done 1 cycles   gap e_done(prev)->e_start -1 cycles
+  op62  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  op63  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  op64  residual drain after e_done 1 cycles   gap e_done(prev)->e_start 71 cycles
+  DRAINRACE reachable=0 maxdrain=1 maxgap=71
+    -> skipping S_DRAIN cannot change a byte in THIS environment: the
+       requant reload alone outlasts the residual drain. twn_axi_wr has
+       no write FIFO and tb_ddr_model answers B on wlast. The directed
+       test for the race is tb_hd_seq.v's check 3.
+--- per operator, every byte the head wrote into DDR ---
+op61  modeA  8x8 IC=320 -> 16x16 OC=32
+      bytes compared 8192   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 512   (expected 512)
+      BIT-EXACT
+op62  modeB  16x16 IC=32 -> 32x32 OC=32
+      bytes compared 32768   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 2048   (expected 2048)
+      BIT-EXACT
+op63  modeB  32x32 IC=32 -> 64x64 OC=32
+      bytes compared 131072   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 8192   (expected 8192)
+      BIT-EXACT
+op64  type4  64x64 IC=32 -> 64x64 OC=16
+      bytes compared 262144   bytes wrong 0   max|diff| 0
+      of the wrong bytes, 0 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 16384   (expected 16384)
+      BIT-EXACT
+  BB2HD: A_BB2HD = 00000015 (en 1 bb_par 0 hd_sel 1 coll 0 hd_en 1); box A words written 0
+--- verdict ---
+  TOTAL  bytes compared 434176   bytes wrong 0   never written 0
+  structural failures : 0
+  data / control failures : 0
+
+############ arm 7: BB2HD + FUSE_NEG_BB2HD_HDSEL (destructive) ############
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+[twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+=== tb_hd_int: the head as an integrated path ===
+  CSR head window 0x0100..0x013c, requant window 0x0400..0x07fc,
+  hd_start, three movers, HP2, DDR
+[tb_hd_int] BUS MODEL RLAT=0 STALL=0
+--- structural checks, before anything runs ---
+  output stream: engine out_sv -> writer w_valid, writer w_ready -> engine out_sr  OK
+  requant path: twn_hd_seq S_RQ -> engine m0_we / bias_we / sh_we  driven
+  head DDR loaded: op61 input + four weight tensors
+    the three intermediate tensors are left X ON PURPOSE -- they are
+    what the head must produce, and X propagates if it does not.
+--- the four head descriptors, through the CSR window ---
+  HD_COMMIT reads 000000f3 -- sticky mask [7:4] = f, last operator [1:0] = 3
+  all four operators committed at least once
+--- the requantisation tables ---
+  window isolation: 16 block-table writes -> 16 d_wr_en pulses;
+                    256 requant writes    -> 256 hd_rq_we pulses
+  HD_RQ_STAT reads 0000100f -- 256 words written, per-operator mask f
+--- starting the head (HD_CTRL[0]) ---
+  BB2HD: A_BB2HD = 1 -- op61 must read slot 1, op64 must write box B
+FAIL tb_hd_int: STALLED -- 200000 cycles with no AXI activity on HP2
+   sequencer  st=2 op=0 busy=1 done=0  hd_slot=0
+   pass_left  15   (mode A re-issues the input reader)
+   in  mover  busy=1 done=0   AR 2 bursts, 480 R beats
+   w   mover  busy=1 done=0   AR 3 bursts, 640 R beats
+   out mover  busy=1 done=0   AW 1 bursts, 0 W beats
+   in stream  mover drives sv=1, engine's in_sr (== reader s_ready)=0
+   w  stream  mover drives sv=1, engine's w_sr  (== reader s_ready)=0
+   out stream engine drives sv=0, writer drives ready=1
+   requant    S_RQ replay: m0_we=0 bias_we=0 sh_we=0 wa=31
+  the run was ABANDONED after the stall above; the table below reports
+  how far the head got, and every byte it never wrote is counted as such.
+--- HP2 traffic ---
+  [hd_act] window 0x70000000 + 65536 words:  2 AR, 480 R beats, 1 AW, 0 W beats, 0 protocol/region errors
+  [hd_w] window 0x78000000 + 16384 words:  3 AR, 640 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- HP0/HP1 traffic (the backbone was never started; both must be 0 AR / 0 AW) ---
+  [act] window 0x60100000 + 45056 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+  [weight] window 0x60000000 + 46312 words:  0 AR, 0 R beats, 0 AW, 0 W beats, 0 protocol/region errors
+--- the requantisation table standing in the engine when each operator started ---
+  op61  m0 0/32 wrong   bias 0/32 wrong   shift 0/32 wrong
+  op62  NEVER STARTED -- no table to report
+  op63  NEVER STARTED -- no table to report
+  op64  NEVER STARTED -- no table to report
+--- inter-operator timing: residual write drain vs the gap that hides it ---
+  op61  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  op62  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  op63  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  op64  residual drain after e_done -1 cycles   gap e_done(prev)->e_start -1 cycles
+  DRAINRACE reachable=0 maxdrain=0 maxgap=0
+    -> skipping S_DRAIN cannot change a byte in THIS environment: the
+       requant reload alone outlasts the residual drain. twn_axi_wr has
+       no write FIFO and tb_ddr_model answers B on wlast. The directed
+       test for the race is tb_hd_seq.v's check 3.
+--- per operator, every byte the head wrote into DDR ---
+op61  modeA  8x8 IC=320 -> 16x16 OC=32
+      bytes compared 8192   bytes wrong 8192   max|diff| 0
+      of the wrong bytes, 8192 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 512)
+      FIRST BAD ADDRESS 0x0070020000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000007010000010003001201000200
+      FAIL op61: the writer moved 0 beats, the descriptor asked for 512
+op62  modeB  16x16 IC=32 -> 32x32 OC=32
+      bytes compared 32768   bytes wrong 32768   max|diff| 0
+      of the wrong bytes, 32768 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 2048)
+      FIRST BAD ADDRESS 0x0070030000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00010400020000030000000000000200
+      FAIL op62: the writer moved 0 beats, the descriptor asked for 2048
+op63  modeB  32x32 IC=32 -> 64x64 OC=32
+      bytes compared 131072   bytes wrong 131072   max|diff| 0
+      of the wrong bytes, 131072 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 8192)
+      FIRST BAD ADDRESS 0x0070040000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000000000000000000000000000000
+      FAIL op63: the writer moved 0 beats, the descriptor asked for 8192
+op64  type4  64x64 IC=32 -> 64x64 OC=16
+      bytes compared 262144   bytes wrong 262144   max|diff| 0
+      of the wrong bytes, 262144 were NEVER WRITTEN (still X)
+      W beats seen on ha_ during this operator: 0   (expected 16384)
+      FIRST BAD ADDRESS 0x0070080000  (beat 0 lane 0 = oy 0 ox 0 oc 0)
+        got  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        want 00000000000000000000000000000000
+      FAIL op64: the writer moved 0 beats, the descriptor asked for 16384
+  BB2HD: A_BB2HD = 00000011 (en 1 bb_par 0 hd_sel 0 coll 0 hd_en 1); box A words written 0
+  FAIL: A_BB2HD reads 11; want en 1, bb_par 0, hd_sel 1, no collision, hd_en 1
+--- verdict ---
+  TOTAL  bytes compared 434176   bytes wrong 434176   never written 434176
+  structural failures : 0
+  data / control failures : 13
+
+=================== summary ===================
+bus model                        RLAT=0 STALL=0   (requested 0/0)
+arm 1  intact                    = PASS   bit-exact operators 4/4   (the gate)
+arm 2  + HD_SEQ_BREAK_DRAIN      = PASS   bit-exact operators 4/4   (race unreachable here (maxdrain=1 < maxgap=71); reported, not required)
+arm 3  + HD_SEQ_BREAK_PASS       = FAIL(12)   bit-exact operators 0/4   (must NOT be PASS)
+arm 4  + HD_INT_SKIP_RQ          = FAIL(12)   bit-exact operators 0/4   (must NOT be 4/4)
+arm 5  one golden byte flipped   = FAIL(1)   bit-exact operators 3/4   localised True
+arm 6  BB2HD A_BB2HD = 1       = PASS   bit-exact operators 4/4   (a gate)
+arm 7  BB2HD + NEG_BB2HD_HDSEL = FAIL(13)   bit-exact operators 0/4   (must be FAIL(n))
+
+HD_INT_GATE_PASS -- the integrated head path is bit-exact
