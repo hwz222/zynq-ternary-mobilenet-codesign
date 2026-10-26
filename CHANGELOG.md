@@ -16,10 +16,12 @@ The accelerator under a Linux kernel driver, on a ready-to-boot image.
 - Driver: interrupt and completion (polling kept as the fallback, `use_irq=0`); debugfs (`regs`, `nblk`,
   `irq_count`, `dma_fault`); compatible `wjhuang,twn-fuse-1.1`; `map_device` (A/B measurements only).
 - `linux/driver/twn_fuse/wjhuang,twn-fuse.yaml` (device-tree binding) and `test/binding_check.py`;
-  `test/twn_bench.c`, `test/v11_check.sh`, `test/ab_measure.sh`, `smmu_dtb.sh`.
+  `test/twn_bench.c`, `test/v11_check.sh`, `test/ab_measure.sh`, `smmu_dtb.sh`;
+  `test/pw_expired_ssh.sh` and `test/first_login_serial.py` (the expired default password).
 - PetaLinux: the driver's module recipe, loaded at boot; kernel options `STRICT_DEVMEM`,
   `IO_STRICT_DEVMEM`, `ARM_SMMU`; the SMMU enabled with the accelerator's four stream IDs; without
-  `BOARD_PW` a published default password that the first interactive login must change.
+  `BOARD_PW` a published default password, expired at build (Yocto `passwd-expire`): the first
+  login, serial console or ssh, must change it, and ssh commands and scp are refused until then.
 - `tools/make_synthetic_fixtures.py` and `models/mbv2_pose/fixtures_synthetic/`: four formula images
   with their exact expected outputs, so board checks need no dataset.
 - `board/make_kit.sh`: the board kit (apps, tests, weights, synthetic fixtures, `SHA256SUMS`).
@@ -38,8 +40,20 @@ The accelerator under a Linux kernel driver, on a ready-to-boot image.
 ### Measured
 
 - v1.1 image: 232.6 fps, fixtures bit-exact, 10.7 us of CPU per backbone frame with the interrupt
-  (465.8 us polling); bitstream 44,157 LUT, WNS 0.000 ns at 240 MHz (`results/board_results.json`,
+  (465.8 us polling); on one boot, 233.13 fps with the interrupt against 231.26 fps polling;
+  bitstream 44,157 LUT, WNS 0.000 ns at 240 MHz (`results/board_results.json`,
   `linux_driver_twn_fuse_v11_20261027`).
+- `make W=1` and `checkpatch.pl --strict`: no warnings on the driver and its ioctl header.
+
+### Fixed before the release (study handout 2, review round 1)
+
+- The first image stopped only interactive logins with a `profile.d` script; ssh commands and scp
+  worked with the published password. The password is now expired at build and the script is gone.
+- Driver: `-EPROBE_DEFER` from the interrupt lookup is returned instead of falling back to polling;
+  a failed `misc_register()` turns the interrupt enable off again.
+- `/dev/mem` and SMMU wording: `STRICT_DEVMEM` refuses System RAM only (DDR above it stays
+  readable), registers are readable again after `rmmod`, and the SMMU checks only Non-secure traffic
+  with the listed stream IDs (the kernel leaves bypass on).
 
 ### Not done
 

@@ -43,3 +43,12 @@
 % ---- 第 8 節：SMMU 開（E2_board_check.log 第 37-39 行：232.55、232.60、232.59）與關（G2_board_check.log 第 37-39 行：232.67、232.35、231.49）
 \newcommand{\smmuOnFps}{232.58}
 \newcommand{\smmuOffFps}{232.17}
+%
+% ---- 開機組 H：v1.1 發佈映像。開機檔與開機組 E 相同，只換了 rootfs（root 密碼在建置時就設成過期、
+%      driver 補了兩個失敗路徑）與板上工具包（board_hashes_H.txt）
+\newcommand{\relRootfs}{96b9e56733ad36a9}
+\newcommand{\relKit}{3a4eb0997028ba0e}
+% 同一次開機交替三輪的 pipeline fps：H7_irq_vs_poll_fps.log 第 5、13、21 行（中斷 233.84、232.83、232.71）
+% 與第 9、17、25 行（輪詢 231.33、231.27、231.19）
+\newcommand{\hIrqFps}{233.13}
+\newcommand{\hPollFps}{231.26}

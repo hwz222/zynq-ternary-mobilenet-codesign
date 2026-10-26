@@ -6,18 +6,22 @@ linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_mmap                  
 linux/driver/twn_fuse/twn_fuse.c                 | at:static bool map_device             | drv_param_map
 linux/driver/twn_fuse/test/ab_measure.sh         | at:run() {                            | ab_run
 sw/app/pl_hal_fuse.c                             | at:int fd = open("/dev/mem"           | uio_devmem
+linux/driver/twn_fuse/test/v11_check.sh          | at1:split)                           | chk_split
 
 # ---- 2. ioctl cost ----
 linux/driver/twn_fuse/test/twn_bench.c           | at:	t0 = now_ns();                   | bench_status
 linux/driver/twn_fuse/test/twn_bench.c           | at:	c0 = cpu_ns();                   | bench_bbrun
 linux/driver/twn_fuse/test/twn_bench.c           | at:	/* 3. the CPU's own access       | bench_copy
+git:7615324:linux/driver/twn_fuse/twn_fuse.c     | at3:r.ns = ktime_get_ns() - t0;       | v10_rns
+linux/driver/twn_fuse/twn_fuse.c                 | at1:r.ns = ktime_get_ns() - t0;       | drv_rns
 
 # ---- 3. interrupt ----
 git:7615324:linux/driver/twn_fuse/twn_fuse.c     | at:	ret = wait_bit(td, R_CTRL, CTRL_DONE, true); | v10_wait_done
 git:7615324:linux/driver/twn_fuse/twn_fuse.c     | fn:wait_bit                           | v10_wait_bit
 git:7615324:vivado/build_bd_fuse.tcl             | at:# --- no interrupt output          | v10_irq_zero
-rtl/fuse/twn_csr.v                               | at://  Interrupt (v1.1)               | csr_irq_doc
+rtl/fuse/twn_csr.v                               | at4://  Interrupt (v1.1)              | csr_irq_doc
 rtl/fuse/twn_csr.v                               | at:// level interrupt from the registered state | csr_irq_reg
+rtl/fuse/twn_csr.v                               | at1:irq <= (bb_irq_en & ap_done)     | csr_irq_assign
 rtl/fuse/twn_csr.v                               | at:// IRQ write:                      | csr_irq_wr
 rtl/fuse/twn_csr.v                               | at:// IRQ read:                       | csr_irq_rd
 rtl/fuse/twn_csr.v                               | at12:A_CTRL: begin                    | csr_ctrl_wr
@@ -48,6 +52,7 @@ sw/app/pl_hal_fuse_drv.c                         | fn:fuse_read_arr_cap         
 
 # ---- 4. timing closure ----
 vivado/build.cmd                                 | at9:set "FUSE_HD_PROBE=1"             | build_recipe
+vivado/build.cmd                                 | at1:if not defined FUSE_TAG           | build_tag
 vivado/build_bd_fuse.tcl                         | at15:# The implementation strategy can end | postroute
 
 # ---- 9. binding ----
@@ -60,21 +65,27 @@ linux/driver/twn_fuse/test/binding_check.py      | at21:def check_dtb           
 linux/project-spec/meta-user/recipes-modules/twn-fuse/twn-fuse.bb | at18:SUMMARY =     | recipe_bb
 linux/project-spec/meta-user/recipes-modules/twn-fuse/files/Makefile | at9:obj-m      | recipe_make
 linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:/* v1.1: the accelerator | dtsi_v11
+linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at1:&fuse_0 {  | dtsi_fuse0
 git:7615324:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:&fuse_0 { | v10_dtsi_uio
 linux/project-spec/meta-user/conf/petalinuxbsp.conf | at:# v1.1: the accelerator's kernel driver | bsp_install
+linux/project-spec/meta-user/conf/petalinuxbsp.conf | at1:IMAGE_INSTALL:append = " twn-fuse" | bsp_install_line
 linux/build_linux.sh                             | at:# the kernel driver's recipe builds | build_copy_src
+linux/build_linux.sh                             | at1:for f in twn_fuse.c twn_fuse_ioctl.h | build_copy_for
 
 # ---- 7. /dev/mem ----
 linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx/twn-v11.cfg | at11:# v1.1 kernel options | kcfg
 linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx_%.bbappend | at5:FILESEXTRAPATHS | kbbappend
 git:7615324:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at10:    reserved-memory { | v10_dtsi_reserved
+linux/driver/twn_fuse/test/v11_check.sh          | at1:devmem)                          | chk_devmem
 
 # ---- 10. release ----
 linux/build_linux.sh                             | at:# root password: kept out of the repo | build_pw
-linux/project-spec/meta-user/recipes-core/board-config/files/twn-firstlogin.sh | at12:# Installed only | firstlogin
-linux/project-spec/meta-user/recipes-core/board-config/board-config.bb | at:# "1" in images built with | bc_install
+linux/build_linux.sh                             | at1:BOARD_PW=twn-v1.1; EXPIRE          | build_pw_line
+board/make_kit.sh                                | at1:--strip-all                      | kit_strip
 tools/make_synthetic_fixtures.py                 | at25:def images():                    | syn_images
 
 # ---- 8. SMMU ----
 linux/driver/twn_fuse/smmu_dtb.sh                | at:# Stream ID = TBU number             | smmu_dtb
 rtl/src/twn_axi_rd.v                             | at4:    assign arcache = 4'b0011;      | axi_rd_prot
+rtl/src/twn_axi_rd.v                             | at1:assign arprot                    | axi_arprot
+linux/driver/twn_fuse/twn_fuse.c                 | at1:device_iommu_mapped(td->dev)     | drv_mmap_iommu

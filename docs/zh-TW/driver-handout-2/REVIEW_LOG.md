@@ -386,3 +386,41 @@ SMMU bypass 開著，AXI ID 不是 0 或 Secure 的交易直通 DDR）、R8（`S
 仍可映射）、R9（公開的預設密碼在非互動 ssh 上一直有效）——讀者照著講會在面試時講錯安全性結論；其次是比較的尺不一致（R1、R3）、
 數字或出處錯（R2、R4、R5、R6、R10）、一個與 kernel 原始碼不符的解釋（R13），以及兩項讓讀者卡住的問題（R11 速查表、R12 名詞）。
 12 項建議可與必改一起處理。修正後請送第 2 輪複查。
+
+### 第 1 輪的處理（2026-10-27，作者）
+
+程式與映像的改動在 commit `b11c465`（driver 兩個失敗路徑、header 的 checkpatch 兩項、root 密碼在建置時就過期、
+`v11_check.sh` 加 `irqfps` 與 `devmem`、開機組 H 的紀錄與 `S6_static_checks.log`）；講義與文件的改動在下一個 commit。
+重建後 72 頁，沒有 Overfull，沒有「紀錄待補」或「待寫」。
+
+| 項目 | 處理 |
+|---|---|
+| R1 | 一句話、技術框、表格最後一欄、結論、面試回答、附錄 B 第 1 題都改成「第 2→3 組同時換了等硬體的地方與 buffer 來源，兩者合起來看不出影響」；原理補第三個細節：要分開還需要哪一組（沒有做）。 |
+| R2 | D6 改成 `{3-21}`，正文用 `\splitDevIn`／`\splitNcIn`；S2 加第 86 行並說明；`debugfs.rst` 改成第 14--18 行。 |
+| R3 | 第 2 節：降幅改引開機組 E 同一次開機的 39.3→14.0、465.8→10.7，並寫明 35.8 µs 是開機組 D、不能直接相減。第 3 節：在開機組 H 補跑同一次開機、交替三輪的 pipeline（`H7_irq_vs_poll_fps.log`）：中斷 233.13、輪詢 231.26 fps，三次中斷都比三次輪詢快，結論從「fps 不變」改成「快 0.8%」並給出機制（每幀週期短約 35 µs）。第 7 節：MemTotal 的比較寫明是不同開機組、不同 kernel，512 kB 那段補上 kernel 映像大小也混在裡面。 |
+| R4 | 刪掉「差 10 µs」的例子，改寫成不同設定之間量到 29.2--40.0 µs、重複性沒有量；「30 到 45」→「約 30 到 40」（第 2 節與附錄 B）；CmaFree 改成 8,256 kB，8 MB 是 buffer、64 kB 沒有查；刪掉「出貨版有 1 顆」，補上第一版 6 顆；「約 991,000」。 |
+| R5 | 「HP0 的 master ID 是 1010，HP1 到 HP3 依序是 1011、1100、1101」；`smmu_dtb.sh` 前面改成「第一次用的版本寫入推算的三個 ID；下面是量到之後的現行版本」。 |
+| R6 | `disable_bypass` 那次開機標明沒有保存紀錄、只寫 README 記下的「沒有任何 fault」；「HP0 開始被轉換」改引 F0 第 22 行的 context fault，另外三個埠改成「沒有登記，SMMU 回報 global fault」。 |
+| R7 | 第 8 節的一句話、技術框、改善框、原理最後一段、面試回答、附錄 B 第 8 題都加上前提：只對帶著登記 ID 的 Non-secure 交易有效；寫出 bypass 開著的兩種漏洞（非 0 的 AXI ID、Secure 交易）、可以怎麼堵（`disable_bypass`）與發佈映像沒有這樣做的原因；SMMU 的對象改成「CPU 以外的匯流排主控端（PS 的 DMA 周邊與 PL）」並補 PS 周邊一起被放到 SMMU 後面、USB 與 DisplayPort 沒有測。dtsi 的註解同步改。 |
+| R8 | 標題、導讀、附錄 B 改成「限制 /dev/mem」；改成「System RAM」；在開機組 H 實測邊界（`H8_devmem.log`）：System RAM 與佔用中的暫存器被拒絕，`0x7ff0_0000` 與 `rmmod` 之後的暫存器都讀得到，講義把這個結果放進第 7 節並改寫改善框與面試回答。kernel 選項片段的註解（「any RAM」）沒有改（改它會讓 kernel 重編、Image 的雜湊改變），講義在片段下面加一句說明。 |
+| R9 | 改的是映像本身：`build_linux.sh` 在沒有 `BOARD_PW` 時加 Yocto 的 `passwd-expire root`，拿掉 `profile.d` 腳本。開機組 H 實測：ssh 帶指令與 scp 都被拒絕（`H1`）；序列埠 Ctrl-C 回到登入提示、空密碼「No password has been supplied.」、兩次不同都拿不到 shell（`H2`）。第 10 節重寫，第一版的漏洞寫成「踩過的坑」；「空密碼被拒絕」現在有 H2 第 18 行的紀錄。 |
+| R10 | 修掉 header 的兩項；`S6_static_checks.log` 記錄 `make W=1`（並證明 W=1 真的傳到編譯器）與 `checkpatch --strict` 兩個檔案都是 0；第 9 節引用這份紀錄。 |
+| R11 | 第 6、7 節的位置欄改成可換行的 `X`、做什麼欄固定寬度，共同前綴寫在表下；第 10 節路徑變短，用 `l l X`。 |
+| R12 | 列出的名詞都在第一次出現處補了中文解釋，附錄 A 從 41 條增加到 79 條；ECO 改成第 4 節；「IP-XACT 介面」改成正文用的「interrupt 介面」並在說明裡提 IP-XACT；第 4 節的 AxPROT 加「第 8 節解釋」。 |
+| R13 | 改成依 kernel 原始碼的說法（非共用的線在 `request_irq` 才啟動、最後一個 handler 釋放時關掉；順序真正保護的是 completion 先初始化與共用中斷線）。driver 也修了：`-EPROBE_DEFER` 直接回傳；`misc_register()` 失敗時先關掉致能。 |
+| R14 | 「PL 空檔占大部分」改成「推測占一部分、沒有量」；「上百次」改成「約 80 次（估計）」並說明原因；第 2 節補一句 `getrusage` 不含 ISR 與 hrtimer 中斷（沒有 `IRQ_TIME_ACCOUNTING`）。 |
+| R15 | 第 4 節引用 `opt1_archived_20261008` 與 `rebuilt_from_clone_20261011` 兩邊；S5 改成「到 placement 為止相同，重現是推測、沒有跑完」；AxPROT 一律寫 AxPROT[1]（`3'b000` → `3'b010`）。 |
+| R16 | 「driver 不用改」改成「資料路徑不用改，只有 `map_device` 加一個檢查」；buffer 來源在第 7 節與 dtsi 註解都加「沒有 SMMU 時從 CMA」；F0 的 6+1+3=10 寫明是 kernel 的限流上限；速查改指 `arprot` 那一行與 `device_iommu_mapped()` 那一行。 |
+| R17 | overlay 改成「用標籤參照、編譯時覆寫，不是執行期的 `.dtbo`」；udev 改成「用 libkmod 載入（效果等同 modprobe）」；binding 改成「開機前跑 `dtbs_check` 才抓得到，`dtc` 不看 binding」；第 7 節的 dtsi 內容寫完整。 |
+| R18 | E7 的描述改成「在第一個 `New password:` 按 Ctrl-C」；合成 fixture 改成「重算第 0 張 MPII fixture」。 |
+| R19 | 一句話改寫；原本框補一句：兩個函式安靜地回傳 0，比失敗更容易誤導。 |
+| R20 | 速查表補上或改正行號：`v11_check.sh split`／`devmem`、`r.ns`、`FUSE_TAG`、`twn-fuse.bb`、`system-user.dtsi` 的 `&fuse_0`、`IMAGE_INSTALL`、複製原始碼的 `for`、預設密碼那一行、`make_kit.sh` 的 strip、`irq` 的指派、`smmu_dtb.sh`；`snippets.txt` 為它們加了 `at1:` 標籤。 |
+| R21 | 四處標題與黑框之間加 `\needspace`；`\snip` 在開框前估計這一頁還放得下幾行，會留下少於 6 行或讓少於 4 行跑到下一頁時先換頁；`csr_irq_doc` 改用 `at4:`。 |
+| R22 | 第 3 節指出問題在 `twn_bb_run()` 的那一行 `wait_bit()`；第 5 節指出安靜回傳 0 的兩行；第 2 節原本框加上 v1.0 已經量 `r.ns` 卻沒人比較的那三行。第 8 節沒有另外抽 `in_arena()`（正文已點名）。 |
+| R23 | 十節的一句話都改成一句。 |
+| R24 | `\boardfile` 的標題自動帶上開機組代號（檔名第一個字母）；導讀說明每個紀錄第 1 行是日期與雜湊，並註明 S 檔、E7、H1、H2 的 `# ` 行是說明文字。 |
+| R25 | 第 4 步補 `bind.sh`、`twn_bench`；第 6 步給出只登記推算 ID 的 dtb 怎麼做；第 5 步改成開機組 E 與 H，加上 H1、H2 的兩個腳本（已收進 `linux/driver/twn_fuse/test/`）。 |
+
+另外，因為 rootfs 換了，導讀的開機組表格新增 H（發佈映像：開機檔與 E 相同，只換 rootfs 與板上工具包），E 改稱
+「發佈映像的開機檔、發佈前一版的 rootfs」；`results/board_results.json` 的 v1.1 條目、證據 README、發佈資產清單與
+英文文件同步更新。

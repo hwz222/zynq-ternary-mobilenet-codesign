@@ -70,9 +70,10 @@ Creates a PetaLinux project outside the repository (`$PLNX_PROJ`, default
 in `artifacts/hw/`, or `XSA=<file>`), lays `linux/project-spec/` over it, builds, compiles
 `linux/boot.cmd` into `boot.scr`, and copies eight files: `build/linux/boot/{zynqmp_fsbl,pmufw,bl31,u-boot}.elf`
 and `build/linux/sd/{Image,system.dtb,rootfs.cpio.gz.u-boot,boot.scr}`. `BOARD_PW` becomes the root
-password of the image; without it the image gets the published default password `twn-v1.1`, and the
-first interactive login must set a new one. The image loads the kernel driver at boot, keeps
-`/dev/mem` closed to RAM and to claimed registers, and enables the SMMU. By default (`OFFLINE=0`) PetaLinux
+password of the image; without it the image gets the published default password `twn-v1.1`,
+marked expired: the first login (serial console or ssh) must set a new one, and ssh commands and scp
+are refused until then. The image loads the kernel driver at boot, keeps `/dev/mem` away from
+System RAM and from registers a driver holds, and enables the SMMU. By default (`OFFLINE=0`) PetaLinux
 fetches sources from the public mirrors; `OFFLINE=1 CACHE_PROJ=<earlier project>` reuses the
 downloads and shared state of an earlier PetaLinux 2023.2 project without network access. The
 script header lists the other variables. It can be re-run: the project is kept and bitbake resumes.

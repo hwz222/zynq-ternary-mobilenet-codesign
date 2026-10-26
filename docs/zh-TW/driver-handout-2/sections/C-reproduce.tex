@@ -14,7 +14,7 @@ vivado\build.cmd                                    (S4: timing and utilization 
 \textbf{2. Linux 映像與開機檔（WSL）}
 
 \begin{cmdline}
-bash linux/build_linux.sh          # no BOARD_PW: the published default password, changed at first login
+bash linux/build_linux.sh          # no BOARD_PW: the published default password, expired
 bash board/make_boot.sh build/system_fuse_ternpose.bit build/BOOT.BIN
 python3 linux/driver/twn_fuse/test/binding_check.py <kernel-source> build/linux/sd/system.dtb   (S3)
 \end{cmdline}
@@ -26,11 +26,13 @@ bash board/build_apps.sh                       # HAL=drv (default): build/arm-dr
 HAL=uio bash board/build_apps.sh               # the UIO apps, for boot D only
 make -C linux/driver/twn_fuse prepare all test # twn_fuse.ko (boot D), twn_errtest, twn_bench
 bash board/make_kit.sh                         # build/twn_board_kit.tar.gz
+make -C linux/driver/twn_fuse clean; make -C linux/driver/twn_fuse W=1                  (S6)
+<kernel-source>/scripts/checkpatch.pl --no-tree --strict -f twn_fuse.c twn_fuse_ioctl.h  (S6)
 \end{cmdline}
 
 \textbf{4. 開機組 D（v1.0.0 的開機檔，D1--D6）}
 
-把 v1.0.0 的五個開機檔放上 SD 卡開機，複製 \code{twn_fuse.ko}、兩版 app（改名為 \code{_uio}、\code{_drv}）、\code{ab_measure.sh}、\code{v11_check.sh} 與 \code{data/}、\code{golden/}（\code{syn/} 放合成 fixture），然後：
+把 v1.0.0 的五個開機檔放上 SD 卡開機，複製 \code{twn_fuse.ko}、兩版 app（改名為 \code{_uio}、\code{_drv}）、\code{bind.sh}、\code{twn_bench}、\code{ab_measure.sh}、\code{v11_check.sh} 與 \code{data/}、\code{golden/}（\code{syn/} 放合成 fixture），然後：
 
 \begin{cmdline}
 sh v11_check.sh ab          (D1)     sh v11_check.sh bench      (D2)
@@ -38,27 +40,38 @@ sh v11_check.sh debugfs     (D3)     sh v11_check.sh synthetic  (D4)
 sh v11_check.sh boot        (D5)     sh v11_check.sh split      (D6)
 \end{cmdline}
 
-\textbf{5. 開機組 E（v1.1 映像，E1--E7）}
+\textbf{5. 開機組 E 與 H（v1.1 映像，E0--E9、H0--H8）}
+
+現在的原始碼建出的是開機組 H 的 rootfs（root 密碼過期）；開機組 E 的 rootfs 是 commit \code{b11c465} 之前的版本，其他開機檔兩組相同。\code{BOARD_PW} 是板子目前的 root 密碼：
 
 \begin{cmdline}
-export BOARD_PW=twn-v1.1
 bash board/deploy.sh pin
 bash board/deploy.sh pushlinux build/BOOT.BIN build/linux/sd
+# right after the reboot, before anyone logs in, from a Linux host:
+bash linux/driver/twn_fuse/test/pw_expired_ssh.sh                                        (H1)
+python linux/driver/twn_fuse/test/first_login_serial.py COM14 <new password> H2.log      (H2)
+export BOARD_PW=<new password>
 # on the board: tar xzf twn_board_kit.tar.gz && cd twn_board_kit
-sha256sum -c SHA256SUMS (E0)   sh v11_check.sh boot (E1)   sh board_check.sh (E2)
-sh v11_check.sh bench (E3)   sh v11_check.sh debugfs (E4)   sh v11_check.sh synthetic (E5)
-sh v11_check.sh irqcount (E6)   sh v11_check.sh smmu (E8)
+sha256sum -c SHA256SUMS (E0, H0)   sh v11_check.sh boot (E1, H3)   sh board_check.sh (E2, H4)
+sh v11_check.sh bench (E3)   sh v11_check.sh debugfs (E4)   sh v11_check.sh synthetic (E5, H5)
+sh v11_check.sh irqcount (E6)   sh v11_check.sh smmu (E8, H6)   sh v11_check.sh irqfps (H7)
+sh v11_check.sh devmem (H8, last: one of its reads is outside System RAM)
 \end{cmdline}
 
-E2m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是在序列埠（115200 baud）上做一次互動登入：先在密碼提示按 Ctrl-C，再輸入空密碼，最後設定新密碼。
+E2m 與 H4m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是第一版 rootfs 在序列埠（115200 baud）上的互動登入：在第一個 \code{New password:} 提示按 Ctrl-C，再輸入空的新密碼與不同的確認密碼，最後設定新密碼。H1、H2 是用與上面兩個腳本相同的步驟產生的（兩個腳本是事後從當時的暫存腳本整理進 repo 的，紀錄第 1 行的說明文字略有不同）。
 
 \textbf{6. 開機組 F（找 stream ID，F0--F1）}
 
-在開機組 E 的開機檔上，把 \code{boot.scr} 換成 \code{bootargs} 多一個 \code{arm_smmu.disable_bypass=1} 的版本（從 \code{linux/boot.cmd} 用 \code{mkimage} 編），沒有登記的 stream ID 就會被 SMMU 擋下並回報：
+開機組 F 的 \code{BOOT.BIN} 與開機組 E 相同，kernel 與 rootfs 是第一次建出的 v1.1 版本。要看到 F0 的 global fault，\code{system.dtb} 只能登記當時推算的三個 ID（F0 用的 dtb 是 \code{4889daa18dd6a320}）；再把 \code{boot.scr} 換成 \code{bootargs}（U-Boot 傳給 kernel 的命令列）多一個 \code{arm_smmu.disable_bypass=1} 的版本：在 \code{linux/boot.cmd} 的 \code{bootargs} 加上這個參數，再用 U-Boot 的 \code{mkimage} 工具編成 \code{boot.scr}（指令與 \code{linux/build_linux.sh} 第 5 步相同）。這樣沒有登記的 stream ID 就會被 SMMU 擋下並回報：
 
 \begin{cmdline}
+ph=$(fdtget -t x system.dtb /axi/smmu@fd800000 phandle)       # on the host
+cp system.dtb system_f0.dtb
+fdtput -t x system_f0.dtb /amba_pl@0/twn_fuse@a0000000 iommus $ph e80 $ph 1280 $ph 1680
+# boot with system_f0.dtb as system.dtb, then on the board:
 dmesg | grep -o "GFSYNR1 0x[0-9a-f]*" | sort | uniq -c         (F0: the unlisted IDs)
-sh linux/driver/twn_fuse/smmu_dtb.sh system.dtb system_smmu.dtb  # on the host, the measured IDs
+# back on the host, the measured IDs; boot with system_smmu.dtb as system.dtb:
+sh linux/driver/twn_fuse/smmu_dtb.sh system.dtb system_smmu.dtb
 sh v11_check.sh smmu                                               (F1)
 \end{cmdline}
 
@@ -72,4 +85,4 @@ fdtput -d system_nosmmu.dtb /amba_pl@0/twn_fuse@a0000000 iommus
 sh v11_check.sh boot (G1)   sh board_check.sh (G2)   sh v11_check.sh bench (G3)   sh v11_check.sh debugfs (G4)
 \end{cmdline}
 
-\textbf{回退。}開始前先 \code{deploy.sh pin}（保存目前的 \code{BOOT.BIN}）；\code{pushlinux} 會把被換掉的檔案保存在卡上的 \code{previous_linux/}。板子開不起來時，可以在序列埠攔下 U-Boot，用 \code{fatload} 與 \code{fatwrite} 把保存的檔案寫回。
+\textbf{回退。}開始前先 \code{deploy.sh pin}（保存目前的 \code{BOOT.BIN}）；\code{pushlinux} 會把被換掉的檔案保存在卡上的 \code{previous_linux/}。板子開不起來時，可以在序列埠攔下 U-Boot（開機載入程式，負責從 SD 卡讀 kernel、device tree 與 rootfs），用 \code{fatload} 與 \code{fatwrite} 把保存的檔案寫回。

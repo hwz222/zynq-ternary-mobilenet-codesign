@@ -1047,8 +1047,8 @@
   "linux_driver_twn_fuse_v11_20261027": {
     "current": true,
     "date": "2026-10-27",
-    "ruler": "the board kit of the v1.1 release (board/make_kit.sh) on the v1.1 image: board_check.sh (mbv2_fuse_test, the 4 synthetic fixtures and, separately, the 4 MPII fixtures of deploy_probe_tern_dc32_20261012, FUSE_HEAD_PL=1 and 0; twn_errtest timeout; rmmod while open and while mapped; five unload/reload cycles; mbv2_fuse_pipe 120 frames, FUSE_BB2HD=1, FUSE_HEAD_PL=1, three runs), test/v11_check.sh (boot, bench, debugfs, synthetic, irqcount, smmu); one job per boot, not polled; board clock 240 MHz",
-    "build": "v1.1 image: BOOT.BIN 5d226057efc8760b (bitstream 11b4d88f583b8e23, XSA 253ca13d2e977247), Image 0110440877a3738d, system.dtb bc4255b1c54ae27e (SMMU on), system_nosmmu.dtb 6ceadb90b64b6a98, rootfs.cpio.gz.u-boot 8c54689ab21fe45c, boot.scr ea53e9648a37f16f, twn_fuse.ko 3d1bbe778a4a9d4b (from the image); board kit 8440be649b2228b6 for E0-E8; the release kit 97cc94ee729e5f78 (binaries stripped) checked in E9; branch v1.1-dev",
+    "ruler": "the board kit of the v1.1 release (board/make_kit.sh) on the v1.1 image: board_check.sh (mbv2_fuse_test, the 4 synthetic fixtures and, separately, the 4 MPII fixtures of deploy_probe_tern_dc32_20261012, FUSE_HEAD_PL=1 and 0; twn_errtest timeout; rmmod while open and while mapped; five unload/reload cycles; mbv2_fuse_pipe 120 frames, FUSE_BB2HD=1, FUSE_HEAD_PL=1, three runs), test/v11_check.sh (boot, bench, debugfs, synthetic, irqcount, smmu, irqfps, devmem); test/pw_expired_ssh.sh and test/first_login_serial.py for the expired default password; one job per boot, not polled; board clock 240 MHz",
+    "build": "v1.1 release image (boot H): BOOT.BIN 5d226057efc8760b (bitstream 11b4d88f583b8e23, XSA 253ca13d2e977247), Image 0110440877a3738d, system.dtb bc4255b1c54ae27e (SMMU on), system_nosmmu.dtb 6ceadb90b64b6a98, rootfs.cpio.gz.u-boot 96b9e56733ad36a9 (root password expired at build; twn_fuse.ko aec4477e2c520faf), boot.scr ea53e9648a37f16f, board kit 3a4eb0997028ba0e (H0-H8). Boot E (E0-E9) had the same boot files with the earlier rootfs 8c54689ab21fe45c (first-login script instead of the expired password; twn_fuse.ko 3d1bbe778a4a9d4b, without the two probe error-path fixes), board kit 8440be649b2228b6 and the stripped kit 97cc94ee729e5f78 (E9); branch v1.1-dev",
     "source": "results/raw/linux_driver_v11_20261027/ (README.md lists every file)",
     "measured_by": "bash linux/build_linux.sh; bash board/make_boot.sh; bash board/make_kit.sh; on the board: sh board_check.sh, sh v11_check.sh <mode>",
     "timing": {
@@ -1062,7 +1062,7 @@
       "bram_tiles": 145,
       "dsp": 217
     },
-    "bit_exact_fixtures": "4/4 synthetic and 4/4 MPII, head in the PL and on the processor, SMMU on (E2, E2m, E5, E8) and off (G2); again after the refused table and in each of five reload cycles",
+    "bit_exact_fixtures": "4/4 synthetic and 4/4 MPII, head in the PL and on the processor, SMMU on (E2, E2m, E5, E8; release image H4, H4m, H5, H6) and off (G2); again after the refused table and in each of five reload cycles",
     "error_path_checks": "14/14 as expected (12 refusals, 2 successes)",
     "timeout_s": 3.17,
     "fps_runs_smmu_on": [
@@ -1089,10 +1089,23 @@
       "wait_us_driver_minus_pl_irq": 14.0,
       "wait_us_driver_minus_pl_polling": 39.3,
       "interrupts_per_1000_frames": 1000,
-      "irq_none_calls": 0
+      "irq_none_calls": 0,
+      "fps_runs_same_boot_irq": [
+        233.84,
+        232.83,
+        232.71
+      ],
+      "fps_runs_same_boot_polling": [
+        231.33,
+        231.27,
+        231.19
+      ],
+      "fps_mean_same_boot_irq": 233.13,
+      "fps_mean_same_boot_polling": 231.26,
+      "fps_same_boot_note": "release image, one boot, three rounds alternating a 120-frame pipeline run with the interrupt and one with use_irq=0 (H7); every interrupt run above every polling run"
     },
     "ioctl_status_round_trip_us": 1.62,
-    "boot": "twn_fuse loaded at boot (4.8 s), bound by compatible wjhuang,twn-fuse-1.1; /dev/mem mmap of DDR and of the registers: Operation not permitted; MemTotal 2035396 kB (v1.0.0 boot 1773764 kB); no reserved-memory node; first interactive login forces a password change, Ctrl-C ignored",
+    "boot": "twn_fuse loaded at boot (4.8 s), bound by compatible wjhuang,twn-fuse-1.1; MemTotal 2035396 kB (v1.0.0 boot 1773764 kB, a different kernel); no reserved-memory node",
     "smmu": {
       "stream_ids": {
         "hp0": "0x0e80",
@@ -1102,7 +1115,8 @@
       },
       "how_measured": "arm_smmu.disable_bypass=1: the SMMU reports unlisted stream IDs in GFSYNR1 (F0); with all four listed, no global fault (F1)",
       "out_of_buffer_read": "debugfs dma_fault: context fault (cbfrsynra 0xe80) with the SMMU, unnoticed without",
-      "prerequisite": "AXI masters drive AxPROT 3'b010 (Non-secure); with 3'b000 the PL traffic was neither translated nor checked (first_bitstream/)"
+      "prerequisite": "AXI masters drive AxPROT 3'b010 (Non-secure); with 3'b000 the PL traffic was neither translated nor checked (first_bitstream/)",
+      "limit": "the kernel leaves bypass on (no arm_smmu.disable_bypass=1): unlisted stream IDs (a nonzero AXI ID) and Secure transactions are neither translated nor checked"
     },
     "ab_v100_boot_files": {
       "what": "v1.0.0 boot files (BOOT.BIN 690d87cc5f4b6897), v1.1 driver polling, 6 runs per arm (D1)",
@@ -1121,13 +1135,26 @@
       "cpu_load_mb_s": 81,
       "write_in_ms_normal_nc": "0.09-0.10",
       "write_in_ms_device": "0.14-0.15",
-      "note": "attributes the 0.8-1.0 % of linux_driver_twn_fuse_20261026 to the CPU-side memory attribute of the buffer mapping (Normal non-cacheable vs Device-nGnRnE); polling location and buffer address show no effect"
+      "note": "attributes the 0.8-1.0 % of linux_driver_twn_fuse_20261026 to the CPU-side memory attribute of the buffer mapping (Normal non-cacheable vs Device-nGnRnE); polling location and buffer source changed together between two arms and together show no effect"
     },
     "note": "The headline throughput of the release stays the board number of the deployed model; the numbers here compare the v1.1 driver configurations. dt_binding_check and sparse were not run (they need dtschema and sparse installed); test/binding_check.py checks the binding and the generated node instead (S3).",
     "fps_runs_release_kit": [
       231.3,
       232.24,
       232.69
-    ]
+    ],
+    "fps_runs_release_image": [
+      232.22,
+      232.39,
+      232.21
+    ],
+    "fps_runs_release_image_mpii": [
+      233.08,
+      233.44,
+      232.71
+    ],
+    "devmem": "STRICT_DEVMEM and IO_STRICT_DEVMEM: mmap of System RAM and of the registers while the driver is loaded: Operation not permitted (E1, H3, H8); still readable: 0x7ff00000, the top 1 MB of DDR outside System RAM, and the registers after rmmod (H8)",
+    "default_password": "published twn-v1.1, expired at build (passwd-expire): ssh commands and scp refused with 'Password change required but no TTY available' before the first login (H1); serial console: Ctrl-C back to the login prompt, an empty and two mismatched passwords refused, then the change (H2). Boot E's first-login script stopped only interactive logins (E7)",
+    "static_checks": "make W=1 and scripts/checkpatch.pl --strict -f: 0 warnings on twn_fuse.c and twn_fuse_ioctl.h (S6)"
   }
 }

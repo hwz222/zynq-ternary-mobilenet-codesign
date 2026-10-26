@@ -3,7 +3,7 @@
 \label{sec:debugfs}
 
 \begin{oneline}
-UIO 版本有三個除錯工具：只跑前 n 個 block 的「短幀」、像素相位的觀察位元、陣列的第一個輸出。driver v1.0 沒有提供，app 一呼叫就失敗。v1.1 把它們放進 debugfs（只給開發者用的 kernel 檔案系統）：\code{/sys/kernel/debug/twn_fuse/} 底下的 \code{regs}、\code{nblk}，加上新的 \code{irq_count} 和 \code{dma_fault}。
+UIO 版本的三個除錯工具（短幀、像素相位的觀察位元、陣列的第一個輸出）在 driver v1.0 不能用，v1.1 把它們放進 debugfs（只給開發者用的 kernel 檔案系統）的 \code{/sys/kernel/debug/twn_fuse/}，另外加上 \code{irq_count} 和 \code{dma_fault} 兩個新工具。
 \end{oneline}
 
 \begin{before}
@@ -11,7 +11,7 @@ UIO 版本的 app 可以直接寫任何暫存器，所以「只跑前 n 個 bloc
 \snip{uio_set_nblk}
 driver v1.0 不讓 app 碰暫存器，這三個函式只能回傳失敗或 0：
 \snip{v10_hal_stubs}
-結果是：換成 driver 之後，除錯一個壞掉的 block 時，原本的工具都不能用了。
+\code{fuse_set_nblk()} 至少會印訊息、回傳 $-1$；下面兩行的 \code{fuse_read_pix_nz()} 和 \code{fuse_read_arr_cap()} 則安靜地回傳 0，呼叫的人分不出「硬體讀到 0」和「這個功能不存在」，這比直接失敗更容易誤導。結果是：換成 driver 之後，除錯一個壞掉的 block 時，原本的工具都不能用了。
 \end{before}
 
 \begin{tech}
@@ -55,6 +55,7 @@ driver v1.0 不讓 app 碰暫存器，這三個函式只能回傳失敗或 0：
 \snip{hal_set_nblk}
 \snip{hal_arr_cap}
 
+\needspace{12\baselineskip}
 \textbf{板上（開機組 E）。}
 
 \boardfile{E4_debugfs.log}{4-25}
@@ -67,7 +68,7 @@ driver v1.0 不讓 app 碰暫存器，這三個函式只能回傳失敗或 0：
 
 \subsection{原理}
 
-\textbf{為什麼放 debugfs，不放 sysfs 或 ioctl。}sysfs 的檔案是給使用者和腳本的穩定介面，一個檔案一個值，改了格式就是改了 ABI（給使用者的介面約定）。ioctl 是 app 的正式介面，要編號、要結構、要相容。這三個工具只給開發者在除錯時用，不希望 app 依賴它們；debugfs 正是為這種用途設計的：kernel 文件說它「不打算當成給 user space 的穩定 ABI」（\code{Documentation/filesystems/debugfs.rst} 第 13--17 行），同時也提醒，實務上最好還是當成要長期維護的介面來設計。
+\textbf{為什麼放 debugfs，不放 sysfs 或 ioctl。}sysfs 的檔案是給使用者和腳本的穩定介面，一個檔案一個值，改了格式就是改了 ABI（給使用者的介面約定）。ioctl 是 app 的正式介面，要編號、要結構、要相容。這三個工具只給開發者在除錯時用，不希望 app 依賴它們；debugfs 正是為這種用途設計的：kernel 文件說它「不打算當成給 user space 的穩定 ABI」（\code{Documentation/filesystems/debugfs.rst} 第 14--18 行），同時也提醒，實務上最好還是當成要長期維護的介面來設計。
 
 \textbf{為什麼用 \code{_unsafe} 版本。}\code{debugfs_create_file()} 會在每次讀寫時多包一層保護，防止檔案被移除後還被呼叫。\code{DEFINE_DEBUGFS_ATTRIBUTE()} 產生的 file operations 自己已經處理了這件事，所以可以搭配 \code{debugfs_create_file_unsafe()}，避免重複保護（\code{fs/debugfs/inode.c} 第 507--519 行的註解）。
 

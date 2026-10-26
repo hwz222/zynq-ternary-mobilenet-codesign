@@ -61,16 +61,16 @@
     },
     {
       "name": "rootfs.cpio.gz.u-boot",
-      "sha256": "8c54689ab21fe45cb13ba7e7b8b03a9c004f8d6f7f47f4b4dcd88acd700a7a87",
-      "size": 27684973,
+      "sha256": "96b9e56733ad36a9010407b7d7f33a72636bb9d220c5ec51ec26627c67f989a4",
+      "size": 27684606,
       "dest": "artifacts/linux/sd/rootfs.cpio.gz.u-boot",
       "group": "boot",
-      "what": "root file system (initramfs) with the kernel driver loaded at boot; root password twn-v1.1, which the first interactive login must change"
+      "what": "root file system (initramfs) with the kernel driver loaded at boot; root password twn-v1.1, expired: the first login (serial console or ssh) must change it, and ssh commands and scp are refused until then"
     },
     {
       "name": "twn_board_kit.tar.gz",
-      "sha256": "97cc94ee729e5f78863919cce5c9cc75a040eba82f7b829b1e3b4ae8937efe48",
-      "size": 3090817,
+      "sha256": "3a4eb0997028ba0ec8be65529faed9fad11abbb0c7a82caf73af82ae90136631",
+      "size": 3091217,
       "dest": "artifacts/kit/twn_board_kit.tar.gz",
       "group": "kit",
       "what": "board kit (board/make_kit.sh): apps on the kernel driver, twn_bench, twn_errtest, board scripts, weights and the synthetic fixtures; on the board: sh board_check.sh"

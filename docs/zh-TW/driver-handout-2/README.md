@@ -2,7 +2,7 @@
 
 第一冊（[`../driver-handout/`](../driver-handout/)）講 driver v1.0：用輪詢等硬體、手動載入、和 UIO 並存。
 這一冊講 v1.1 加上的東西：拆開 fps 差異的量測、ioctl 的成本、中斷（從 RTL 到 ISR）、重建 bitstream 的
-timing closure、debugfs、開機自動載入、拿掉 `/dev/mem`、SMMU、device-tree binding，以及發佈。
+timing closure、debugfs、開機自動載入、限制 `/dev/mem`、SMMU、device-tree binding，以及發佈。
 讀者與目標和第一冊相同：母語為台灣華語、英文為第二語言的工程師，用最短的時間看懂每一項技術，
 並知道程式碼裡的關鍵函式和邏輯在哪裡。
 

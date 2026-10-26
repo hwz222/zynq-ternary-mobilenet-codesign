@@ -29,6 +29,7 @@
 \usepackage{fancyhdr}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
+\usepackage{needspace}
 
 \definecolor{ink}{HTML}{1F3A5F}
 \definecolor{oldc}{HTML}{8A5A00}   \definecolor{oldbg}{HTML}{FFF6E5}
@@ -78,8 +79,24 @@
   stringstyle=\color{oldc},captionpos=t,aboveskip=0.5em,belowskip=0.5em,
   morekeywords={u32,u64,size_t,bool,dma_addr_t,__u32,__u64,uint32_t,uint64_t}}
 % \snip[語言]{標籤}：印出 build/snippets/<標籤>.c，標題是「檔案 : 起始行–結束行」
+% 開始一個程式框之前，估計這一頁還放得下幾行程式（一行約 0.81 個內文行距，標題與框另算
+% 3 行）。框放不下而會被拆開時，若留在這一頁的少於 6 行、或跑到下一頁的少於 4 行，就先換頁；
+% 其他情形照常拆開。在框裡面（\ifinner）不檢查：框自己決定怎麼分頁。
+\newcount\sniplines
+\newcount\snipfit
 \newcommand{\snip}[2][C]{%
   \input{build/snippets/#2.tex}%
+  \sniplines=\numexpr\sniplast-\snipfirst+1\relax
+  \par\ifinner\else
+    \dimen0=\pagegoal \advance\dimen0 by -\pagetotal
+    \ifdim\dimen0>3\baselineskip
+      \snipfit=\numexpr\dimexpr\dimen0-3\baselineskip\relax/\dimexpr\baselineskip*81/100\relax\relax
+      \ifnum\snipfit<\sniplines
+        \ifnum\numexpr\sniplines-\snipfit\relax<4 \vfil\penalty-10000
+        \else\ifnum\snipfit<6 \vfil\penalty-10000\fi\fi
+      \fi
+    \else\ifdim\dimen0>0pt \vfil\penalty-10000\fi\fi
+  \fi
   \lstinputlisting[language=#1,firstnumber=\snipfirst,
     title={\scriptsize\ttfamily\snippath\ :\ \snipfirst--\sniplast}]{build/snippets/#2.c}}
 % 板上與模擬的實際輸出：\boardfile[說明]{檔名}{起-迄行} 直接從 results/raw/linux_driver_v11_20261027/ 讀出原文，
@@ -94,8 +111,11 @@
   \IfFileExists{\logdir/#2}{%
   \par\noindent\begin{minipage}{\linewidth}%
   \lstinputlisting[style=board,linerange={#3},
-    title={\scriptsize\ttfamily results/raw/linux\_driver\_v11\_20261027/\detokenize{#2}\ :\ #3\normalfont #1}]{\logdir/#2}%
+    title={\scriptsize\ttfamily results/raw/linux\_driver\_v11\_20261027/\detokenize{#2}\ :\ #3\normalfont\whereof{#2}#1}]{\logdir/#2}%
   \end{minipage}\par}{\par\noindent\textcolor{red}{（紀錄待補：\detokenize{#2} #3）}\par}}
+% 標題自動帶上紀錄在哪裡量的：檔名的第一個字母就是導讀表格裡的開機組（S 是 PC）
+\newcommand{\whereof}[1]{\whereofi#1\relax}
+\def\whereofi#1#2\relax{\if#1S（PC）\else\if#1f（第一版 bitstream）\else（開機組 #1）\fi\fi}
 \lstnewenvironment{cmdline}{\lstset{language=bash,numbers=none,xleftmargin=0pt,
   basicstyle=\ttfamily\footnotesize}}{}
 

@@ -20,10 +20,10 @@
 4 & timing closure & 加了中斷之後重建 bitstream，240 MHz 收斂 \\
 5 & debugfs & UIO 版本的除錯功能搬進 driver \\
 6 & 開機自動載入 & PetaLinux 的 module recipe；device tree 改 compatible \\
-7 & 拿掉 \code{/dev/mem} & 關掉 \code{/dev/mem}、收回 256 MB 保留區 \\
+7 & 限制 \code{/dev/mem} & \code{/dev/mem} 不能再碰 kernel 的記憶體與 driver 的暫存器；收回 256 MB 保留區 \\
 8 & SMMU & 讓 PL 只能碰 driver 給它的那塊記憶體 \\
 9 & binding 與靜態檢查 & device tree 的規格檔；沒做到的部分 \\
-10 & 發佈 v1.1 & 預設密碼與首次登入改密碼；合成的測試輸入 \\
+10 & 發佈 v1.1 & 建置時就過期的預設密碼；合成的測試輸入 \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -34,7 +34,7 @@
 
 \textbf{程式碼都是真的。}每段程式碼都由第一冊的 \code{extract.py} 從 repo 抽出，框上方是檔名和真實行號。標題寫著「\code{@ driver v1.0 (7615324)}」的，是第一冊那個版本的程式碼。
 
-\textbf{紀錄也是真的。}黑框直接從 \code{results/raw/linux_driver_v11_20261027/} 的紀錄檔讀出原文，框上方是檔名與行號，行首是 \texttt{\#} 加一個空格的那一行是執行的指令。板上紀錄的時間是 UTC（台灣時間減 8 小時）。紀錄來自四種開機組（一次開機所用的整組開機檔），檔名的第一個字母就是開機組：
+\textbf{紀錄也是真的。}黑框直接從 \code{results/raw/linux_driver_v11_20261027/} 的紀錄檔讀出原文，框上方是檔名、行號與紀錄來自哪一個開機組。行首是 \texttt{\#} 加一個空格的那一行，在板上紀錄裡是執行的指令；S 檔與 E7、H1、H2 裡也有幾行是說明文字（例如實際按了哪些鍵），內容看得出來。板上紀錄的時間是 UTC（台灣時間減 8 小時），每個檔案的第 1 行是日期與開機檔的雜湊。紀錄來自五種開機組（一次開機所用的整組開機檔），檔名的第一個字母就是開機組：
 
 \begin{center}
 \small
@@ -43,9 +43,10 @@
 代號 & 開機檔 & 用在 \\
 \midrule
 D & v1.0.0 的開機檔（\code{BOOT.BIN} \code{690d87cc5f4b6897}、\code{system.dtb} \code{18fff66fcfb7798b}），bitstream 沒有中斷線，有 UIO 和 \code{/dev/mem}；driver 是 v1.1 的程式，手動載入，輪詢 & 第 1、2、5 節，第 7 節的「之前」 \\
-E & v1.1 的發佈映像（\code{BOOT.BIN} \texttt{\relBoot}、\code{system.dtb} \texttt{\relDtb}）：中斷版、AXI master 送 Non-secure 交易的 bitstream，SMMU 打開，driver 由映像開機時自動載入 & 第 3、5--8、10 節 \\
+E & v1.1 發佈映像的開機檔（\code{BOOT.BIN} \texttt{\relBoot}、\code{system.dtb} \texttt{\relDtb}）：中斷版、AXI master 送 Non-secure 交易的 bitstream，SMMU 打開，driver 由映像開機時自動載入。root file system（rootfs）是發佈前的一版（\code{8c54689ab21fe45c}，第 10 節說明它和發佈版的差別） & 第 3、5--8、10 節 \\
 F & 找 stream ID 用的診斷組：開機組 E 的 bitstream（\code{BOOT.BIN} \code{18a066f87cfbad8d}），搭配第一次建出的 v1.1 kernel 與 rootfs；\code{system.dtb} 打開 SMMU，開機參數多一個 \code{arm_smmu.disable_bypass=1} & 第 8 節 \\
 G & 開機組 E，只把 \code{system.dtb} 換成關掉 SMMU 的版本 & 第 8 節的比較 \\
+H & 發佈的 v1.1 映像：開機檔與開機組 E 完全相同，rootfs 換成 \texttt{\relRootfs}（root 密碼在建置時就設成過期，driver 補了兩個失敗路徑），板上工具包 \texttt{\relKit} & 第 3、7、10 節 \\
 \bottomrule
 \end{tabularx}
 \end{center}

@@ -109,8 +109,14 @@ v1.1: `results/board_results.json`, entry `linux_driver_twn_fuse_v11_20261027`; 
 bound at boot with the interrupt; four MPII and four synthetic fixtures bit-exact with the head in
 the PL and on the processor; the board check (refusals, 3 s timeout, unload/reload, throughput)
 passes; one interrupt per frame and none extra; CPU time per backbone frame 10.7 us with the
-interrupt and 465.8 us polling; `/dev/mem` refused for DDR and for the registers; the 256 MB
-reservation returned to the kernel; with the SMMU on (the default of the image), an out-of-buffer read by the PL ends in an SMMU context fault, at the same throughput as without it (232.58 vs 232.17 fps).
+interrupt and 465.8 us polling, and on the same boot 233.13 fps with the interrupt against 231.26 fps
+polling; `/dev/mem` refused for System RAM and for the registers while the driver is loaded (it
+still reaches DDR outside System RAM, and the registers after `rmmod`); the 256 MB reservation
+returned to the kernel; with the SMMU on (the default of the image), an out-of-buffer read by the PL
+ends in an SMMU context fault, at the same throughput as without it (232.58 vs 232.17 fps). The
+SMMU translates Non-secure transactions with the four listed stream IDs; the kernel leaves bypass
+on, so other stream IDs (a nonzero AXI ID) and Secure transactions are not checked.
+`make W=1` and `checkpatch.pl --strict` report nothing (`S6_static_checks.log`).
 
 Limits: `dt_binding_check` and sparse (`make C=1`) were not run (they need dtschema and sparse
 installed); the driver does not claim the PL clock (`clocks = <&zynqmp_clk 71>`) and relies on

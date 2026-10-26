@@ -42,10 +42,12 @@ masters) in `BOOT.BIN` `5d226057efc8760b`. Entry `linux_driver_twn_fuse_v11_2026
 | Throughput | 232.6 fps (runs: 232.55, 232.60, 232.59); 232.2 fps with the SMMU off | board, the v1.1 image, `mbv2_fuse_pipe` as above, kernel driver with the interrupt and the SMMU on |
 | Correctness | 4 of 4 synthetic and 4 of 4 MPII fixtures bit-exact | board, head in the PL and on the processor, SMMU on and off |
 | CPU time per backbone frame | 10.7 us with the interrupt, 465.8 us polling | `twn_bench`, same boot, `use_irq=0` for polling |
+| Interrupt vs polling, throughput | 233.13 fps with the interrupt, 231.26 fps polling | the released image, same boot, three alternating 120-frame runs of each |
 | ioctl round trip | 1.62 us | `twn_bench`, 100,000 calls |
 | Resources | 44,157 LUT (93.5 %), 36,203 FF, 145 block-RAM tiles, 217 DSP | Vivado 2023.2, routed design |
 | Timing | 240 MHz, WNS 0.000 ns, WHS +0.008 ns | after the post-route recovery of `vivado/build_bd_fuse.tcl` (first routing -0.032 ns) |
-| Isolation | `/dev/mem` refused for DDR and the registers; an out-of-buffer read by the PL ends in an SMMU context fault | board, the v1.1 image |
+| Isolation | `/dev/mem` refused for System RAM and for the registers while the driver holds them (still readable: the top 1 MB of DDR outside System RAM, and the registers after `rmmod`); an out-of-buffer read by the PL ends in an SMMU context fault (Non-secure traffic with the listed stream IDs; other stream IDs bypass the SMMU) | board, the v1.1 image |
+| Default password | expired at build: ssh commands and scp refused until the first login sets a new one | board, the released image |
 
 The headline numbers above stay those of the v1.0.0 bitstream. On the v1.0.0 boot files the driver
 path was 1.2 % faster than the UIO path; the four-arm comparison in the same entry attributes it to
