@@ -40,7 +40,7 @@ CC0 from Wikimedia Commons ([credits](docs/figures/CREDITS.md)).
 The table is the v1.0.0 release bitstream. Release **v1.1** runs the same network through a Linux
 kernel driver on a ready-to-boot image: an interrupt instead of polling, `/dev/mem` kept away from
 the kernel's memory and the driver's registers, the accelerator's DMA translated by the SMMU;
-232.6 fps on that image, and its bitstream (44,157 LUT, 93.5 %) meets 240 MHz with WNS 0.000 ns.
+232.3 fps on that image, and its bitstream (44,157 LUT, 93.5 %) meets 240 MHz with WNS 0.000 ns.
 
 Every number with its source entry and the full table: [docs/RESULTS.md](docs/RESULTS.md).
 

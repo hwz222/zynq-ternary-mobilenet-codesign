@@ -30,6 +30,7 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
 \usepackage{needspace}
+\usepackage{etoolbox}
 
 \definecolor{ink}{HTML}{1F3A5F}
 \definecolor{oldc}{HTML}{8A5A00}   \definecolor{oldbg}{HTML}{FFF6E5}
@@ -44,6 +45,8 @@
 \titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
 \titlespacing*{\section}{0pt}{0.6em}{0.6em}
 \titlespacing*{\subsection}{0pt}{0.9em}{0.35em}
+% 小節標題下面至少要放得下 8 行，標題才不會單獨留在頁底
+\pretocmd{\subsection}{\needspace{8\baselineskip}}{}{}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -79,20 +82,21 @@
   stringstyle=\color{oldc},captionpos=t,aboveskip=0.5em,belowskip=0.5em,
   morekeywords={u32,u64,size_t,bool,dma_addr_t,__u32,__u64,uint32_t,uint64_t}}
 % \snip[語言]{標籤}：印出 build/snippets/<標籤>.c，標題是「檔案 : 起始行–結束行」
-% 開始一個程式框之前，估計這一頁還放得下幾行程式（一行約 0.81 個內文行距，標題與框另算
-% 3 行）。框放不下而會被拆開時，若留在這一頁的少於 6 行、或跑到下一頁的少於 4 行，就先換頁；
-% 其他情形照常拆開。在框裡面（\ifinner）不檢查：框自己決定怎麼分頁。
+% 開始一個程式框之前，估計這一頁還放得下幾行程式（一行約 0.75 個內文行距（從建出的 PDF 量的，略為保守），標題與框另算
+% 3 行；行數用 extract.py 算好的 \snipvis，太長而折行的算兩行）。框放不下而會被拆開時，若留在
+% 這一頁的少於 6 行、或跑到下一頁的少於 5 行，就先換頁；其他情形照常拆開。在框裡面（\ifinner）
+% 不檢查：框自己決定怎麼分頁。
 \newcount\sniplines
 \newcount\snipfit
 \newcommand{\snip}[2][C]{%
   \input{build/snippets/#2.tex}%
-  \sniplines=\numexpr\sniplast-\snipfirst+1\relax
+  \sniplines=\snipvis\relax
   \par\ifinner\else
     \dimen0=\pagegoal \advance\dimen0 by -\pagetotal
     \ifdim\dimen0>3\baselineskip
-      \snipfit=\numexpr\dimexpr\dimen0-3\baselineskip\relax/\dimexpr\baselineskip*81/100\relax\relax
+      \snipfit=\numexpr\dimexpr\dimen0-3\baselineskip\relax/\dimexpr\baselineskip*75/100\relax\relax
       \ifnum\snipfit<\sniplines
-        \ifnum\numexpr\sniplines-\snipfit\relax<4 \vfil\penalty-10000
+        \ifnum\numexpr\sniplines-\snipfit\relax<5 \vfil\penalty-10000
         \else\ifnum\snipfit<6 \vfil\penalty-10000\fi\fi
       \fi
     \else\ifdim\dimen0>0pt \vfil\penalty-10000\fi\fi
@@ -105,11 +109,12 @@
   basicstyle=\ttfamily\scriptsize\color{white},backgroundcolor=\color{black!82},
   rulecolor=\color{black!82}}
 \newcommand{\logdir}{../../../results/raw/linux_driver_v11_20261027}
-% 每個框都不超過 25 行，放進 minipage 讓它不會跨頁斷開
+% 每個框都不超過 25 行，放進 minipage 讓它不會跨頁斷開；框前面不准換頁，放不下時前一段的最後
+% 幾行會跟著框一起移到下一頁，引言才不會和框分開
 % 紀錄檔不存在時印出紅字「紀錄待補」，交付前不可以有
 \newcommand{\boardfile}[3][]{%
   \IfFileExists{\logdir/#2}{%
-  \par\noindent\begin{minipage}{\linewidth}%
+  \par\nopagebreak\noindent\begin{minipage}{\linewidth}%
   \lstinputlisting[style=board,linerange={#3},
     title={\scriptsize\ttfamily results/raw/linux\_driver\_v11\_20261027/\detokenize{#2}\ :\ #3\normalfont\whereof{#2}#1}]{\logdir/#2}%
   \end{minipage}\par}{\par\noindent\textcolor{red}{（紀錄待補：\detokenize{#2} #3）}\par}}

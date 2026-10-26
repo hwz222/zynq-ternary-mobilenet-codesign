@@ -1,4 +1,4 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{SMMU：限制 PL 能碰的記憶體}
 \label{sec:smmu}
 
@@ -40,7 +40,7 @@ driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底�
 
 開機後 SMMU 正常啟動，加速器也被放進自己的 IOMMU group，buffer 位址變成 IOVA \code{0xff_ff80_0000}：
 
-\boardfile[（第一版 bitstream）]{first_bitstream/F1_smmu_guessed_ids.log}{11-20}
+\boardfile{first_bitstream/F1_smmu_guessed_ids.log}{11-20}
 
 但四張 fixture 全錯，而且越界讀取也沒有觸發任何 SMMU 錯誤。再用 \code{arm_smmu.disable_bypass=1} 開機（沒登記的 stream ID 應該被擋下並回報），kernel log 裡仍然一條 SMMU 錯誤都沒有。這次開機沒有保存紀錄，\code{first_bitstream/README.md} 只記下「沒有任何 fault」。兩個現象合起來的意思是：PL 的交易根本沒有經過 Linux 設定的那一套轉換。
 
@@ -54,25 +54,25 @@ driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底�
 
 改成 Non-secure 交易之後，HP1、HP2、HP3 的 stream ID 仍然是我推算的，推算可能是錯的。這時 \code{arm_smmu.disable_bypass=1} 就派上用場：SMMU 遇到沒有登記的 stream ID 時會擋下交易，並在 global fault 的 \code{GFSYNR1} 欄位回報它的 stream ID（開機組 F）：
 
-\boardfile[（開機組 F：只登記了推算的 0xe80、0x1280、0x1680）]{F0_smmu_find_stream_ids.log}{2-3,5-8,11-12,17-22}
+\boardfile[：只登記了推算的 0xe80、0x1280、0x1680]{F0_smmu_find_stream_ids.log}{2-3,5-8,11-12,17-22}
 
-HP0 的交易已經被轉換：第 22 行的 context fault 帶著 \code{cbfrsynra=0xe80}（越界讀取的那一筆）。另外三個埠的 ID 沒有登記，SMMU 回報 global fault，沒登記的 ID 是 \code{0x12c0}、\code{0x1300}、\code{0x1740}。\code{uniq -c} 數到的 6、1、3 次加起來正好 10，等於 kernel 印這類訊息的速率上限（5 秒內最多 10 次），所以這些次數不代表各埠的流量，某個 ID 也可能被限流吃掉；F1 登記了四個 ID 之後一次 global fault 都沒有，補上了這個漏洞。拆開來看：TBU 4 的 master ID 1011、TBU 4 的 1100、TBU 5 的 1101，正好接在 HP0 的 1010 後面。所以 HP1 是 \code{0x12c0}、HP2 是 \code{0x1300}、HP3 是 \code{0x1740}；我原本以為 HP1 與 HP2 共用 \code{0x1280}、HP3 是 \code{0x1680}，兩個都錯了。
+HP0 的交易已經經過 Non-secure 的轉換：第 22 行有一個 context fault 帶著 \code{cbfrsynra=0xe80}（這次開機做過哪些存取沒有記下，這一筆是哪一個存取造成的沒有查）。另外三個埠的 ID 沒有登記，SMMU 回報 global fault，沒登記的 ID 是 \code{0x12c0}、\code{0x1300}、\code{0x1740}。\code{uniq -c} 數到的 6、1、3 次加起來正好 10，等於 kernel 印這類訊息的速率上限（5 秒內最多 10 次），所以這些次數不代表各埠的流量，某個 ID 也可能被限流吃掉；F1 登記了四個 ID 之後一次 global fault 都沒有，補上了這個漏洞。拆開來看：TBU 4 的 master ID 1011、TBU 4 的 1100、TBU 5 的 1101，正好接在 HP0 的 1010 後面。所以 HP1 是 \code{0x12c0}、HP2 是 \code{0x1300}、HP3 是 \code{0x1740}；我原本以為 HP1 與 HP2 共用 \code{0x1280}、HP3 是 \code{0x1680}，兩個都錯了。
 
 把四個 ID 都登記上（現行的 \code{smmu_dtb.sh}），同樣開著 \code{disable_bypass}：global fault 一個都沒有，表示 PL 的每一筆交易都找得到登記；fixture 全部逐位元相同：
 
-\boardfile[（開機組 F，四個 ID 都登記）]{F1_smmu_measured_ids.log}{14-21,51-54}
+\boardfile[：四個 ID 都登記]{F1_smmu_measured_ids.log}{14-21,51-54}
 
 \subsection{發佈映像：預設打開 SMMU}
 
 量到 stream ID 之後，\code{system-user.dtsi} 直接打開 SMMU 並登記這四個 ID，PetaLinux 產生的節點因此帶著 \code{iommus}。開機組 E 開機後，加速器在 iommu group 15，DMA buffer 的位址是 IOVA：
 
-\boardfile[（開機組 E）]{E1_boot_state.log}{11-13}
+\boardfile{E1_boot_state.log}{11-13}
 
 \needspace{8\baselineskip}
 \textbf{越界讀取，開與關的比較。}開機組 E：SMMU 擋下讀取，回報 context fault，\code{cbfrsynra=0xe80} 就是 HP0 的 stream ID；開機組 G：一樣的測試只說 frame done：
 
-\boardfile[（開機組 E，SMMU 開）]{E4_debugfs.log}{37-41}
-\boardfile[（開機組 G，SMMU 關）]{G4_debugfs.log}{37-40}
+\boardfile[：SMMU 開]{E4_debugfs.log}{37-41}
+\boardfile[：SMMU 關]{G4_debugfs.log}{37-40}
 
 context fault 裡的 \code{iova=0x00000000} 是因為 buffer 剛好在 $2^{40}$ 下面，buffer 結尾之後的第一個位址是 $2^{40}$，寫進 40 bits 的位址暫存器就變成 0；不論是哪一個，都不在映射範圍內。擋下之後，下一個 app 照常執行，4 張 fixture 仍然正確（\code{E4_debugfs.log} 第 42--43 行）。
 

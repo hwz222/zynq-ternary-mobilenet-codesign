@@ -1154,7 +1154,8 @@
       232.71
     ],
     "devmem": "STRICT_DEVMEM and IO_STRICT_DEVMEM: mmap of System RAM and of the registers while the driver is loaded: Operation not permitted (E1, H3, H8); still readable: 0x7ff00000, the top 1 MB of DDR outside System RAM, and the registers after rmmod (H8)",
-    "default_password": "published twn-v1.1, expired at build (passwd-expire): ssh commands and scp refused with 'Password change required but no TTY available' before the first login (H1); serial console: Ctrl-C back to the login prompt, an empty and two mismatched passwords refused, then the change (H2). Boot E's first-login script stopped only interactive logins (E7)",
-    "static_checks": "make W=1 and scripts/checkpatch.pl --strict -f: 0 warnings on twn_fuse.c and twn_fuse_ioctl.h (S6)"
+    "default_password": "published twn-v1.1, expired at build (passwd-expire): ssh commands and scp refused with 'Password change required but no TTY available' before the first login (H1); serial console: Ctrl-C back to the login prompt, an empty and two mismatched passwords refused, then the change (H2); after a reboot, a first login over ssh with a terminal sets a new password and ssh commands work with it (H9). Boot E's first-login script stopped only interactive logins (E7)",
+    "static_checks": "make W=1 against the release kernel's build tree and scripts/checkpatch.pl --strict -f: 0 warnings on twn_fuse.c and twn_fuse_ioctl.h (S6); tools/scan_release_paths.py: no build-machine path in the release files, 8 in an unstripped app as the positive control (S7)",
+    "fps_mean_release_image": 232.27
   }
 }

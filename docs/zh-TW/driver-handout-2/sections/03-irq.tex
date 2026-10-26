@@ -1,4 +1,4 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{中斷：從 RTL 的一根線到 driver 的 ISR}
 \label{sec:irq}
 
@@ -125,7 +125,7 @@ CPU 時間從每幀 \pollCpuUs{} µs 降到 \irqCpuUs{} µs：輪詢時 process 
 
 \boardfile[：交替的中斷與輪詢]{H7_irq_vs_poll_fps.log}{1-5,7,9,11,13,15,17,19,21,23,25}
 
-中斷 \hIrqFps{} fps，輪詢 \hPollFps{} fps，差 +0.8\%。三輪裡的每一次中斷都比每一次輪詢快，而且兩組都隨時間略降（233.84→232.71、231.33→231.19），交替的順序讓這個漂移不會偏袒其中一組。換算成每幀週期，中斷平均 4.290 ms、輪詢 4.324 ms，短了約 35 µs；backbone 的等待在開機組 E 少了 25.3 µs（\pollWaitUs{}→\irqWaitUs{}），pipeline 裡 head 的等待也從輪詢改成中斷，兩者加起來和這個差同一個量級（head 那一份沒有分開量）。done 一設起來就被發現，下一幀就早一點開始。
+中斷 \hIrqFps{} fps，輪詢 \hPollFps{} fps，差 +0.8\%。三輪裡的每一次中斷都比每一次輪詢快，而且兩組都隨時間略降（233.84→232.71、231.33→231.19）。每一輪都是先中斷、後輪詢，這個固定的順序不能抵銷漂移（第 1 節用兩輪順序相反就是為了這個）；但輪詢三次之間只差 0.14 fps，遠小於兩組之間約 1.87 fps 的差，所以結論不受影響。換算成每幀週期，中斷平均 4.290 ms、輪詢 4.324 ms，短了約 35 µs；backbone 的等待在開機組 E 少了 25.3 µs（\pollWaitUs{}→\irqWaitUs{}）。推測其餘來自 pipeline 裡 head 的等待也從輪詢改成中斷（head 那一份沒有分開量）：done 一設起來就被發現，下一幀就早一點開始。
 
 \textbf{每一幀剛好一次中斷。}跑 1000 幀前後，ISR 自己的計數和 kernel 的計數（\code{/proc/interrupts}，ISR 回傳 \code{IRQ_NONE} 的呼叫也算在內）都剛好加 1000，表示沒有多出來的空中斷：
 

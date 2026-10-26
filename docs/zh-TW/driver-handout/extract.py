@@ -82,10 +82,12 @@ def main():
         first, body = find(path, sel)
         with open(os.path.join(OUT, label + '.c'), 'w', encoding='utf-8', newline='\n') as f:
             f.write('\n'.join(body) + '\n')
-        # \snip{label} in handout.tex reads this to number the lines and title the box
+        # \snip{label} in handout.tex reads this to number the lines and title the box;
+        # \snipvis counts the lines as printed (a line longer than ~85 characters may wrap)
+        vis = sum(max(1, -(-len(line.expandtabs(4)) // 85)) for line in body)
         with open(os.path.join(OUT, label + '.tex'), 'w', encoding='utf-8', newline='\n') as f:
-            f.write('\\def\\snipfirst{%d}\\def\\sniplast{%d}\\def\\snippath{%s}\n'
-                    % (first, first + len(body) - 1,
+            f.write('\\def\\snipfirst{%d}\\def\\sniplast{%d}\\def\\snipvis{%d}\\def\\snippath{%s}\n'
+                    % (first, first + len(body) - 1, vis,
                        shown(path).replace('_', '\\_').replace('%', '\\%')))
         print('%-44s %-34s %s line %d, %d lines' % (path, sel, label, first, len(body)))
 

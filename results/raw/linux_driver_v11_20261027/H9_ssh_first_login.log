@@ -1,0 +1,39 @@
+== 2026-10-26 21:19 UTC  from the PC (OpenSSH 8.9p1 Ubuntu-3ubuntu0.18) to the board, before any password change
+# sshpass -p twn-v1.1 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o PubkeyAuthentication=no -o PreferredAuthentications=password root@192.168.10.2 'echo a command ran on the board'
+WARNING: Your password has expired.
+Password change required but no TTY available.
+exit 1
+# echo test > /tmp/pw_probe.txt; sshpass -p twn-v1.1 scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o PubkeyAuthentication=no -o PreferredAuthentications=password /tmp/pw_probe.txt root@192.168.10.2:/tmp/
+WARNING: Your password has expired.
+Password change required but no TTY available.
+lost connection
+exit 1
+# sshpass -p wrong-password ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o PubkeyAuthentication=no -o PreferredAuthentications=password root@192.168.10.2 'echo a command ran on the board'
+Permission denied, please try again.
+exit 5
+# ssh -tt root@192.168.10.2 (an interactive login, typed by expect): the default password twice (login, then 'Current password:'), Ctrl-C at 'New password:', then 15 s of output
+spawn ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o PubkeyAuthentication=no -o PreferredAuthentications=password root@192.168.10.2
+root@192.168.10.2's password: 
+You are required to change your password immediately (administrator enforced).
+Changing password for root.
+Current password: 
+New password: 
+Retype new password: 
+(still open after 15 s, no further output)
+exit 0
+# ssh -tt root@192.168.10.2 (typed by expect): the default password twice, then a new password twice (not echoed)
+spawn ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o PubkeyAuthentication=no -o PreferredAuthentications=password root@192.168.10.2
+root@192.168.10.2's password: 
+You are required to change your password immediately (administrator enforced).
+Last login: Mon Oct 26 21:19:51 2026 from 192.168.10.163
+Changing password for root.
+Current password: 
+New password: 
+Retype new password: 
+
+(no shell and no close after 30 s)
+exit 0
+# sshpass -p '<new password>' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o PubkeyAuthentication=no -o PreferredAuthentications=password root@192.168.10.2 'echo a command ran on the board; cut -d: -f1,3 /etc/shadow | grep ^root:'
+a command ran on the board
+root:20752
+exit 0

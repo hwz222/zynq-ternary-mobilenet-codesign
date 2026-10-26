@@ -1,4 +1,4 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{限制 /dev/mem、拿掉保留區}
 \label{sec:devmem}
 
@@ -11,7 +11,7 @@ device tree 保留 256 MB，標成 \code{no-map}（kernel 不把它放進自己�
 \snip{v10_dtsi_reserved}
 app 用 \code{/dev/mem} 把這塊實體位址映射進來（第 1 節的 \code{uio_devmem}）。kernel 沒有限制 \code{/dev/mem}，開機組 D 的紀錄：
 
-\boardfile[（開機組 D）]{D5_boot_state.log}{26-43}
+\boardfile{D5_boot_state.log}{26-43}
 
 保留區佔掉 256 MB（第 27 行 \code{MemTotal} 只有 1,773,764 kB）；\code{STRICT_DEVMEM} 沒開（第 37 行）；任何 root 程式都能用 \code{devmem} 讀寫 DDR 和加速器的暫存器（第 38--43 行）。
 \end{before}
@@ -48,7 +48,7 @@ app 用 \code{/dev/mem} 把這塊實體位址映射進來（第 1 節的 \code{u
 \needspace{12\baselineskip}
 \textbf{板上：開機組 E。}
 
-\boardfile[（開機組 E）]{E1_boot_state.log}{16-31}
+\boardfile{E1_boot_state.log}{16-31}
 
 \code{MemTotal} 多了約 255.5 MB；\code{reserved-memory} 節點不在了；kernel 設定裡兩個選項都開了；\code{devmem} 兩次都被拒絕。\code{CmaTotal} 不變，仍是 256 MB。沒有 SMMU 時，driver 的 8 MB 從 CMA 配；這個映像打開了 SMMU，buffer 改從一般記憶體配（第 8 節），所以 \code{CmaFree} 幾乎沒有減少。
 
@@ -82,14 +82,14 @@ int devmem_is_allowed(unsigned long pfn)
 \item 要完全不給 \code{/dev/mem}，得關掉 \code{CONFIG_DEVMEM}；這個映像沒有關，所以上面兩個邊界都存在。
 \end{itemize}
 
-\textbf{為什麼以前需要保留區，現在不需要。}\code{/dev/mem} 只是把一個實體位址映射給 app，它不會配置記憶體。要讓 kernel 不去用那塊記憶體，只能在 device tree 事先保留。driver 版本改用 DMA API 配置（第一冊第 3 節），記憶體是 kernel 自己從 CMA 拿出來給 driver 的，kernel 知道它被誰用，不需要保留。CMA 平常沒被 DMA 用到的部分，kernel 還可以借給可搬移的一般用途。
+\textbf{為什麼以前需要保留區，現在不需要。}\code{/dev/mem} 只是把一個實體位址映射給 app，它不會配置記憶體。要讓 kernel 不去用那塊記憶體，只能在 device tree 事先保留。driver 版本改用 DMA API 配置（第一冊第 3 節），記憶體是 kernel 自己配給 driver 的（沒有 SMMU 時從 CMA 拿出一塊連續的記憶體；發佈映像打開了 SMMU，改從一般記憶體配頁，見第 8 節），kernel 知道它被誰用，不需要保留。CMA 平常沒被 DMA 用到的部分，kernel 還可以借給可搬移的一般用途。
 
 \textbf{少掉的 512 kB。}256 MB 是 262,144 kB，\code{MemTotal} 只多了 261,632 kB。kernel 把這塊記憶體收回來時，要為它建立自己的管理結構，例如線性映射的分頁表；以 4 KB 的頁、每項 8 bytes 計算，256 MB 的分頁表剛好是 512 kB。這是推算，沒有逐項查證；而且比較的兩邊是不同開機組、不同設定的 kernel，kernel 映像本身的大小差（kernel 的程式碼與資料不算在 \code{MemTotal} 裡）也混在這個差裡，沒有拆開。
 
 \subsection{面試會問}
 
 \begin{qa}{為什麼要限制 /dev/mem？限制之後 app 怎麼存取硬體？}
-\code{/dev/mem} 把整個實體位址空間開給 root，等於任何 root 程式都能改 kernel、繞過 driver 去動硬體。v1.0.0 需要它，因為 app 要自己映射 DMA buffer，所以 device tree 還得保留 256 MB 給它。v1.1 的 driver 用 DMA API 從 CMA 配 buffer，再用 \code{mmap} 只把 buffer 給 app，暫存器完全不給，所以 app 不再需要 \code{/dev/mem}，保留區也拿掉了。我打開 \code{STRICT_DEVMEM}，擋掉 kernel 管理的 System RAM；再打開 \code{IO_STRICT_DEVMEM}，擋掉被 driver 佔用的暫存器。板上用 \code{devmem} 讀這兩種位址都回 \code{Operation not permitted}，而 kernel 多了大約 255 MB 記憶體。它的邊界我也實測過：root 卸載 driver 之後暫存器又讀得到，System RAM 以外的 DDR 最上面 1 MB 也讀得到，所以這是限制，不是把 \code{/dev/mem} 關掉。
+\code{/dev/mem} 把整個實體位址空間開給 root，等於任何 root 程式都能改 kernel、繞過 driver 去動硬體。v1.0.0 需要它，因為 app 要自己映射 DMA buffer，所以 device tree 還得保留 256 MB 給它。v1.1 的 driver 用 DMA API 配 buffer，再用 \code{mmap} 只把 buffer 給 app，暫存器完全不給，所以 app 不再需要 \code{/dev/mem}，保留區也拿掉了。我打開 \code{STRICT_DEVMEM}，擋掉 kernel 管理的 System RAM；再打開 \code{IO_STRICT_DEVMEM}，擋掉被 driver 佔用的暫存器。板上用 \code{devmem} 讀這兩種位址都回 \code{Operation not permitted}，而 kernel 多了大約 255 MB 記憶體。它的邊界我也實測過：root 卸載 driver 之後暫存器又讀得到，System RAM 以外的 DDR 最上面 1 MB 也讀得到，所以這是限制，不是把 \code{/dev/mem} 關掉。
 \end{qa}
 
 \subsection{關鍵函式速查}
@@ -101,7 +101,7 @@ int devmem_is_allowed(unsigned long pfn)
 名稱 & 位置 & 做什麼 \\
 \midrule
 \code{twn-v11.cfg} & \code{meta-user/recipes-kernel/linux/linux-xlnx/twn-v11.cfg}:\lineof{kcfg} & kernel 選項片段 \\
-\texttt{linux-xlnx\_\%.bbappend} & \code{meta-user/recipes-kernel/linux/}:\lineof{kbbappend} & 把片段加進 kernel recipe \\
+\texttt{linux-xlnx\_\%.bbappend} & \code{meta-user/recipes-kernel/linux/}\texttt{linux-xlnx\_\%.bbappend}:\lineof{kbbappend} & 把片段加進 kernel recipe \\
 \code{devmem_is_allowed()} & kernel 的 \code{lib/devmem_is_allowed.c}:20 & \code{/dev/mem} 每一頁的檢查 \\
 \code{iomem_is_exclusive()} & kernel 的 \code{kernel/resource.c}:1696 & 開了 IO 選項後，busy 的區間也算獨佔 \\
 \code{v11_check.sh devmem} & \code{test/v11_check.sh}:\lineof{chk_devmem} & 限制的邊界（只讀） \\

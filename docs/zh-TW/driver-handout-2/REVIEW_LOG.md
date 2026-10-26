@@ -424,3 +424,211 @@ SMMU bypass 開著，AXI ID 不是 0 或 Secure 的交易直通 DDR）、R8（`S
 另外，因為 rootfs 換了，導讀的開機組表格新增 H（發佈映像：開機檔與 E 相同，只換 rootfs 與板上工具包），E 改稱
 「發佈映像的開機檔、發佈前一版的 rootfs」；`results/board_results.json` 的 v1.1 條目、證據 README、發佈資產清單與
 英文文件同步更新。
+
+## 第 2 輪（2026-10-27）
+
+**審查範圍**：commit `bd9e0a3` 的講義原始碼（`git status` 乾淨）與 `build/handout.pdf`（04:58:56 建置，晚於所有
+`sections/*.tex` 的最後修改 04:58:47；審稿人用 `latexmk -g` 重建一次，仍是 72 頁、沒有 Overfull、沒有紅字或「待補／待寫」，
+`build/` 以外沒有改動）。逐檔讀了 `handout.tex`（新的 `\snip` 分頁估計、`\whereof`）、全部 `sections/*.tex`、`numbers.tex`、
+`snippets.txt` 與 `build/snippets/` 的每一個 `at1:` 標籤；PDF 72 頁全部轉成圖看過版面。
+
+對照的紀錄與程式：`results/raw/linux_driver_v11_20261027/` 新增的 H0–H8、`board_hashes_H.txt`、`S6_static_checks.log`、
+`E9_release_kit.log` 與更新後的 README；`results/board_results.json` 的 `linux_driver_twn_fuse_v11_20261027`；commit
+`b11c465` 的 `twn_fuse.c`、`twn_fuse_ioctl.h`、`test/v11_check.sh`（`irqfps`、`devmem`）、`test/pw_expired_ssh.sh`、
+`test/first_login_serial.py`、`linux/build_linux.sh`、`board-config.bb`、`system-user.dtsi`、`board/make_kit.sh`。
+英文文件：`README.md`、`CHANGELOG.md`、`docs/QUICKSTART.md`、`REBUILD.md`、`RESULTS.md`、`VERIFICATION.md`、`DESIGN.md`、
+`linux/README.md`、`linux/driver/twn_fuse/README.md`。
+
+Kernel、Yocto 與發佈映像（WSL 內 PetaLinux 專案 `ternpose_v11`，唯讀）：`kernel/irq/manage.c:1769, 1904–1908`、
+`kernel/irq/spurious.c:202`（"nobody cared"）、`include/linux/hrtimer.h:252–256` 與 `kernel/time/hrtimer.c:812`（範圍睡眠以
+硬到期時間設定計時器）；`poky/meta/classes/useradd_base.bbclass:155–159`（`passwd-expire` 直接把 `sp_lstchg` 設成 0）、
+`meta-petalinux/conf/distro/petalinux.conf:81`（`useradd -p '' petalinux; passwd-expire petalinux`）；
+`images/linux/rootfs.cpio.gz.u-boot` 的雜湊是 `96b9e56733ad36a9`（與開機組 H 相同），從同一次建置的 `rootfs.cpio` 讀了
+`etc/shadow`（root 的第 3 欄是 0、`petalinux` 的密碼欄是空的）、`etc/pam.d/common-auth`（`nullok_secure`）、
+`common-account`（`new_authtok_reqd=done`）、`etc/ssh/sshd_config`（`PermitRootLogin yes`，沒有 `sshd_config.d/`）、
+`etc/sudoers.d/99-petalinux`（`petalinux ALL=(ALL) ALL`）；release `system.dtb` 裡所有帶 `iommus` 的節點與其 `status`；
+`rootfs.cpio`、`Image`、`system.dtb`、`boot.scr` 掃描 `/home/[a-z]`、`/mnt/[a-z]/` 這類建置路徑（只有 `/home/root`、
+`/home/petalinux`）。依指示沒有碰板子、沒有用網路、沒有安裝任何東西，只改了這個檔案。
+
+**已查證正確、不列為問題的部分**：
+
+- 新數字：`H7` 中斷 233.84／232.83／232.71、輪詢 231.33／231.27／231.19，平均 233.13 與 231.26、+0.81 %，三次中斷都高於
+  三次輪詢（最低的 232.71 > 最高的 231.33）；換算每幀 4.289 對 4.324 ms，差 34.7 µs；`numbers.tex` 的 `\hIrqFps`、
+  `\hPollFps`、`\relRootfs`、`\relKit` 與註解行號（H7 第 5、13、21 與 9、17、25 行）正確；`board_hashes_H.txt` 的開機檔
+  四個雜湊與開機組 E 相同，只有 rootfs 與工具包不同。
+- `H8`：第 3 行 System RAM 到 `0x7fef_ffff`、第 6、9 行被拒、第 12–13 行 `rmmod` 後讀到 `0x11`、第 16 行重新載入後又被拒、
+  第 19 行 `0x7ff0_0000` 讀得到，第 7 節第 55–59 行的逐行說明全部相符；第 79–82 行的機制與 `devmem_is_allowed()`、
+  `iomem_is_exclusive()` 一致（driver 卸載時 devm 釋放 `reg` 區間）。
+- `H1`／`H2`：第 10 節第 41、47、51 行對每一行的說明都相符；`No password has been supplied.`（H2 第 18 行）出現在新密碼與
+  確認都是空的時候，證明的確是「空密碼」被拒；20752 天 = 2026-10-26；第 71 行對 `sp_lstchg` = 0、PAM 帳號檢查、sshd 在沒有
+  終端機時拒絕（含 sftp）的說明與 rootfs 的 PAM 設定、Yocto 原始碼一致。
+- `S6`：第 1 行的兩個雜湊等於 HEAD 的 `twn_fuse.c`（`1006f944b08a55f7`）與 `twn_fuse_ioctl.h`（`680689f72675286d`）；
+  第 14–15 行確實證明 W=1 傳到編譯器；講義黑框避開了第 3–5、10–11 行的建置目錄。
+- driver 的兩個失敗路徑（`twn_fuse.c` 第 623–624、638–642 行）與第 3 節第 93 行的說明一致；第 3 節第 144 行改寫後與
+  `manage.c`、`spurious.c` 相符；第 2 節第 66 行「約 80 次」的理由與 hrtimer 原始碼相符。
+- 第 8 節的 bypass 段落（第 105–110 行）與 `.config:5732`、`arm-smmu.c:60–68`、`E1`／`H3` 的命令列一致；第 31 行說 Ethernet
+  與 SD 卡在後面、USB 與 DisplayPort 沒測：release dtb 裡 `ethernet@ff0e0000`、`mmc@ff170000` 是 okay 並帶 `iommus`，
+  `usb@fe200000`、`display@fd4a0000` 是 okay 而沒有任何紀錄用到它們，說法正確。F0 的 6＋1＋3＝10 等於限流上限正確。
+- 所有 `\lineof` 新標籤：`chk_split` 74、`chk_devmem` 140、`drv_rns` 242、`csr_irq_assign` 335、`build_tag` 24、
+  `dtsi_fuse0` 20、`bsp_install_line` 7、`build_copy_for` 105、`build_pw_line` 139、`kit_strip` 45、`axi_arprot` 53、
+  `drv_mmap_iommu` 358，都指到正確的那一行。
+- 附錄 A 79 條，依不分大小寫的字母順序排列正確，節號正確；新文字沒有中國大陸用語；PDF 裡沒有私人路徑、email 或預設密碼
+  以外的密碼。`H1`／`H2` 裡的 `192.168.10.2`（板子，`board-config.bb` 與 QUICKSTART 都已公開）與 `192.168.10.163`（PC 在
+  直連網段上的位址）是私有網段位址，可以接受。
+- 英文文件與 `board_results.json` 對密碼、`/dev/mem`、SMMU 的 bypass、中斷與輪詢的 fps 說法和講義一致（例外見 N8）。
+
+### 第 1 輪各項的複查
+
+| 編號 | 結果 | 說明 |
+|---|---|---|
+| R1 | 已確認 | `01-ab.tex:6, 22, 32, 48, 106, 111`、附錄 B 第 1 題都改成「第 2→3 組一起換、合起來看不出影響」 |
+| R2 | 已確認 | D6 改為 `3-21`、正文用巨集；S2 加第 86 行；`debugfs.rst` 第 14--18 行 |
+| R3 | 已確認（新比較另有問題） | 第 2 節第 26、64、73 行改引 E3 並標明 D 不可比；第 7 節第 30、87 行標明不同 kernel；第 3 節改用 H7 同一次開機的比較，數字正確，但「交替不會偏袒」的說法不對，見 N2 |
+| R4 | 已確認 | 「10 µs」的例子刪掉；30--40 µs；8,256 kB；出貨版 pblock 改寫成沒有公開紀錄；「約 991,000」 |
+| R5 | 已確認 | `08-smmu.tex:37, 101` |
+| R6 | 已確認（有殘留） | 第 45 行標明沒有保存紀錄；第 59 行改引 F0 第 22 行，但「越界讀取的那一筆」是推論，見 N7 |
+| R7 | 已確認 | 一句話、技術框、改善框、第 105--110 行、面試回答、附錄 B 第 8 題都有前提與兩種漏洞；dtsi 註解同步 |
+| R8 | 已確認 | H8 實測支持每一句；標題、導讀、附錄 B 改成「限制」 |
+| R9 | 已確認 | 映像本身改成過期密碼，H1、H2 支持第 10 節每一句；「空密碼被拒絕」現在有證據。另見 N6（`petalinux` 帳號） |
+| R10 | 已確認 | header 修好，`S6` 記錄兩個檔案都是 0；另見 N7（W=1 用的是哪一棵 kernel 樹） |
+| R11 | 已確認 | p.40、p.46、p.65 的速查表都讀得清楚；第 7.4 節 bbappend 那一列的位置欄見 N7 |
+| R12 | 已確認（有殘留） | 列出的名詞都有解釋並收錄；新文字的 `expect`、`sftp` 沒有解釋（N7） |
+| R13 | 已確認 | 第 3 節第 93、144 行與 kernel 原始碼一致；driver 也修了 |
+| R14 | 已確認 | 第 3 節第 122 行、第 2 節第 66、68 行 |
+| R15 | 已確認 | 第 4 節第 72、76、78、87 行，附錄 B 第 4 題 |
+| R16 | 部分 | 第 7 節第 21、53 行、第 8 節第 20、30、93 行、dtsi 註解都改了；第 7 節第 85、92 行仍說 buffer 從 CMA 配，見 N3 |
+| R17 | 已確認 | `06-autoload.tex:21, 66`、`09-binding.tex:74, 78`、`07-devmem.tex:46` |
+| R18 | 已確認 | `10-release.tex:57`、附錄 C 第 61 行 |
+| R19 | 已確認 | `05-debugfs.tex:6, 14` |
+| R20 | 已確認 | 所有新標籤的行號都對 |
+| R21 | 部分 | 四處 `\needspace` 有效（p.23 的「板上：開機組 E」與黑框同頁）；但 `\snip` 的估計不計折行，p.8 頂端仍有兩行程式；新加的段落也出現了標題或引言與黑框分頁，見 N4 |
+| R22 | 已確認 | 第 2、3、5 節都指出問題行 |
+| R23 | 已確認 | 十節的一句話都是一句 |
+| R24 | 部分 | 標題自動帶開機組，但與手寫的說明重複；導讀「每個檔案的第 1 行是日期與開機檔的雜湊」不全對，見 N5 |
+| R25 | 部分 | 第 4 步補齊；第 6 步給了 F0 的 dtb 做法，但把開機組 F 的 `BOOT.BIN` 寫成與 E 相同，見 N1 |
+
+### 新發現
+
+**N1（必改）附錄 C 把開機組 F 的開機檔寫錯**
+- 位置：`C-reproduce.tex:65`（PDF p.72）「開機組 F 的 \code{BOOT.BIN} 與開機組 E 相同，kernel 與 rootfs 是第一次建出的 v1.1 版本」。
+- 查證：`F0_smmu_find_stream_ids.log:1` 與 `F1_smmu_measured_ids.log:1` 都是 `BOOT.BIN 18a066f87cfbad8d`，開機組 E 是
+  `5d226057efc8760b`（`board_hashes_E.txt:23`）。導讀 `00-intro.tex:47` 與證據 README 第 17 行寫的是「同一顆 bitstream、不同的
+  `BOOT.BIN`」。照附錄 C 用 E 的 `BOOT.BIN` 去重現，開機檔就和紀錄不同。
+- 改法：改成「開機組 F 用的是和開機組 E 同一顆 bitstream 的 `BOOT.BIN`（`18a066f87cfbad8d`），kernel 與 rootfs 是第一次建出
+  的 v1.1 版本」；若兩個 `BOOT.BIN` 的差別已知（例如 U-Boot 或 FSBL 不同），補一句。
+
+**N2（必改）H7 的「交替的順序讓漂移不會偏袒其中一組」不成立**
+- 位置：`03-irq.tex:128`（PDF p.24）。
+- 查證：`v11_check.sh` 第 133–137 行每一輪都是「先中斷、後輪詢」（H7 第 2–25 行也是），也就是 ABABAB。這種順序不能抵銷
+  單調的漂移：若板子隨時間變慢，先跑的中斷每一輪都占一點便宜。第 1 節自己的 A/B（`01-ab.tex:106`）用的是第二輪反過來的
+  ABBA，正是為了這件事。結論本身不受影響：輪詢三輪只降了 0.14 fps，相對 1.87 fps 的差很小，而且最慢的一次中斷（232.71，
+  第三輪）仍比最快的一次輪詢（231.33，第一輪）快。
+- 改法：改成「每一輪都是中斷在前，若板子隨時間變慢會稍微偏袒中斷；但輪詢三輪只降 0.14 fps，遠小於兩組 1.87 fps 的差，而且
+  第三輪的中斷仍比第一輪的輪詢快」；或把 `irqfps` 改成第二輪順序反過來再量一次。
+
+**N3（建議）第 7 節還有兩處說 buffer 從 CMA 配（R16 的殘留）**
+- 位置：`07-devmem.tex:85`（「記憶體是 kernel 自己從 CMA 拿出來給 driver 的」）、`:92`（面試回答「v1.1 的 driver 用 DMA API
+  從 CMA 配 buffer」）；PDF p.45–46。
+- 問題：同一節第 21、53 行與第 8 節第 93 行都說 SMMU 打開時不從 CMA 配，而發佈映像的 SMMU 是開的（`H3` 第 19 行 `CmaFree`
+  261,632 kB）。改成「用 DMA API 配（沒有 SMMU 時從 CMA）」。
+
+**N4（建議）版面：新的分頁問題**
+- `\snip` 的分頁估計以原始碼行數計算，不算折行：p.8 頂端仍留著 `ab_measure.sh` 第 36–37 行（第 21–26、36 行都折成兩行）。
+  可以把折行估進去，或對長行多的片段放寬門檻。
+- 標題或引言與黑框分在兩頁：p.23→24（`03-irq.tex:124`「吞吐量：同一次開機比較」與 H7）、p.48→49（`08-smmu.tex:41` 與
+  `first_bitstream/F1`）、p.57→58（`09-binding.tex:71` 與 S6）、p.62→63（`10-release.tex:43`「板上：序列埠上的第一次
+  登入」與 H2）。這四處同樣可加 `\needspace`。
+- 框的最後一兩行跨到下一頁：p.38（第 6 節改善框最後一項）、p.48（第 8 節改善框）、p.65（第 10 節第二個「踩過的坑」的
+  最後一行）、p.70（附錄 B 第 7 題）。
+
+**N5（建議）黑框標題與導讀說明的兩處小誤**
+- `\whereof` 自動加的開機組與手寫的說明重複，例如「`D5_boot_state.log : 26-43`（開機組 D）（開機組 D）」，同樣的還有
+  `07-devmem.tex:14, 51`（D5、E1）、`08-smmu.tex:43, 57, 63, 69, 74, 75`（first_bitstream／F0／F1／E1／E4／G4）。把手寫說明裡的開機組
+  刪掉，只留其餘的字。
+- `00-intro.tex:37`「每個檔案的第 1 行是日期與開機檔的雜湊」：`E0_kit_sha.log` 沒有標頭行；`E7`、`H1`、`H2` 的第 1 行只有
+  日期與說明、沒有開機檔雜湊；S 檔記的是 PC。改成「板上紀錄的第 1 行通常是日期與開機檔的雜湊（序列埠與 PC 端的紀錄只有
+  日期）」。
+
+**N6（建議）`petalinux` 帳號沒有交代：空密碼、可以 sudo**
+- 位置：`10-release.tex:16, 51, 69`；PDF p.60、63、65。
+- 查證：發佈 rootfs 的 `etc/shadow` 是 `petalinux::0:…`（密碼欄是空的、已過期，來自 `petalinux.conf:81` 的
+  `useradd -p '' petalinux; passwd-expire petalinux`），`etc/sudoers.d/99-petalinux` 是 `petalinux ALL=(ALL) ALL`，
+  `common-auth` 是 `pam_unix.so nullok_secure`。依這些設定推得（未在板上測）：在序列埠上以 `petalinux`、空密碼登入，設一個
+  新密碼後 `sudo` 就是 root，不需要 root 的密碼，root 改過密碼之後也一樣；ssh 不受影響，因為 sshd 預設不接受空密碼
+  （`PermitEmptyPasswords no`，映像沒有改它）。第 51 行「它的第一次登入同樣要先設密碼」字面正確，但讀者會以為和 root 一樣
+  有一組公開密碼保護。
+- 改法：第 10 節原理或限制補一句「序列埠上 `petalinux`（空密碼、可 sudo）是另一條取得 root 的路，只限能接觸序列埠的人」；
+  或在建置時鎖住這個帳號（`usermod -L petalinux`），或替它也設公開預設密碼並過期。英文 QUICKSTART 也宜一併說明。
+
+**N7（建議）幾個推論或範圍沒有標清楚**
+- `08-smmu.tex:59`「第 22 行的 context fault 帶著 `cbfrsynra=0xe80`（越界讀取的那一筆）」：F0 只有計數（第 21–22 行），沒有
+  紀錄那次開機跑過 `dma_fault`。改成「（推測是越界讀取那一筆）」。
+- `03-irq.tex:128`「pipeline 裡 head 的等待也從輪詢改成中斷，兩者加起來和這個差同一個量級」：head 的那一份沒有量，而且
+  這個 pipeline 的 head 與 backbone 重疊（D6 的 `head overlaps the backbone; it is not additive`），head 的等待未必在每幀
+  週期的關鍵路徑上。標「推測」。
+- `10-release.tex:64`「rootfs、kernel、BOOT.BIN 都沒有這個問題」：沒有對應的紀錄。審稿人掃描了 `rootfs.cpio`、`Image`、
+  `system.dtb`、`boot.scr`，沒有找到建置路徑（`BOOT.BIN` 沒有掃），結論應該成立；建議把掃描的指令與結果存成紀錄再引用。
+- `10-release.tex:39` 的 H1 黑框略過了第 14 行，那一行說明互動登入那一段是第二次執行（第一次的腳本沒印完）；正文也沒有
+  提。建議把第 14 行放進範圍。
+- `02-ioctl-cost.tex:68`「『等待』這一項在不同開機組、不同設定之間量到 29.2 到 40.0 µs」：只是輪詢時的值（中斷時是
+  14.0–14.4 µs），補「輪詢時」。
+- `09-binding.tex:71–73`：S6 的 `make W=1` 編譯對象是 v1.0.0 那棵 kernel 建置樹（S6 第 3–5 行的 `ternpose` 專案與
+  `O=~/twn_kbuild`），不是發佈映像的 kernel 設定；同為 6.1.30，警告大致相同，寫一句即可。
+- `07-devmem.tex:104` 第 7.4 節 bbappend 那一列的位置印成「`meta-user/recipes-kernel/linux/`:1」，少了檔名。
+- `10-release.tex:37` 的 `expect`、`:71` 的 `sftp` 沒有中文解釋，也沒有收進附錄 A。
+- `numbers.tex:32` 的註解仍寫「開機組 E：v1.1 發佈映像」（現在發佈的是 H），只影響原始檔。
+
+**N8（建議）英文文件與講義的小差異**
+- `linux/driver/twn_fuse/README.md:41` 列的 `v11_check.sh` 模式少了 `irqfps` 與 `devmem`。
+- `docs/RESULTS.md:42` 與 `CHANGELOG.md` 的「232.6 fps … the v1.1 image」是開機組 E（發佈前的 rootfs）的 E2；發佈映像本身
+  是 H4 的 232.22／232.39／232.21。開機檔相同，數字差異在正常變動內，但標一下是哪一次開機比較清楚（講義第 8 節有標）。
+- `docs/QUICKSTART.md:31` 建議用 `ssh -t` 做第一次登入；紀錄裡 ssh 只證明會要求改密碼（H1 第 18–23 行），真正改完是在
+  序列埠（H2）。若沒有在 ssh 上改成功過，寫「序列埠已驗證；ssh 會要求改密碼」。
+
+### 清單逐項結果
+
+| 項目 | 結果 |
+|---|---|
+| A1 一句話 | 通過 |
+| A2 先講結論 | 通過 |
+| A3 英文名詞有解釋且收進附錄 A | 通過（`expect`、`sftp` 的小殘留，N7） |
+| A4 沒有未解釋的代號 | 通過（開機組 D–H、S 檔、build 代號都就地定義） |
+| A5 8 小時、≤ 75 頁 | 通過（72 頁） |
+| B1 原本引用程式並指出問題行 | 通過 |
+| B2 列出 API、Yocto 變數、Vivado 命令、RTL 結構 | 通過 |
+| B3 改善可驗證，沒量的標未量測 | 通過（N7 的幾處推論要標） |
+| C1 程式碼由 `\snip{}` 抽出、行號一致 | 通過 |
+| C2 板上輸出是實際紀錄、有日期與雜湊 | 通過（N5、N7 的小問題） |
+| C3 數字找得到出處 | 通過（新數字全部對過） |
+| C4 比較時寫明是不是同一把尺 | 部分通過（N2：同一次開機，但順序沒有抵銷漂移的說法不對） |
+| D1 kernel 行為與 6.1 一致 | 通過 |
+| D2 RTL 與 ISR 對得上 | 通過 |
+| D3 不誇大、限制寫清楚 | 通過（N6 建議補 `petalinux` 帳號） |
+| D4 timing 數字與比較基準 | 通過 |
+| E1 面試題有答案、30 秒版在附錄 B | 通過 |
+| E2 回答中的名詞前文解釋過 | 通過 |
+| F1 速查有關鍵函式與行號 | 通過（N7 的 bbappend 位置欄） |
+| F2 排版、沒有殘留「待寫」 | 部分通過（N4）；沒有 Overfull、紅字或「待寫」 |
+| G1 台灣用語 | 通過 |
+| G2 沒有密碼、私人路徑、email | 通過（只有公開的預設密碼；私有網段 IP 可接受） |
+
+### 結論
+
+第 1 輪的 13 項必改都已處理，而且多數是改了映像與 driver 本身、再用開機組 H 的紀錄證明，不只是改字：H7、H8、H1、H2、S6
+的每一個數字與每一句逐行說明都和紀錄相符，kernel 與 Yocto 的說法也都對得上原始碼。這一輪有 **2 項必改**：N1（附錄 C 把
+開機組 F 的 `BOOT.BIN` 寫成與 E 相同）與 N2（H7 的交替順序不能抵銷漂移，說法要改；結論本身成立）。兩項都只需改一兩句，
+不必重新量測。另有 6 項建議（N3–N8），其中 N6 的 `petalinux` 帳號與 N4 的分頁值得在交付前一起處理。目前**不能交付**；
+N1、N2 改好、重建 PDF 確認後即可交付，不需要再送一輪完整審查。
+
+### 第 2 輪的處理（2026-10-27，作者）
+
+| 項目 | 處理 |
+|---|---|
+| N1 | 附錄 C 改成：開機組 F 的 `BOOT.BIN`（`18a066f87cfbad8d`）與 E 帶著同一顆 bitstream，但是另一次打包的檔案。 |
+| N2 | 第 3 節改成：每一輪都是先中斷、後輪詢，固定順序不能抵銷漂移（並指向第 1 節的兩輪反序）；但輪詢三次之間只差 0.14 fps，遠小於兩組之間約 1.87 fps，結論不受影響。 |
+| N3 | 第 7 節原理與面試回答改成「由 DMA API 配（沒有 SMMU 時從 CMA；發佈映像打開了 SMMU，改從一般記憶體配頁）」。 |
+| N4 | `extract.py` 多算一個「印出來的行數」（超過約 85 字的行算兩行），`\snip` 用它估計；每行的高度改成從 PDF 量到的約 0.75 個內文行距，跑到下一頁的少於 5 行就先換頁；`\boardfile` 前面不准換頁（放不下時前一段的最後幾行跟著框走）；小節標題下面至少要放得下 8 行。第 2--10 節不再強制從新的一頁開始（改成標題下至少 20 行），抵掉多出來的空白。重建後 73 頁。 |
+| N5 | 拿掉 `\boardfile` 呼叫裡手寫的「（開機組 X）」；導讀改成「大多數紀錄的第 1 行是日期與開機檔的雜湊（E0 沒有這一行；E7、H1、H2、H9 只有日期）」。 |
+| N6 | 第 10 節加一段 `petalinux` 帳號：空的過期密碼、`sudo`、`nullok_secure`，由設定推得（沒有在板上測）能接序列埠的人可以經它取得 root；寫明為什麼這次只記錄、怎麼鎖（`usermod -L petalinux`）。發佈說明同步。 |
+| N7 | F0 第 22 行的 context fault 改成「是哪一個存取造成的沒有查」；H7 的 head 等待標成推測；「建置路徑」改引新的 `S7_release_path_scan.log`（`tools/scan_release_paths.py` 掃發佈檔、打開 cpio／tar／zip，0 處；對 strip 前的 app 8 處作為對照）；H1 的框改成 `1-25`（含第 14 行）；第 2 節的 29.2--40.0 µs 標明是輪詢；S6 改對發佈映像那一顆 kernel 的建置樹重跑（紀錄第 3--5 行是它的設定），講義的範圍與說明同步；7.4 速查補上 bbappend 的檔名；`expect`、`sftp` 第一次出現時補解釋。 |
+| N8 | driver README 的模式清單補 `irqfps`、`devmem`；RESULTS、README、CHANGELOG、發佈說明的吞吐量改成發佈檔的 232.3 fps（H4：232.22、232.39、232.21），232.6 fps 標明是同一組開機檔、發佈前一版的 rootfs；QUICKSTART 的 `ssh -t` 第一次登入現在有紀錄：重開機後在開機組 H 補做 `H9_ssh_first_login.log`（`pw_expired_ssh.sh` 加了「給新密碼就用 ssh 改掉」的選項）：互動的 ssh 改掉密碼後，用新密碼直接執行指令成功。 |

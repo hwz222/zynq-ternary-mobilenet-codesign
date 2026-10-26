@@ -1,0 +1,19 @@
+== 2026-10-26 21:22 UTC  PC: the v1.1.0 release files other than the six PyTorch checkpoints (unchanged since v1.0.0), as listed in SHA256SUMS; rootfs 96b9e56733ad36a9, kit 3a4eb0997028ba0e
+# python tools/scan_release_paths.py BOOT.BIN system_fuse_ternpose.bit system_fuse_ternpose.xsa Image system.dtb system_nosmmu.dtb boot.scr rootfs.cpio.gz.u-boot twn_board_kit.tar.gz fuse_weights.bin model_mbv2.bin model_mbv2_packed.bin
+BOOT.BIN                          1 member(s) scanned
+system_fuse_ternpose.bit          1 member(s) scanned
+system_fuse_ternpose.xsa         13 member(s) scanned
+Image                             1 member(s) scanned
+system.dtb                        1 member(s) scanned
+system_nosmmu.dtb                 1 member(s) scanned
+boot.scr                          1 member(s) scanned
+rootfs.cpio.gz.u-boot          2513 member(s) scanned
+twn_board_kit.tar.gz             16 member(s) scanned
+fuse_weights.bin                  1 member(s) scanned
+model_mbv2.bin                    1 member(s) scanned
+model_mbv2_packed.bin             1 member(s) scanned
+TOTAL build paths found: 0
+exit 0
+# positive control: python tools/scan_release_paths.py build/arm-drv/mbv2_fuse_test   (an app before strip; its hits are paths of the build PC, so only the total is kept)
+TOTAL build paths found: 8
+exit 1

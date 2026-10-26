@@ -1,4 +1,4 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{ioctl 要花多少時間}
 \label{sec:ioctl}
 
@@ -65,7 +65,7 @@ PL 數的 cycle & 4129.0 µs & 約 991,000 cycles $\div$ 240 MHz \\
 
 \textbf{為什麼輪詢會吃 CPU。}\code{readl_poll_timeout()} 每次睡 13 到 50 µs，用的是高精度計時器（hrtimer）。這個範圍的上限是計時器的硬到期時間，CPU 沒有其他事時多半睡滿 50 µs 才醒，所以一幀 4.13 ms 大約醒來 80 次（估計，沒有量）。每次都要經過計時器中斷、排程器、切回這個 process、讀一次暫存器、再睡，每次只花幾 µs，累積起來每幀約 0.45 ms。
 
-\textbf{量測本身的誤差與範圍。}兩次 \code{clock_gettime} 本身也要時間，但它被平均到 100,000 次裡；\code{getrusage} 的解析度是 µs，總量是 0.45 秒等級，誤差可以忽略。\code{getrusage} 只算這個 process 的 user 與 kernel 時間：這顆 kernel 沒有開 \code{IRQ_TIME_ACCOUNTING}，CPU 閒置時進來的中斷（包括第 3 節的 ISR 與 hrtimer 的中斷）算在 idle，不算在這個 process 上。「等待」這一項在不同開機組、不同設定之間量到 29.2 到 40.0 µs（\code{D2_bench.log} 第 9、18 行，\code{E3_bench.log} 與 \code{G3_bench.log} 第 22 行）；同一設定重複執行的變化沒有量。所以只比較同一次開機、同一個程式的數字。
+\textbf{量測本身的誤差與範圍。}兩次 \code{clock_gettime} 本身也要時間，但它被平均到 100,000 次裡；\code{getrusage} 的解析度是 µs，總量是 0.45 秒等級，誤差可以忽略。\code{getrusage} 只算這個 process 的 user 與 kernel 時間：這顆 kernel 沒有開 \code{IRQ_TIME_ACCOUNTING}，CPU 閒置時進來的中斷（包括第 3 節的 ISR 與 hrtimer 的中斷）算在 idle，不算在這個 process 上。輪詢時的「等待」在不同開機組、不同設定之間量到 29.2 到 40.0 µs（\code{D2_bench.log} 第 9、18 行，\code{E3_bench.log} 與 \code{G3_bench.log} 第 22 行）；同一設定重複執行的變化沒有量。所以只比較同一次開機、同一個程式的數字。
 
 \subsection{面試會問}
 

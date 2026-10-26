@@ -39,11 +39,14 @@ The accelerator under a Linux kernel driver, on a ready-to-boot image.
 
 ### Measured
 
-- v1.1 image: 232.6 fps, fixtures bit-exact, 10.7 us of CPU per backbone frame with the interrupt
+- v1.1 image: 232.3 fps on the released files (232.6 fps on the release candidate), fixtures
+  bit-exact, 10.7 us of CPU per backbone frame with the interrupt
   (465.8 us polling); on one boot, 233.13 fps with the interrupt against 231.26 fps polling;
   bitstream 44,157 LUT, WNS 0.000 ns at 240 MHz (`results/board_results.json`,
   `linux_driver_twn_fuse_v11_20261027`).
-- `make W=1` and `checkpatch.pl --strict`: no warnings on the driver and its ioctl header.
+- `make W=1` (against the release kernel's build tree) and `checkpatch.pl --strict`: no warnings
+  on the driver and its ioctl header. `tools/scan_release_paths.py`: no build-machine paths in the
+  release files.
 
 ### Fixed before the release (study handout 2, review round 1)
 

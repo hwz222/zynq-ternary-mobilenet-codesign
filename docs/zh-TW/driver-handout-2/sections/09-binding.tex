@@ -1,4 +1,4 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{device-tree binding 與靜態檢查}
 \label{sec:binding}
 
@@ -68,9 +68,9 @@ make -C <kernel> dt_binding_check DT_SCHEMA_FILES=misc/wjhuang,twn-fuse.yaml
 make -C linux/driver/twn_fuse C=1
 \end{cmdline}
 
-已經做的替代檢查是 \code{make W=1}（打開 kernel 額外的編譯器警告）與 kernel 的 \code{scripts/checkpatch.pl --strict}（程式風格檢查）。審稿時重跑發現 \code{twn_fuse_ioctl.h} 有 1 個 WARNING（檔案裡寫了自己的檔名）與 1 個 CHECK（一行超過 100 欄），修掉之後兩個檔案都是 0：
+已經做的替代檢查是 \code{make W=1}（打開 kernel 額外的編譯器警告）與 kernel 的 \code{scripts/checkpatch.pl --strict}（程式風格檢查）。審稿時重跑發現 \code{twn_fuse_ioctl.h} 有 1 個 WARNING（檔案裡寫了自己的檔名）與 1 個 CHECK（一行超過 100 欄），修掉之後，對著發佈映像那一顆 kernel 的建置樹重跑，兩個檔案都是 0：
 
-\boardfile[：第 14--15 行證明 W=1 真的傳到了編譯器]{S6_static_checks.log}{1-2,6-9,12-16,18,20,24,26}
+\boardfile[：第 3--5 行是發佈 kernel 的選項，第 18--19 行證明 W=1 真的傳到了編譯器]{S6_static_checks.log}{1-6,10-13,16-20,22,24,28,30}
 
 \subsection{原理}
 

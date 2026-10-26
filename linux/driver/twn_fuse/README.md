@@ -38,7 +38,7 @@ The device-tree binding is `wjhuang,twn-fuse.yaml` in this directory.
 | `test/twn_errtest.c` | the driver's refusals: bad offsets, bad pointers, second open, the 3 s timeout (`timeout`), a mapping kept after close (`hold`) |
 | `test/twn_bench.c` | ioctl round trip, backbone frame time split (app / driver / PL cycles), CPU time, CPU access to the buffer |
 | `test/board_check.sh` | the board check: fixtures, refusals, unload/reload, throughput (UIO as well where the device tree still reserves its buffer) |
-| `test/v11_check.sh` | the checks of v1.1: `ab`, `bench`, `irqcount`, `split`, `debugfs`, `synthetic`, `boot`, `smmu` |
+| `test/v11_check.sh` | the checks of v1.1: `ab`, `bench`, `irqcount`, `split`, `debugfs`, `synthetic`, `boot`, `smmu`, `irqfps`, `devmem` |
 | `test/ab_measure.sh` | four-arm throughput A/B (UIO, UIO elsewhere, driver with Device mapping, driver) |
 | `test/binding_check.py` | the parts of `dt_binding_check` that run without dtschema, and the node of a real `.dtb` |
 

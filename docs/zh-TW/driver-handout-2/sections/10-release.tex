@@ -1,4 +1,4 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{發佈 v1.1}
 \label{sec:release}
 
@@ -34,11 +34,17 @@ v1.0.0 沒有附 root file system（rootfs，開機後掛成根目錄的整個�
 \snip[bash]{build_pw}
 
 \needspace{14\baselineskip}
-\textbf{板上：ssh 遇到過期的密碼（開機組 H，在任何人改密碼之前）。}從 PC 用 OpenSSH 試三種情形：直接執行指令、用 scp 傳檔、密碼打錯；再用 \code{expect} 模擬一次互動登入：
+\textbf{板上：ssh 遇到過期的密碼（開機組 H，在任何人改密碼之前）。}從 PC 用 OpenSSH 試三種情形：直接執行指令、用 scp 傳檔、密碼打錯；再用 \code{expect}（照腳本對互動程式打字的工具）模擬一次互動登入：
 
-\boardfile{H1_ssh_expired.log}{1-13,15-25}
+\boardfile{H1_ssh_expired.log}{1-25}
 
-密碼正確時，sshd 先說密碼已過期；沒有終端機（直接執行指令與 scp）就沒辦法改，連線直接結束，指令沒有執行（第 3--10 行）。密碼打錯時是一般的拒絕（第 12 行）。互動登入（第 17--23 行）先要求改密碼；在 \code{New password:} 按 Ctrl-C 只結束了這一次輸入，接著問確認密碼，連線停在這裡，沒有拿到 shell。
+密碼正確時，sshd 先說密碼已過期；沒有終端機（直接執行指令與 scp）就沒辦法改，連線直接結束，指令沒有執行（第 3--10 行）。密碼打錯時是一般的拒絕（第 12 行）。互動登入（第 17--23 行，第 14 行說明這是同一次開機的第二次執行）先要求改密碼；在 \code{New password:} 按 Ctrl-C 只結束了這一次輸入，接著問確認密碼，連線停在這裡，沒有拿到 shell。
+
+\textbf{用 ssh 完成第一次登入（開機組 H，重開機之後）。}同一個腳本給了新密碼時，最後再用互動的 ssh 把密碼改掉，接著用新密碼直接執行指令：
+
+\boardfile[：前面四種情形與上面相同，這裡只印最後兩段]{H9_ssh_first_login.log}{1,24-39}
+
+改完之後腳本沒有等到它認得的 shell 提示（第 34 行），但第 37--38 行用新密碼直接執行的指令成功了，root 的「上次修改日」也變成當天，表示密碼確實在 ssh 上改掉了。
 
 \textbf{板上：序列埠上的第一次登入（開機組 H）。}第 2 行列出實際按的鍵（板子不回顯密碼）。第一次登入在第一個 \code{New password:} 按 Ctrl-C；第二次先給空的新密碼，再給兩個不同的密碼：
 
@@ -49,6 +55,8 @@ Ctrl-C 讓 \code{login} 整個結束，回到登入提示（第 9 行是重新�
 \boardfile{H2_first_login.log}{26-33,37-41}
 
 改完之後 root 的「上次修改日」變成 20752（1970 年起的天數，也就是 2026-10-26）；\code{petalinux} 仍是 0，它的第一次登入同樣要先設密碼。
+
+\textbf{PetaLinux 自己的 \code{petalinux} 帳號。}映像保留了 PetaLinux 預設建立的這個帳號：密碼是空的、而且已經過期，可以用 \code{sudo} 執行任何指令，登入的 PAM 設定允許空密碼（\code{nullok_secure}，只限序列埠這類列在 \code{/etc/securetty} 的終端機）。由設定推得（沒有在板上測）：能接上序列埠的人可以用空密碼登入 \code{petalinux}、被要求設一個新密碼，再用 \code{sudo} 取得 root，不需要 root 的密碼。ssh 不接受空密碼，所以這只影響序列埠。能接序列埠通常也能直接換 SD 卡，所以這次只在發佈說明與這裡寫明，沒有鎖掉這個帳號；要鎖，可以在 \code{EXTRA_USERS_PARAMS} 加 \code{usermod -L petalinux;}。
 
 \textbf{合成 fixture。}四張圖完全由公式產生：
 
@@ -61,14 +69,14 @@ Ctrl-C 讓 \code{login} 整個結束，回到登入提示（第 9 行是重新�
 \end{pit}
 
 \begin{pit}
-\textbf{工具包裡的建置路徑。}發佈前掃描發佈檔時，發現工具包裡兩個 app 的執行檔帶著建置機器上的路徑：它們沒有 strip，debug 資訊裡記著編譯器、SDK 與原始碼的絕對路徑。rootfs、kernel、BOOT.BIN 都沒有這個問題（Yocto 建置時已經處理過）。修法是 \code{board/make_kit.sh} 用 SDK 的 \code{strip} 去掉符號與 debug 資訊，打包後再掃一次，任何檔案含有建置路徑就中止。去掉 debug 資訊不改變程式碼，但檔案的雜湊變了，所以工具包重新在板上驗過（開機組 E 的 \code{E9_release_kit.log}，發佈的版本在開機組 H）。
+\textbf{工具包裡的建置路徑。}發佈前掃描發佈檔時，發現工具包裡兩個 app 的執行檔帶著建置機器上的路徑：它們沒有 strip，debug 資訊裡記著編譯器、SDK 與原始碼的絕對路徑。發佈的其他檔案（BOOT.BIN、bitstream、XSA、kernel、兩個 dtb、boot.scr、rootfs 的 2,513 個檔案、權重與模型檔）都沒有這個問題：\code{tools/scan_release_paths.py} 對發佈檔逐一掃描，找到 0 處，同一個工具對 strip 之前的 app 找到 8 處（\code{S7_release_path_scan.log}）。修法是 \code{board/make_kit.sh} 用 SDK 的 \code{strip} 去掉符號與 debug 資訊，打包後再掃一次，任何檔案含有建置路徑就中止。去掉 debug 資訊不改變程式碼，但檔案的雜湊變了，所以工具包重新在板上驗過（開機組 E 的 \code{E9_release_kit.log}，發佈的版本在開機組 H）。
 \end{pit}
 
 \subsection{原理}
 
 \textbf{為什麼映像裡不能放真正的密碼。}\code{/etc/shadow} 存的是雜湊，但雜湊可以離線暴力破解；而且同一份映像會被很多人使用，等於大家共用一組密碼。公開預設密碼加上第一次登入強制修改，是嵌入式產品常見的做法：密碼本來就是公開的，安全性來自「第一次登入的人一定要改掉」。反過來說，在改掉之前，誰先登入誰就能設定密碼，所以第一次開機要在自己控制的網路上。
 
-\textbf{過期的密碼怎麼擋住所有登入方式。}\code{/etc/shadow} 每一列的第 3 欄是上次修改密碼的日期（1970 年起的天數），0 的意思是「必須在下次登入時修改」。序列埠的 \code{login} 與 sshd 都用 PAM 檢查帳號，PAM 的 \code{pam_unix} 看到 0 就回報「需要新密碼」：\code{login} 接著要求改密碼，不改就結束；sshd 在有終端機時同樣要求改，沒有終端機（直接執行指令、scp、sftp）就印出 \code{Password change required but no TTY available} 並結束連線。檢查發生在登入的那一刻，和之後執行的是哪一種 shell 無關，這是它比 \code{profile.d} 腳本可靠的原因。
+\textbf{過期的密碼怎麼擋住所有登入方式。}\code{/etc/shadow} 每一列的第 3 欄是上次修改密碼的日期（1970 年起的天數），0 的意思是「必須在下次登入時修改」。序列埠的 \code{login} 與 sshd 都用 PAM 檢查帳號，PAM 的 \code{pam_unix} 看到 0 就回報「需要新密碼」：\code{login} 接著要求改密碼，不改就結束；sshd 在有終端機時同樣要求改，沒有終端機（直接執行指令、scp、sftp（以 ssh 為底的檔案傳輸））就印出 \code{Password change required but no TTY available} 並結束連線。檢查發生在登入的那一刻，和之後執行的是哪一種 shell 無關，這是它比 \code{profile.d} 腳本可靠的原因。
 
 \textbf{initramfs 的副作用。}這個映像的 root file system 是開機時載入記憶體的 initramfs，改的密碼只存在記憶體裡，重開機就回到過期的預設密碼，下一次登入又會被要求修改。要保存，得把 root file system 放到 SD 卡的分割區上；這次沒有做。
 

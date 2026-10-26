@@ -39,7 +39,7 @@ masters) in `BOOT.BIN` `5d226057efc8760b`. Entry `linux_driver_twn_fuse_v11_2026
 
 | quantity | value | measured on / how |
 |---|---|---|
-| Throughput | 232.6 fps (runs: 232.55, 232.60, 232.59); 232.2 fps with the SMMU off | board, the v1.1 image, `mbv2_fuse_pipe` as above, kernel driver with the interrupt and the SMMU on |
+| Throughput | 232.3 fps on the released files (runs: 232.22, 232.39, 232.21); 232.6 fps (232.55, 232.60, 232.59) with the same boot files and the release candidate's root file system; 232.2 fps with the SMMU off | board, the v1.1 image, `mbv2_fuse_pipe` as above, kernel driver with the interrupt and the SMMU on |
 | Correctness | 4 of 4 synthetic and 4 of 4 MPII fixtures bit-exact | board, head in the PL and on the processor, SMMU on and off |
 | CPU time per backbone frame | 10.7 us with the interrupt, 465.8 us polling | `twn_bench`, same boot, `use_irq=0` for polling |
 | Interrupt vs polling, throughput | 233.13 fps with the interrupt, 231.26 fps polling | the released image, same boot, three alternating 120-frame runs of each |

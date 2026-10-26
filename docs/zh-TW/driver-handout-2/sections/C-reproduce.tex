@@ -49,6 +49,7 @@ bash board/deploy.sh pin
 bash board/deploy.sh pushlinux build/BOOT.BIN build/linux/sd
 # right after the reboot, before anyone logs in, from a Linux host:
 bash linux/driver/twn_fuse/test/pw_expired_ssh.sh                                        (H1)
+bash linux/driver/twn_fuse/test/pw_expired_ssh.sh 192.168.10.2 <new password>             (H9, after a reboot)
 python linux/driver/twn_fuse/test/first_login_serial.py COM14 <new password> H2.log      (H2)
 export BOARD_PW=<new password>
 # on the board: tar xzf twn_board_kit.tar.gz && cd twn_board_kit
@@ -58,11 +59,11 @@ sh v11_check.sh irqcount (E6)   sh v11_check.sh smmu (E8, H6)   sh v11_check.sh 
 sh v11_check.sh devmem (H8, last: one of its reads is outside System RAM)
 \end{cmdline}
 
-E2m 與 H4m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是第一版 rootfs 在序列埠（115200 baud）上的互動登入：在第一個 \code{New password:} 提示按 Ctrl-C，再輸入空的新密碼與不同的確認密碼，最後設定新密碼。H1、H2 是用與上面兩個腳本相同的步驟產生的（兩個腳本是事後從當時的暫存腳本整理進 repo 的，紀錄第 1 行的說明文字略有不同）。
+E2m 與 H4m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是第一版 rootfs 在序列埠（115200 baud）上的互動登入：在第一個 \code{New password:} 提示按 Ctrl-C，再輸入空的新密碼與不同的確認密碼，最後設定新密碼。H1、H2 是用與上面兩個腳本相同的步驟產生的；S7 是 \code{python tools/scan_release_paths.py}（發佈檔裡的建置路徑）（兩個腳本是事後從當時的暫存腳本整理進 repo 的，紀錄第 1 行的說明文字略有不同）。
 
 \textbf{6. 開機組 F（找 stream ID，F0--F1）}
 
-開機組 F 的 \code{BOOT.BIN} 與開機組 E 相同，kernel 與 rootfs 是第一次建出的 v1.1 版本。要看到 F0 的 global fault，\code{system.dtb} 只能登記當時推算的三個 ID（F0 用的 dtb 是 \code{4889daa18dd6a320}）；再把 \code{boot.scr} 換成 \code{bootargs}（U-Boot 傳給 kernel 的命令列）多一個 \code{arm_smmu.disable_bypass=1} 的版本：在 \code{linux/boot.cmd} 的 \code{bootargs} 加上這個參數，再用 U-Boot 的 \code{mkimage} 工具編成 \code{boot.scr}（指令與 \code{linux/build_linux.sh} 第 5 步相同）。這樣沒有登記的 stream ID 就會被 SMMU 擋下並回報：
+開機組 F 的 \code{BOOT.BIN}（\code{18a066f87cfbad8d}）和開機組 E 的 \code{BOOT.BIN} 帶著同一顆 bitstream，但是另一次打包的檔案；kernel 與 rootfs 是第一次建出的 v1.1 版本。要看到 F0 的 global fault，\code{system.dtb} 只能登記當時推算的三個 ID（F0 用的 dtb 是 \code{4889daa18dd6a320}）；再把 \code{boot.scr} 換成 \code{bootargs}（U-Boot 傳給 kernel 的命令列）多一個 \code{arm_smmu.disable_bypass=1} 的版本：在 \code{linux/boot.cmd} 的 \code{bootargs} 加上這個參數，再用 U-Boot 的 \code{mkimage} 工具編成 \code{boot.scr}（指令與 \code{linux/build_linux.sh} 第 5 步相同）。這樣沒有登記的 stream ID 就會被 SMMU 擋下並回報：
 
 \begin{cmdline}
 ph=$(fdtget -t x system.dtb /axi/smmu@fd800000 phandle)       # on the host
