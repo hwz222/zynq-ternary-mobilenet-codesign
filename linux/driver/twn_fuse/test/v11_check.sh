@@ -8,6 +8,7 @@
 #   sh v11_check.sh bench       ioctl cost, backbone time split, CPU access to the buffer (test/
 #                               twn_bench); with use_irq=0 too if the node has an interrupt, and
 #                               with map_device=1 (the buffer mapped as Device memory)
+#   sh v11_check.sh irqcount    1000 frames: one interrupt each, no extra (IRQ_NONE) calls
 #   sh v11_check.sh split       the pipeline's stage times (PIPE_TIMING=1), both mappings
 #   sh v11_check.sh debugfs     the debugfs files, a short frame through nblk, a refused value,
 #                               dma_fault without the SMMU
@@ -51,6 +52,15 @@ bench)
     x "FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'"
     x "./twn_bench 1000"
     x "rmmod twn_fuse; insmod $(ko)" ;;
+irqcount)
+    # one interrupt per backbone frame, none extra: the handler's count and the kernel's count
+    # (/proc/interrupts, which also counts calls that returned IRQ_NONE) must both grow by 1000
+    sh bind.sh drv "$(ko)" >/dev/null
+    D=/sys/kernel/debug/twn_fuse
+    x "FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'"
+    x "cat $D/irq_count; grep twn_fuse /proc/interrupts"
+    x "./twn_bench 1000 | grep BB_RUN"
+    x "cat $D/irq_count; grep twn_fuse /proc/interrupts" ;;
 split)
     # where the memory attribute shows: the pipeline's own stage times, in both mappings
     sh bind.sh drv "$(ko)" >/dev/null
@@ -107,5 +117,5 @@ smmu)
     x "dmesg | grep -i -E 'arm-smmu|context fault|dma_fault' | tail -6"
     fixtures mbv2_fuse_test_drv . ;;
 *)
-    sed -n '2,18p' "$0"; exit 2 ;;
+    sed -n '2,19p' "$0"; exit 2 ;;
 esac

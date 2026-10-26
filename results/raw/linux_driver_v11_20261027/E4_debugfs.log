@@ -1,0 +1,42 @@
+== 2026-10-26 17:58 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 7da00842c7c104e1  system.dtb b1e2fda6e333dbc7  twn_fuse.ko 3d1bbe778a4a9d4b
+# mount | grep -c debugfs || mount -t debugfs none /sys/kernel/debug
+1
+# ls /sys/kernel/debug/twn_fuse
+dma_fault
+irq_count
+nblk
+regs
+# cat /sys/kernel/debug/twn_fuse/regs
+CTRL = 0x00000000
+NBLK = 0x00000011
+STATUS = 0x00010043
+PIX_NZ = 0x00000000
+CAP0 = 0x00000000
+CAP1 = 0x00000000
+CAP2 = 0x00000000
+CAP3 = 0x00000000
+BB2HD = 0x00000013
+IRQ = 0x00000003
+HD_CTRL = 0x00000000
+HD_COMMIT = 0x000000f3
+HD_RQ_STAT = 0x0000100f
+# cat /sys/kernel/debug/twn_fuse/nblk /sys/kernel/debug/twn_fuse/irq_count
+17
+0
+# FUSE_NBLK=5 FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E 'SHORT FRAME|pix_nz|arr_cap' | head -3
+== SHORT FRAME: 5 of 17 blocks. Fixture verdicts below are MEANINGLESS; read the dump. ==
+    pix_nz: array .... | bank_wr .... | bank_rd ....   (0x000)
+    arr_cap: pix0 00000000  pix1 00000000  pix2 00000000  pix3 00000000
+# cat /sys/kernel/debug/twn_fuse/nblk
+5
+# echo 99 > /sys/kernel/debug/twn_fuse/nblk; echo exit $?
+sh: line 1: echo: write error: Invalid argument
+exit 1
+# echo 17 > /sys/kernel/debug/twn_fuse/nblk; cat /sys/kernel/debug/twn_fuse/nblk
+17
+# echo 1 > /sys/kernel/debug/twn_fuse/dma_fault; echo exit $?
+exit 0
+# dmesg | grep -i -E 'context fault|dma_fault' | tail -2
+[  118.764902] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000006a100000 + 8192 KB: frame done, STATUS 00010043
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'
+4

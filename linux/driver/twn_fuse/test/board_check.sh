@@ -1,7 +1,7 @@
 #!/bin/sh
 # Board check of the twn_fuse driver against the UIO path. Run on the board, as root, in a
 # directory that holds:
-#   twn_fuse.ko  bind.sh  twn_errtest
+#   twn_fuse.ko  bind.sh  twn_errtest       (twn_fuse.ko only where the image has no module of its own)
 #   mbv2_fuse_test_uio  mbv2_fuse_test_drv  mbv2_fuse_pipe_uio  mbv2_fuse_pipe_drv
 #   data/{fuse_weights,model_mbv2,model_mbv2_packed}.bin  golden/fix_{0..3}.bin
 # (the apps from `bash board/build_apps.sh` and `HAL=drv bash board/build_apps.sh`).
@@ -13,6 +13,8 @@
 #   4. pipeline throughput, three runs of 120 frames per backend, FUSE_BB2HD=1, each run's
 #      keypoints checked against fixture 0
 # Leaves the device bound to twn_fuse. Prints "BOARD CHECK: PASS" only if every check passed.
+# The UIO backend runs only where the device tree still reserves its buffer (the v1.0.0 boot
+# files); the v1.1 image has neither that reservation nor /dev/mem, and checks the driver alone.
 cd "$(dirname "$0")" || exit 1
 fail=0
 fixtures() {   # <app> -> number of fixtures that passed, for each head placement
@@ -23,10 +25,13 @@ fixtures() {   # <app> -> number of fixtures that passed, for each head placemen
     done
 }
 
-echo "== $(date -u '+%Y-%m-%d %H:%M UTC')  $(uname -r)  BOOT.BIN $(sha256sum /run/media/mmcblk0p1/BOOT.BIN | cut -c1-16)  twn_fuse.ko $(sha256sum twn_fuse.ko | cut -c1-16)"
+if [ -d /proc/device-tree/reserved-memory/pl_arena@60000000 ]; then backends="uio drv"; else backends=drv; fi
+ko=./twn_fuse.ko; [ -f $ko ] || ko=$(modinfo -n twn_fuse)
+echo "== $(date -u '+%Y-%m-%d %H:%M UTC')  $(uname -r)  BOOT.BIN $(sha256sum /run/media/mmcblk0p1/BOOT.BIN | cut -c1-16)  twn_fuse.ko $(sha256sum $ko | cut -c1-16)  backends: $backends"
 echo "== 1. fixtures, both backends"
-sh bind.sh uio && fixtures mbv2_fuse_test_uio
-sh bind.sh drv ./twn_fuse.ko && fixtures mbv2_fuse_test_drv
+for b in $backends; do
+    sh bind.sh $b $ko && fixtures mbv2_fuse_test_$b
+done
 
 echo "== 2. refusals and timeout"
 ./twn_errtest timeout || fail=1
@@ -45,15 +50,15 @@ if msg=$(rmmod twn_fuse 2>&1); then echo "  rmmod while only mapped: ALLOWED (wr
 else echo "  rmmod while only mapped: refused ($msg)"; fi
 wait
 for i in 1 2 3 4 5; do
-    sh bind.sh uio >/dev/null && sh bind.sh drv >/dev/null || fail=1
+    sh bind.sh uio >/dev/null && sh bind.sh drv $ko >/dev/null || fail=1
     n=$(FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -ac '^fixture .: PASS | final max|diff|=0')
     echo "  cycle $i: $n/4 fixtures bit-exact"
     [ "$n" = 4 ] || fail=1
 done
 
 echo "== 4. pipeline throughput (120 frames, FUSE_BB2HD=1)"
-for b in uio drv; do
-    sh bind.sh $b >/dev/null
+for b in $backends; do
+    sh bind.sh $b $ko >/dev/null
     for i in 1 2 3; do
         out=$(FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_$b . 120 0 2>&1)
         echo "$out" | grep -a 'fps ===' | sed "s/^/  $b run $i: /"

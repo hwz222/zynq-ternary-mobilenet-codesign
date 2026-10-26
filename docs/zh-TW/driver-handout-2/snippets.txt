@@ -13,13 +13,14 @@ linux/driver/twn_fuse/test/twn_bench.c           | at:	c0 = cpu_ns();           
 linux/driver/twn_fuse/test/twn_bench.c           | at:	/* 3. the CPU's own access       | bench_copy
 
 # ---- 3. interrupt ----
-git:7615324:linux/driver/twn_fuse/twn_fuse.c     | fn:twn_bb_run                         | v10_bb_run
+git:7615324:linux/driver/twn_fuse/twn_fuse.c     | at:	ret = wait_bit(td, R_CTRL, CTRL_DONE, true); | v10_wait_done
+git:7615324:linux/driver/twn_fuse/twn_fuse.c     | fn:wait_bit                           | v10_wait_bit
 git:7615324:vivado/build_bd_fuse.tcl             | at:# --- no interrupt output          | v10_irq_zero
 rtl/fuse/twn_csr.v                               | at://  Interrupt (v1.1)               | csr_irq_doc
 rtl/fuse/twn_csr.v                               | at:// level interrupt from the registered state | csr_irq_reg
 rtl/fuse/twn_csr.v                               | at:// IRQ write:                      | csr_irq_wr
 rtl/fuse/twn_csr.v                               | at:// IRQ read:                       | csr_irq_rd
-rtl/fuse/twn_csr.v                               | at:if (w_hold[0] && tab_checked && d_valid) ap_start | csr_ctrl_wr
+rtl/fuse/twn_csr.v                               | at12:A_CTRL: begin                    | csr_ctrl_wr
 rtl/ip/twn_fuse_layer.v                          | at:// ---------------- interrupt      | layer_irq_port
 vivado/package_fuse_ip.tcl                       | at:# The interrupt output: declare it | pkg_irq
 vivado/build_bd_fuse.tcl                         | at:# --- interrupt: the accelerator   | bd_irq
@@ -27,6 +28,9 @@ linux/driver/twn_fuse/twn_fuse.c                 | at:static bool use_irq       
 linux/driver/twn_fuse/twn_fuse.c                 | fn:wait_done                          | drv_wait_done
 linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_bb_run                         | drv_bb_run
 linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_isr                            | drv_isr
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_hd_start                       | drv_hd_start
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_hd_wait                        | drv_hd_wait
+linux/driver/twn_fuse/twn_fuse.c                 | at5:struct completion bb_done         | drv_struct_irq
 linux/driver/twn_fuse/twn_fuse.c                 | at:/* 4. the interrupt, if the device | drv_probe_irq
 linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_remove                         | drv_remove
 linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_of_match                       | drv_of_match
@@ -39,3 +43,7 @@ linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_fault_set             
 sw/app/pl_hal_fuse_drv.c                         | fn:dbg_reg                            | hal_dbg_reg
 sw/app/pl_hal_fuse_drv.c                         | fn:fuse_set_nblk                      | hal_set_nblk
 git:7615324:sw/app/pl_hal_fuse_drv.c             | fn:fuse_set_nblk                      | v10_hal_set_nblk
+
+# ---- 4. timing closure ----
+vivado/build.cmd                                 | at9:set "FUSE_HD_PROBE=1"             | build_recipe
+vivado/build_bd_fuse.tcl                         | at15:# The implementation strategy can end | postroute

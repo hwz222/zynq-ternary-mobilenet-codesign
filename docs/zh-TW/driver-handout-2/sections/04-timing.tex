@@ -1,4 +1,96 @@
 \clearpage
 \section{重建 bitstream：timing closure}
 \label{sec:timing}
-\todo{重建 bitstream：timing closure}
+
+\begin{oneline}
+加中斷改了 RTL，bitstream 必須重建。用出貨時同一套建置配方，PL 時脈 240 MHz 下，第一次 route 就收斂：WNS +0.037 ns、WHS +0.008 ns。出貨的 bitstream 第一次 route 是 $-$0.030 ns，靠 post-route 的 \code{phys_opt_design} 才補到 0.000 ns。
+\end{oneline}
+
+\begin{before}[原本怎麼做（v1.0.0 的 bitstream）]
+v1.0.0 的 bitstream（SHA-256 前 16 字元 \code{52b400785924efe0}）在 240 MHz 收斂得很勉強：第一次 route 後 WNS（Worst Negative Slack，最差路徑的時間餘裕；負的表示這條路徑來不及）是 $-$0.030 ns，建置腳本自動跑一次 post-route \code{phys_opt_design -directive AggressiveExplore}，補到 0.000 ns，完全沒有餘裕。出處：\code{results/board_results.json} 的 \code{timing_bitstream_52b400785924efe0}，報告原文在 \code{results/raw/thesis_model_20261012/timing_impl_fuse_ternpose.rpt}。
+
+這個設計的 LUT 用了 93\%、block RAM 用了 97\%，改一點點 RTL，place \& route 的結果就可能不同。所以加中斷之前，最擔心的是 timing 收不了。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item \textbf{固定的建置配方}：\code{vivado/build.cmd} 裡的變數，包括 implementation strategy \code{Performance_NetDelay_high}、HP3 拆出獨立 interconnect、一段 block RAM 的位置限制（pblock）；這次一個都沒改。
+\item \textbf{post-route 恢復}：\code{build_bd_fuse.tcl} 在 route 之後若 WNS < 0，依序跑三種 \code{phys_opt_design}，還不行就重新 route 再跑一次。
+\item \textbf{資料路徑檢查}：合成後與 route 後各查一次，25 個資料路徑實例都還在 netlist 裡（沒被合成工具當成沒用的邏輯刪掉）。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item timing 收斂，而且有正的餘裕：WNS +0.037 ns、WHS +0.008 ns，沒有用到 post-route 恢復。
+\item 資源幾乎不變：LUT 多 24 個（44,081 對 44,057），block RAM 145 個、DSP 217 個都相同。
+\item 這不代表加中斷讓 timing 變好；見「原理」。
+\end{itemize}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{建置配方。}\code{build.cmd} 把配方寫成環境變數，\code{build_bd_fuse.tcl} 讀它們。這次只多設了一個 \code{FUSE_TAG=v11irq}，讓輸出檔名不蓋掉出貨版：
+
+\snip[bash]{build_recipe}
+
+\textbf{post-route 恢復。}以前出貨版就是靠這段補到 0.000 ns；這次 route 完 WNS 已經是正的，迴圈第一行就跳出：
+
+\snip[tcl]{postroute}
+
+\textbf{這次的建置紀錄}（\code{build.cmd} 的輸出，只留 timing 與檢查的行）：
+
+\boardfile[：PC 上的 Vivado 2023.2]{S4_build_timing.log}{1,3-11}
+
+各階段的 WNS：placement 後 $-$0.295 ns，placement 後的 \code{phys_opt} 把它拉到 $-$0.016 ns，route 後 +0.037 ns。第 8 行 \code{POSTROUTE start} 之後沒有 \code{phys_opt} 的紀錄，表示恢復步驟沒有執行。
+
+\textbf{和出貨版比較}（兩邊都是 Vivado 2023.2、同一份配方、同一顆 xczu2cg-sfvc784-1-e，只差 RTL 多了中斷）：
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l r r X}
+\toprule
+ & v1.0.0（出貨） & v1.1（中斷） & 出處 \\
+\midrule
+第一次 route 的 WNS & $-$0.030 ns & +0.037 ns & \code{board_results.json}；\code{S4_build_timing.log} 第 7 行 \\
+最後的 WNS & 0.000 ns & +0.037 ns & 兩份 \code{timing_impl} 報告第 142 行 \\
+最後的 WHS & 0.002 ns & 0.008 ns & 同上 \\
+post-route 恢復 & 用了一次 & 沒用到 & 報告第 10 行 Design State \\
+CLB LUT & 44,057 & 44,081 & 兩份 \code{util_impl} 報告 \\
+CLB Register & 36,339 & 36,253 & 同上 \\
+Block RAM tile & 145 & 145 & 同上 \\
+DSP & 217 & 217 & 同上 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{一個要記下的差異。}配方裡有一個 pblock，希望某一組 block RAM（\code{RB_T1}）放在第 0 到第 2 欄。出貨版有 1 顆落在範圍外，這次有 6 顆（紀錄第 10--11 行）。pblock 在這個配方裡只是建議性的位置限制，落在外面不算錯；timing 照樣收斂。若下一次重建 timing 收不了，這是第一個要看的地方。
+
+\subsection{原理}
+
+\textbf{為什麼加了邏輯，timing 反而比較好。}不是因為中斷。place \& route 是一個從某個起點出發的最佳化，netlist 改一點點（這次多 24 個 LUT），起點就不同，最後的結果像換了一個亂數種子。出貨版在同一份配方下也重建過：2026-10-11 從乾淨的 clone 重建，第一次 route 一樣是 $-$0.030 ns（\code{board_results.json} 的 \code{rebuilt_from_clone_20261011}）。所以 $-$0.030 和 +0.037 之間的差，是這種「換起點」的變化，不是設計變好。正確的說法是：這次收斂了，餘裕 +0.037 ns；同一份配方仍然沒有多少餘裕。
+
+\textbf{中斷這條路徑本身很短。}\code{irq} 是一個暫存器，輸入是四個位元的 AND/OR，輸出直接到 PS。它不在關鍵路徑上；關鍵路徑仍然在運算陣列與 block RAM 之間（出貨版的報告與這次相同）。
+
+\textbf{以前成功的作法。}這個專案過去收斂 timing 的經驗都寫在配方裡：固定的 strategy、把 HP3 拆出來減少 interconnect 的擁擠、限制 block RAM 的位置，以及 route 後自動的 \code{phys_opt}。這次的原則是「配方不動，只動 RTL」，這樣 timing 若出問題，原因只會是 RTL 的改動。
+
+\subsection{面試會問}
+
+\begin{qa}{改了 RTL 之後 timing 收不了，你會怎麼做？}
+先確定建置配方沒變，這樣差異只來自 RTL。這個設計 LUT 用 93\%、block RAM 用 97\%，在 240 MHz 本來就沒什麼餘裕：出貨版第一次 route 是 $-$0.030 ns，靠 post-route 的 \code{phys_opt_design} 補到 0。我把這個恢復步驟寫進建置腳本：route 完若 WNS 小於 0，就依序跑三種 \code{phys_opt} directive，還不行再重新 route。這次加中斷，第一次 route 就是 +0.037 ns，恢復沒用到。我不會說中斷讓 timing 變好：同一份配方重建本來就有幾十 ps 的變化。還要確認合成沒有把資料路徑刪掉，所以建置腳本合成後和 route 後都檢查 25 個資料路徑實例還在。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+建置配方 & \code{vivado/build.cmd}:\lineof{build_recipe} & strategy、時脈、pblock 等變數 \\
+post-route 恢復 & \code{vivado/build_bd_fuse.tcl}:\lineof{postroute} & WNS < 0 時跑 \code{phys_opt}，再不行重新 route \\
+\code{FUSE_TAG} & \code{vivado/build.cmd} & 輸出檔名，不蓋掉出貨版 \\
+\bottomrule
+\end{tabularx}
+\end{center}

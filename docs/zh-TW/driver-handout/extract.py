@@ -8,6 +8,7 @@ snippets.txt has one line per snippet:   <repo-relative file> | <selector> | <la
   fn:NAME   a function, struct, array or #define named NAME: from the line that defines it down to
             the first "}" in column 0 (for a #define: down to the first line without a trailing "\")
   at:TEXT   from the first line that contains TEXT down to the line before the next blank line
+  atN:TEXT  N lines from the first line that contains TEXT (for code with no blank line nearby)
 The file may be written git:<commit>:<path> to quote it as it was in that commit; NAMES gives the
 release name printed with the commit (v1.0.0: the UIO code; driver v1.0: the polling driver).
 The label names the output (build/snippets/<label>.c/.tex); \\snip{<label>} in handout.tex prints it.
@@ -56,9 +57,11 @@ def find(path, sel):
                 for j in range(i, len(lines)):
                     if lines[j].startswith('}'):
                         return i + 1, lines[i:j + 1]
-    elif kind == 'at':
+    elif kind.startswith('at'):
         for i, line in enumerate(lines):
             if arg in line:
+                if kind != 'at':
+                    return i + 1, lines[i:i + int(kind[2:])]
                 j = i
                 while j + 1 < len(lines) and lines[j + 1].strip():
                     j += 1

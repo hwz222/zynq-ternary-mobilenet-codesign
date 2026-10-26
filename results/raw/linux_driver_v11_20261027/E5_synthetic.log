@@ -1,0 +1,19 @@
+== 2026-10-26 17:58 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 7da00842c7c104e1  system.dtb b1e2fda6e333dbc7  twn_fuse.ko 3d1bbe778a4a9d4b
+# sha256sum syn/golden/fix_*.bin | cut -c1-16,65-
+d5422a581bb99212  syn/golden/fix_0.bin
+25a8c00010eb60dc  syn/golden/fix_1.bin
+33ef1f95d20dd3d9  syn/golden/fix_2.bin
+ef021de9fcb72324  syn/golden/fix_3.bin
+  (no reserved buffer in this device tree: the UIO backend cannot run)
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.40 ms  head 5.05 ms  frame 9.44 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.31 ms  head 4.61 ms  frame 8.92 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.52 ms  frame 8.77 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.61 ms  frame 8.86 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.51 ms  head 12.13 ms  frame 16.64 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.38 ms  head 10.39 ms  frame 14.78 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 9.94 ms  frame 14.33 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.38 ms  head 10.23 ms  frame 14.61 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==

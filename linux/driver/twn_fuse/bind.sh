@@ -2,7 +2,8 @@
 # Hand the accelerator to the twn_fuse driver, or back to UIO, without a reboot (run on the board).
 #
 #   sh bind.sh drv [path/to/twn_fuse.ko [param=value ...]]   bind the device to twn_fuse (loads
-#                                          the module, with its module parameters if given)
+#                                          the module, with its module parameters if given; without
+#                                          that file, the module installed in the image, v1.1)
 #   sh bind.sh uio                         bind it to uio_pdrv_genirq, the v1.0.0 path (unloads twn_fuse)
 #
 # driver_override names the one driver allowed to take the device, whatever its compatible
@@ -22,8 +23,10 @@ drv)
     echo twn_fuse > $P/devices/$DEV/driver_override
     if lsmod | grep -q '^twn_fuse '; then
         echo $DEV > $P/drivers_probe
-    else
+    elif [ -f "$ko" ]; then
         insmod "$ko" "$@" || exit 1     # probes the device on load
+    else
+        modprobe twn_fuse "$@" || exit 1
     fi ;;
 uio)
     if lsmod | grep -q '^twn_fuse '; then rmmod twn_fuse || exit 1; fi

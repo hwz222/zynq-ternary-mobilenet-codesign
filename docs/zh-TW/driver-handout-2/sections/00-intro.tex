@@ -1,4 +1,54 @@
 \section*{導讀}
 \addcontentsline{toc}{section}{導讀}
 \markboth{導讀}{}
-\todo{導讀}
+
+\subsection*{這一冊在講什麼}
+
+第一冊講 driver v1.0：kernel 接手暫存器、DMA buffer 和操作順序，app 只能透過 \code{/dev/twn_fuse} 的 \code{ioctl} 和 \code{mmap} 使用加速器。v1.0 有三個沒做的地方：硬體沒有中斷線，driver 只能輪詢；driver 要開機後手動 \code{insmod}，而且和 UIO、\code{/dev/mem} 並存；PL 的 DMA 沒有任何隔離。
+
+這一冊講 v1.1 把這些補起來的過程，共十項。每一節和第一冊一樣回答三件事：原本怎麼做、用了什麼技術、改善了什麼；接著用實際的程式碼和板上紀錄說明怎麼做以及原理。
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{c l X}
+\toprule
+節 & 項目 & 一句話 \\
+\midrule
+1 & 拆開 fps 差異 & 第一冊分不出原因的 1\%，原來是 CPU 端的記憶體屬性 \\
+2 & ioctl 的成本 & 一次 ioctl 1.6 µs；一幀的時間花在哪裡 \\
+3 & 中斷 & RTL 加一根線、IP 封裝、block design、device tree、ISR \\
+4 & timing closure & 加了中斷之後重建 bitstream，240 MHz 收斂 \\
+5 & debugfs & UIO 版本的除錯功能搬進 driver \\
+6 & 開機自動載入 & PetaLinux 的 module recipe；device tree 改 compatible \\
+7 & 拿掉 \code{/dev/mem} & 關掉 \code{/dev/mem}、收回 256 MB 保留區 \\
+8 & SMMU & 讓 PL 只能碰 driver 給它的那塊記憶體 \\
+9 & binding 與靜態檢查 & device tree 的規格檔；沒做到的部分 \\
+10 & 發佈 v1.1 & 預設密碼與首次登入改密碼；合成的測試輸入 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection*{怎麼讀}
+
+每一節的八個部分和第一冊相同：一句話、原本怎麼做（\colorbox{oldbg}{橘色框}）、用了什麼技術（\colorbox{techbg}{藍色框}）、改善了什麼（\colorbox{gainbg}{綠色框}）、實際例子、原理、面試會問（\colorbox{qabg}{紫色框}）、關鍵函式速查。這一冊的「原本」大多是第一冊的 driver v1.0；有幾節的原本是 v1.0.0 的 UIO 做法，框的標題會寫清楚。
+
+\textbf{程式碼都是真的。}每段程式碼都由第一冊的 \code{extract.py} 從 repo 抽出，框上方是檔名和真實行號。標題寫著「\code{@ driver v1.0 (7615324)}」的，是第一冊那個版本的程式碼。
+
+\textbf{紀錄也是真的。}黑框直接從 \code{results/raw/linux_driver_v11_20261027/} 的紀錄檔讀出原文，框上方是檔名與行號，行首是 \texttt{\#} 加一個空格的那一行是執行的指令。板上紀錄的時間是 UTC（台灣時間減 8 小時）。紀錄來自三種開機組（一次開機所用的整組開機檔），檔名的第一個字母就是開機組：
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{c X l}
+\toprule
+代號 & 開機檔 & 用在 \\
+\midrule
+D & v1.0.0 的開機檔（\code{BOOT.BIN} \code{690d87cc5f4b6897}、\code{system.dtb} \code{18fff66fcfb7798b}），bitstream 沒有中斷線，有 UIO 和 \code{/dev/mem}；driver 是 v1.1 的程式，手動載入，輪詢 & 第 1、2、5 節，第 7 節的「之前」 \\
+E & v1.1 的開機檔（\code{BOOT.BIN} \code{7da00842c7c104e1}、\code{system.dtb} \code{b1e2fda6e333dbc7}），中斷版 bitstream，driver 由映像開機時自動載入 & 第 3、6、7、10 節 \\
+F & 開機組 E，只把 \code{system.dtb} 換成打開 SMMU 的版本 & 第 8 節 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+雜湊都是 SHA-256 的前 16 個十六進位字元。檔名開頭是 S 的是 PC 上的模擬與檢查，不是板上紀錄。
+
+全部讀完大約 5 到 6 小時。第 1、3、7、8 節是重點；第 2、4、5、9 節較短。
