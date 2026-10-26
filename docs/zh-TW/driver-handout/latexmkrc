@@ -1,0 +1,6 @@
+# latexmk settings for the handout: XeLaTeX, outputs in build/, code snippets refreshed first.
+$pdf_mode = 5;          # xelatex
+$out_dir  = 'build';
+$aux_dir  = 'build';
+my $py = $ENV{PYTHON} || 'python';
+system("$py extract.py") == 0 or die "extract.py failed\n";

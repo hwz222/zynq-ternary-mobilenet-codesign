@@ -1,0 +1,88 @@
+% twn_fuse Linux driver 開發講義（繁體中文）。建置：在本資料夾執行 latexmk，輸出 build/handout.pdf。
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=22mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Segoe UI}
+\setsansfont{Segoe UI}
+\setmonofont{Consolas}[Scale=0.95]
+\setCJKmainfont{Microsoft JhengHei}[BoldFont={Microsoft JhengHei Bold}]
+\setCJKsansfont{Microsoft JhengHei}[BoldFont={Microsoft JhengHei Bold}]
+\setCJKmonofont{Microsoft JhengHei}
+\linespread{1.35}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\setlist{itemsep=0.2em,topsep=0.3em}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries\color{ink}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
+
+\definecolor{ink}{HTML}{1F3A5F}
+\definecolor{oldc}{HTML}{8A5A00}   \definecolor{oldbg}{HTML}{FFF6E5}
+\definecolor{techc}{HTML}{1F5FA8}  \definecolor{techbg}{HTML}{EAF2FC}
+\definecolor{gainc}{HTML}{2E7D32}  \definecolor{gainbg}{HTML}{EAF6EA}
+\definecolor{qac}{HTML}{5B3F8C}    \definecolor{qabg}{HTML}{F3EEFA}
+\definecolor{codebg}{HTML}{F7F7F5}
+
+% ---- 每一節固定用的三個框：原本怎麼做 / 用了什麼技術 / 改善了什麼 ----
+\newtcolorbox{oneline}{colback=ink!6,colframe=ink,boxrule=0.6pt,arc=1mm,left=2mm,right=2mm,
+  fontupper=\bfseries}
+\newtcolorbox{before}{colback=oldbg,colframe=oldc,title={原本怎麼做（v1.0.0 的 UIO 版本）},
+  fonttitle=\bfseries,boxrule=0.6pt,arc=1mm}
+\newtcolorbox{tech}{colback=techbg,colframe=techc,title={用了什麼技術},fonttitle=\bfseries,
+  boxrule=0.6pt,arc=1mm}
+\newtcolorbox{gain}{colback=gainbg,colframe=gainc,title={改善了什麼},fonttitle=\bfseries,
+  boxrule=0.6pt,arc=1mm}
+\newtcolorbox{qa}[1]{colback=qabg,colframe=qac,title={面試會問：#1},fonttitle=\bfseries,
+  boxrule=0.6pt,arc=1mm}
+
+% ---- 程式碼：一律由 extract.py 從 repo 的實際檔案抽出，保留原始行號 ----
+\lstset{language=C,basicstyle=\ttfamily\small,numbers=left,numberstyle=\tiny\color{gray},
+  backgroundcolor=\color{codebg},frame=single,rulecolor=\color{gray!40},breaklines=true,
+  columns=fullflexible,keepspaces=true,showstringspaces=false,tabsize=8,
+  keywordstyle=\color{techc}\bfseries,commentstyle=\color{gray}\itshape,stringstyle=\color{oldc},
+  captionpos=t}
+% \snip{<檔名，點換成底線>}{<函式名>}，例如 \snip{pl_hal_fuse_c}{fuse_run_frame}
+\newcommand{\snip}[2]{%
+  \input{build/snippets/#1__#2.tex}%
+  \lstinputlisting[firstnumber=\snipfirst,title={\small\snippath\ :\ \snipfirst}]{build/snippets/#1__#2.c}}
+% 板上實際輸出（log）：不編號
+\lstnewenvironment{boardlog}{\lstset{language={},numbers=none,basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{black!80},basicstyle=\ttfamily\footnotesize\color{white}}}{}
+
+\newcommand{\todo}[1]{\textcolor{red}{（待寫：#1）}}
+
+\title{\bfseries twn\_fuse Linux platform driver 開發講義}
+\author{Wei-Jhe Huang}
+\date{草稿：\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\clearpage
+
+\input{sections/00-intro}
+\input{sections/01-dt-probe}
+\input{sections/02-mmio}
+\input{sections/03-dma}
+\input{sections/04-mmap}
+\input{sections/05-ioctl}
+\input{sections/06-wait}
+\input{sections/07-lock}
+\input{sections/08-sysfs}
+\input{sections/09-hal}
+\input{sections/10-verify}
+\appendix
+\input{sections/A-glossary}
+\input{sections/B-interview}
+\input{sections/C-reproduce}
+\end{document}

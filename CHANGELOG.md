@@ -8,6 +8,10 @@ All notable changes to this project are recorded here. The format follows
 
 ### Planned
 
+- A Linux platform driver (`linux/driver/twn_fuse`) that replaces the UIO + `/dev/mem` access path:
+  DMA-API buffer, `mmap` of that buffer only, ioctl control with offset checks, kernel-side polling
+  with timeout, sysfs counters; a second app backend for it; a study handout in Traditional Chinese
+  (`docs/zh-TW/driver-handout`). In development on branch `linux-driver`.
 - A ready-to-boot root file system image with a documented default password that must be changed at
   first login.
 - Synthetic (non-person) test fixtures, so that board verification does not need an MPII download.

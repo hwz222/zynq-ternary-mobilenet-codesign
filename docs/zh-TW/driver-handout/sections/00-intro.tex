@@ -1,0 +1,12 @@
+\section*{導讀}
+\addcontentsline{toc}{section}{導讀}
+
+\subsection*{這份講義怎麼讀}
+\todo{每一節的固定結構：一句話 → 原本怎麼做 → 用了什麼技術 → 改善了什麼 → 實際例子 → 原理 → 面試會問 → 關鍵函式速查}
+
+\subsection*{整體架構：UIO 版本與 driver 版本}
+\todo{一張圖：app、kernel、CSR、DDR arena、PL 在兩個版本裡的關係}
+
+\subsection*{範例：原本的 frame 執行函式}
+下面是 v1.0.0 跑一個 backbone frame 的函式，由 \texttt{extract.py} 從 repo 直接抽出（建置流程測試用，開工後會換成正式內容）。
+\snip{pl_hal_fuse_c}{fuse_run_frame}

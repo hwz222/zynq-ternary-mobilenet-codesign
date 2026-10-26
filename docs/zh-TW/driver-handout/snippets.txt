@@ -1,0 +1,5 @@
+# <repo-relative file>   <function>      (read by extract.py)
+# the UIO path of v1.0.0, quoted in the "原本怎麼做" part of each section
+sw/app/pl_hal_fuse.c      fuse_hal_init
+sw/app/pl_hal_fuse.c      fuse_arena_init
+sw/app/pl_hal_fuse.c      fuse_run_frame

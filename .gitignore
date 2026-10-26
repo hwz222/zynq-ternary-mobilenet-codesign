@@ -54,3 +54,12 @@ models/*/model_mbv2.bin
 models/*/model_mbv2_packed.bin
 # regenerated from your own MPII copy by the exporter; never committed
 models/*/fixtures/
+
+# out-of-tree kernel module build (linux/driver/*)
+*.ko
+*.mod
+*.mod.c
+.*.cmd
+Module.symvers
+modules.order
+.tmp_versions/

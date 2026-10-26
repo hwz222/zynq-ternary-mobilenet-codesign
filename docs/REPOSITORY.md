@@ -36,7 +36,7 @@ assumptions) and [`docs/VERIFICATION.md`](VERIFICATION.md) (the gates and what e
 | [`vivado/`](../vivado/README.md) | IP packaging, block design, implementation and bitstream (`build.cmd`), PS configuration, constraints |
 | [`golden/`](../golden/README.md) | bit-exact C reference of the fused execution order and the golden-vector generator |
 | [`sw/`](../sw/README.md) | integer C implementation of the network and the board apps (driver, test, throughput, accuracy, camera) |
-| [`linux/`](../linux/README.md) | PetaLinux 2023.2 project overlay and build script (no prebuilt images) |
+| [`linux/`](../linux/README.md) | PetaLinux 2023.2 project overlay and build script (no prebuilt images); `driver/twn_fuse`, the kernel driver (in development) |
 | [`board/`](../board/README.md) | BOOT.BIN assembly, cross-build of the apps, deployment over the network, SD-card writing |
 | [`models/`](../models/README.md) | the exported network's metadata (`models/mbv2_pose`); its weight files come from the release |
 | [`train/`](../train/README.md) | training, quantisation and export code, one workspace per task |
