@@ -72,6 +72,7 @@ module twn_fuse_top #(
     // ---- frame status ----
     output wire        busy,
     output wire        done,
+    output wire        irq,         // level-high interrupt from twn_csr (register IRQ, 0x0064)
 
     // AXI4-Lite, the control port
     input  wire [15:0] s_awaddr,
@@ -496,7 +497,8 @@ module twn_fuse_top #(
         .hd_rq_we(hd_rq_we), .hd_rq_wa(hd_rq_wa), .hd_rq_wd(hd_rq_wd),
         .bb2hd_en(bb2hd_en), .bb_par_clr(bb_par_clr),
         .bb_par(bb_par), .hd_sel(hd_sel), .hd_en_l(hd_en_l),
-        .bb2hd_coll(bb2hd_coll));
+        .bb2hd_coll(bb2hd_coll),
+        .irq(irq));
 
     twn_desctab DT (
         .clk(clk), .rstn(~rst),

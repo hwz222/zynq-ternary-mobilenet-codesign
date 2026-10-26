@@ -166,6 +166,11 @@ module twn_fuse_layer #(
     input  wire         m_axi_gmem3_rvalid,
     output wire         m_axi_gmem3_rready,
 
+    // ---------------- interrupt (level high) ----------------
+    // Named "interrupt" so that package_fuse_ip.tcl declares it as the IP's
+    // interrupt interface; the block design wires it to the PS's pl_ps_irq0.
+    output wire         interrupt,
+
     // ---------------- observation ----------------
     output wire [31:0]  obs
 );
@@ -191,6 +196,7 @@ module twn_fuse_layer #(
         .rst  (~ap_rst_n),          // twn_fuse_top's reset is active high
         .busy (w_busy),
         .done (w_done),
+        .irq  (interrupt),
 
         // AXI4-Lite control
         .s_awaddr (s_axi_control_awaddr),  .s_awvalid(s_axi_control_awvalid), .s_awready(s_axi_control_awready),

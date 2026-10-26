@@ -12,8 +12,8 @@
  *  which is what the driver's ioctls take. The app code above this file is
  *  unchanged.
  *
- *  Not available here (debug aids of the UIO backend): fuse_set_nblk(),
- *  fuse_read_pix_nz(), fuse_read_arr_cap().
+ *  Debug aids (fuse_set_nblk(), fuse_read_pix_nz(), fuse_read_arr_cap()) go
+ *  through the driver's debugfs files in /sys/kernel/debug/twn_fuse/.
  * ========================================================================== */
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,13 +88,34 @@ void fuse_load_desctab(void) {
 
 int fuse_check_table(void) { return g_table_ok; }
 
-int fuse_set_nblk(uint32_t n) {
-    (void)n;
-    fprintf(stderr, "fuse_drv: fuse_set_nblk is a debug aid of the UIO backend\n");
-    return -1;
+/* ---- debug aids, through debugfs ---- */
+#define TWN_DEBUGFS "/sys/kernel/debug/twn_fuse/"
+
+/* one register from the "regs" file, whose lines read "NAME = 0x%08x" */
+static uint32_t dbg_reg(const char *name) {
+    char line[128], key[32];
+    unsigned int v = 0;
+    FILE *f = fopen(TWN_DEBUGFS "regs", "r");
+    if (!f) { perror("open " TWN_DEBUGFS "regs"); return 0; }
+    while (fgets(line, sizeof line, f))
+        if (sscanf(line, "%31s = %x", key, &v) == 2 && !strcmp(key, name)) { fclose(f); return v; }
+    fclose(f);
+    fprintf(stderr, "fuse_drv: no %s in " TWN_DEBUGFS "regs\n", name);
+    return 0;
 }
-uint32_t fuse_read_pix_nz(void) { return 0; }
-void fuse_read_arr_cap(uint32_t out[4]) { memset(out, 0, 4 * sizeof out[0]); }
+
+int fuse_set_nblk(uint32_t n) {
+    FILE *f = fopen(TWN_DEBUGFS "nblk", "w");
+    if (!f) { perror("open " TWN_DEBUGFS "nblk"); return -1; }
+    int bad = fprintf(f, "%u\n", n) < 0;
+    bad |= fclose(f) != 0;              /* the driver's range check reports here */
+    return (bad || dbg_reg("NBLK") != n) ? -1 : 0;
+}
+uint32_t fuse_read_pix_nz(void) { return dbg_reg("PIX_NZ") & 0xFFFu; }
+void fuse_read_arr_cap(uint32_t out[4]) {
+    out[0] = dbg_reg("CAP0"); out[1] = dbg_reg("CAP1");
+    out[2] = dbg_reg("CAP2"); out[3] = dbg_reg("CAP3");
+}
 
 uint64_t fuse_run_frame(uint64_t in_pa, uint64_t out_pa, int yield_wait) {
     (void)yield_wait;                   /* the driver always sleeps between polls */

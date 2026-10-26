@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/misc/wjhuang,twn-fuse.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Ternary MobileNetV2 accelerator (twn_fuse) in the programmable logic of a Zynq UltraScale+
+
+maintainers:
+  - Wei-Jhe Huang <hwz222@users.noreply.github.com>
+
+description: |
+  A convolutional-network accelerator built in the programmable logic (PL). The processor
+  controls it through a 64 KB register window on an AXI4-Lite port; the accelerator reads and
+  writes DDR on its own through four AXI masters (the HP ports), at 40-bit addresses the
+  driver writes into its registers. Register map: rtl/fuse/twn_csr.v of the repository.
+
+  Version 1.0 has no interrupt line. Version 1.1 adds a level-high interrupt that reports
+  "backbone done" and "head done", each enabled in register IRQ (offset 0x64).
+
+properties:
+  compatible:
+    enum:
+      - wjhuang,twn-fuse-1.0
+      - wjhuang,twn-fuse-1.1
+
+  reg:
+    maxItems: 1
+    description: the 64 KB register window
+
+  interrupts:
+    maxItems: 1
+    description: level high; version 1.1 only
+
+  clocks:
+    maxItems: 1
+    description: the PL clock the accelerator and its AXI ports run on
+
+  clock-names:
+    items:
+      - const: ap_clk
+
+  iommus:
+    minItems: 1
+    maxItems: 4
+    description: SMMU stream IDs of the accelerator's DDR masters, when the SMMU is used
+
+required:
+  - compatible
+  - reg
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: wjhuang,twn-fuse-1.1
+    then:
+      required:
+        - interrupts
+    else:
+      properties:
+        interrupts: false
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+    #include <dt-bindings/interrupt-controller/irq.h>
+
+    accelerator@a0000000 {
+        compatible = "wjhuang,twn-fuse-1.1";
+        reg = <0xa0000000 0x10000>;
+        interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&pl_clk0>;
+        clock-names = "ap_clk";
+    };
+...

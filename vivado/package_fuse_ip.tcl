@@ -1,6 +1,6 @@
 # ============================================================================
 #  package_fuse_ip.tcl -- package twn_fuse_layer (the wrapper around twn_fuse_top)
-#  as a Vivado IP, VLNV twn:user:twn_fuse:1.0, into rtl/ip/twn_fuse_ip.
+#  as a Vivado IP, VLNV twn:user:twn_fuse:1.1, into rtl/ip/twn_fuse_ip.
 #
 #  - The source list is explicit (no glob). It is the same set of modules as
 #    rtl/fuse/sim/elab_top.ps1 and vivado/elab_fuse_layer.ps1.
@@ -87,7 +87,7 @@ ipx::package_project -root_dir $ipdir -vendor twn -library user -taxonomy /UserI
     -import_files -set_current true -force
 set core [ipx::current_core]
 set_property name         twn_fuse $core
-set_property version      1.0 $core
+set_property version      1.1 $core
 set_property display_name {TWN MobileNetV2 FUSE row-streaming accelerator (Verilog)} $core
 set_property description   {Fused ternary/depthwise row-streaming PL accelerator, twn_fuse_top} $core
 
@@ -107,6 +107,16 @@ foreach want {s_axi_control m_axi_gmem0 m_axi_gmem1 m_axi_gmem2 m_axi_gmem3} {
         exit 1
     }
 }
+# The interrupt output: declare it as an interrupt interface, level high, so the
+# block design and the device-tree generator treat it as one.
+if {[llength [ipx::get_bus_interfaces interrupt -of_objects $core]] == 0} {
+    ipx::infer_bus_interface interrupt xilinx.com:signal:interrupt_rtl:1.0 $core
+}
+set irqif [ipx::get_bus_interfaces interrupt -of_objects $core]
+if {$irqif eq ""} { puts "FATAL: no interrupt interface on port 'interrupt'"; exit 1 }
+set p [ipx::get_bus_parameters SENSITIVITY -of_objects $irqif]
+if {$p eq ""} { set p [ipx::add_bus_parameter SENSITIVITY $irqif] }
+set_property value LEVEL_HIGH $p
 set rstif [ipx::get_bus_interfaces ap_rst_n -of_objects $core]
 if {$rstif ne ""} {
     set p [ipx::get_bus_parameters POLARITY -of_objects $rstif]

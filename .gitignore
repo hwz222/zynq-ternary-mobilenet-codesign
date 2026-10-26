@@ -64,3 +64,7 @@ Module.symvers
 modules.order
 .tmp_versions/
 linux/driver/twn_fuse/test/twn_errtest
+linux/driver/twn_fuse/test/twn_bench
+
+# Vivado run directories created when a tool is started from the repository root
+/.Xil/

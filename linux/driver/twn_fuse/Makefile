@@ -3,7 +3,7 @@
 #   make prepare    once: copy the project's kernel build directory to $(KOUT) and run
 #                   modules_prepare there (the PetaLinux project itself is never written)
 #   make            build twn_fuse.ko
-#   make test       build test/twn_errtest (the driver's refusals, run on the board)
+#   make test       build test/twn_errtest and test/twn_bench (run on the board)
 #   make clean
 #
 # The module only loads on a kernel built by the same project: check with
@@ -35,13 +35,15 @@ prepare:
 	cp -a $(KWORK)/kernel-build-artifacts $(KOUT)
 	$(KMAKE) modules_prepare
 
-test: test/twn_errtest
+TESTS = test/twn_errtest test/twn_bench
 
-test/twn_errtest: test/twn_errtest.c twn_fuse_ioctl.h
+test: $(TESTS)
+
+test/%: test/%.c twn_fuse_ioctl.h
 	$(CROSS_COMPILE)gcc --sysroot=$(SYSROOT) -O2 -Wall -o $@ $<
 
 clean:
 	$(KMAKE) M=$(CURDIR) clean
-	rm -f test/twn_errtest
+	rm -f $(TESTS)
 
 .PHONY: all prepare test clean

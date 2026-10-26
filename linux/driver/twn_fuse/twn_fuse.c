@@ -8,9 +8,11 @@
  *   - the DDR buffer the PL reads and writes (the "arena") is allocated with
  *     the DMA API, and it is the only thing user space can mmap;
  *   - every register sequence (start, wait, clear done) runs here, behind ioctl;
- *   - the counters and the status register are readable in sysfs.
- * This bitstream has no interrupt line (pl_ps_irq0 is tied to 0), so completion
- * is polled. Register map: rtl/fuse/twn_csr.v.
+ *   - the counters and the status register are readable in sysfs; debug
+ *     registers and NBLK are in debugfs.
+ * Completion: hardware 1.1 has an interrupt (pl_ps_irq0, enabled through the IRQ
+ * register); the driver waits on it when the device tree gives one. Hardware 1.0
+ * ties pl_ps_irq0 to 0, and the driver polls. Register map: rtl/fuse/twn_csr.v.
  */
 #include <linux/module.h>
 #include <linux/platform_device.h>
@@ -25,6 +27,9 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/ktime.h>
+#include <linux/interrupt.h>
+#include <linux/completion.h>
+#include <linux/debugfs.h>
 #include "twn_fuse_ioctl.h"
 
 /* ---- registers (rtl/fuse/twn_csr.v) ---- */
@@ -37,7 +42,10 @@
 #define R_STATUS       0x002c  /* [0] table valid [1] table checked [10:7] error [15:11] block */
 #define R_CHECK        0x0030
 #define R_CYCLES       0x0034  /* six counters, 0x0034..0x0048 */
+#define R_PIX_NZ       0x004c  /* debug: sticky pixel-phase bits */
+#define R_CAP          0x0050  /* debug: the frame's first project beat, 4 words */
 #define R_BB2HD        0x0060
+#define R_IRQ          0x0064  /* 1.1: [0] backbone done -> irq [1] head done -> irq */
 #define R_HD_CTRL      0x0100  /* R and W: [0] start [1] busy [2] done (write 1 to clear) */
 #define R_HD_COMMIT    0x0104
 #define R_HD_RQ_STAT   0x0108
@@ -57,6 +65,8 @@
 #define HD_START       BIT(0)
 #define HD_BUSY        BIT(1)
 #define HD_DONE        BIT(2)
+#define IRQ_BB         BIT(0)
+#define IRQ_HD         BIT(1)
 
 #define NBLK_RESET     17       /* NBLK's reset value: the only fingerprint this RTL has */
 #define POLL_US        50       /* sleep between two reads of a done bit */
@@ -66,6 +76,14 @@
 static unsigned int arena_mb = 8;
 module_param(arena_mb, uint, 0444);
 MODULE_PARM_DESC(arena_mb, "size of the DMA buffer in MB (default 8)");
+
+static bool use_irq = true;
+module_param(use_irq, bool, 0444);
+MODULE_PARM_DESC(use_irq, "wait on the interrupt when the device tree gives one (default 1); 0 polls");
+
+static bool map_device;
+module_param(map_device, bool, 0444);
+MODULE_PARM_DESC(map_device, "map the buffer to user space as Device memory, like /dev/mem (A/B measurement only)");
 
 struct twn_dev {
 	struct device *dev;
@@ -77,6 +95,11 @@ struct twn_dev {
 	struct mutex hd_lock;   /* head registers */
 	unsigned long in_use;   /* bit 0 set while a process has the device open */
 	struct miscdevice misc; /* /dev/twn_fuse */
+	int irq;                /* > 0: the interrupt is used; otherwise the driver polls */
+	struct completion bb_done, hd_done;     /* completed by the interrupt handler */
+	u32 irq_count;          /* interrupts handled (debugfs) */
+	struct dentry *dbg;     /* /sys/kernel/debug/twn_fuse */
+	struct debugfs_regset32 regset;
 };
 
 static u32 rd(struct twn_dev *td, u32 off)
@@ -111,6 +134,15 @@ static int wait_bit(struct twn_dev *td, u32 reg, u32 bit, bool set)
 
 	return readl_poll_timeout(td->regs + reg, v, !!(v & bit) == set,
 				  POLL_US, TIMEOUT_US);
+}
+
+/* wait for an engine's done: on the interrupt when there is one, else by polling */
+static int wait_done(struct twn_dev *td, struct completion *c, u32 reg, u32 bit)
+{
+	if (td->irq > 0)
+		return wait_for_completion_timeout(c, usecs_to_jiffies(TIMEOUT_US)) ?
+		       0 : -ETIMEDOUT;
+	return wait_bit(td, reg, bit, true);
 }
 
 /* ---- ioctl handlers; except twn_status(), the caller holds the engine's mutex ---- */
@@ -191,6 +223,7 @@ static long twn_bb_run(struct twn_dev *td, void __user *arg)
 	if (ret)
 		return ret;
 	wr(td, R_CTRL, CTRL_CLR_DONE);  /* a stale done would end the wait at once */
+	reinit_completion(&td->bb_done);
 	wr_addr(td, R_IN, r.in_off);
 	wr_addr(td, R_OUT, r.out_off);
 	/*
@@ -199,7 +232,7 @@ static long twn_bb_run(struct twn_dev *td, void __user *arg)
 	 */
 	wr(td, R_CTRL, CTRL_START);
 
-	ret = wait_bit(td, R_CTRL, CTRL_DONE, true);
+	ret = wait_done(td, &td->bb_done, R_CTRL, CTRL_DONE);
 	if (ret) {
 		dev_err(td->dev, "frame timed out: CTRL %08x STATUS %08x\n",
 			rd(td, R_CTRL), rd(td, R_STATUS));
@@ -270,6 +303,7 @@ static long twn_hd_start(struct twn_dev *td)
 {
 	if (rd(td, R_HD_CTRL) & HD_BUSY)
 		return -EBUSY;          /* a start written while busy would be dropped */
+	reinit_completion(&td->hd_done);
 	wr(td, R_HD_CTRL, HD_START);    /* also clears done */
 	return 0;
 }
@@ -279,7 +313,7 @@ static long twn_hd_wait(struct twn_dev *td, void __user *arg)
 	u64 t0 = ktime_get_ns();
 	int ret;
 
-	ret = wait_bit(td, R_HD_CTRL, HD_DONE, true);
+	ret = wait_done(td, &td->hd_done, R_HD_CTRL, HD_DONE);
 	if (ret) {
 		dev_err(td->dev, "head timed out: HD_CTRL %08x\n", rd(td, R_HD_CTRL));
 		return ret;
@@ -316,6 +350,17 @@ static int twn_mmap(struct file *f, struct vm_area_struct *vma)
 	/* only the arena, from its start: the registers are never mapped */
 	if (vma->vm_pgoff || len > td->arena_size)
 		return -EINVAL;
+	if (map_device) {
+		/*
+		 * A/B measurement only: Device-nGnRnE, the attribute /dev/mem gives.
+		 * Valid only without an IOMMU, where the DMA address is the physical one.
+		 */
+		if (device_iommu_mapped(td->dev))
+			return -EINVAL;
+		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+		return remap_pfn_range(vma, vma->vm_start, PHYS_PFN(td->arena_dma), len,
+				       vma->vm_page_prot);
+	}
 	return dma_mmap_coherent(td->dev, vma, td->arena, td->arena_dma, len);
 }
 
@@ -423,6 +468,77 @@ static struct attribute *twn_attrs[] = {
 };
 ATTRIBUTE_GROUPS(twn);
 
+/* ---- interrupt (hardware 1.1): level high, cleared by clearing the done it reports ---- */
+
+static irqreturn_t twn_isr(int irq, void *data)
+{
+	struct twn_dev *td = data;
+	irqreturn_t ret = IRQ_NONE;
+
+	if (rd(td, R_CTRL) & CTRL_DONE) {
+		wr(td, R_CTRL, CTRL_CLR_DONE);
+		complete(&td->bb_done);
+		ret = IRQ_HANDLED;
+	}
+	if (rd(td, R_HD_CTRL) & HD_DONE) {
+		wr(td, R_HD_CTRL, HD_DONE);
+		complete(&td->hd_done);
+		ret = IRQ_HANDLED;
+	}
+	if (ret == IRQ_HANDLED) {
+		td->irq_count++;
+		/*
+		 * The clears above are posted writes; read the device back so they
+		 * have landed, and the line has dropped, before the handler returns.
+		 */
+		rd(td, R_IRQ);
+	}
+	return ret;
+}
+
+/* ---- debugfs: /sys/kernel/debug/twn_fuse/ (the UIO path's debug aids) ---- */
+
+static int twn_nblk_get(void *data, u64 *val)
+{
+	*val = rd(data, R_NBLK);
+	return 0;
+}
+
+/* run only the first n blocks, to find which block of a frame goes wrong */
+static int twn_nblk_set(void *data, u64 val)
+{
+	struct twn_dev *td = data;
+
+	if (val < 1 || val > NBLK_RESET)
+		return -EINVAL;
+	mutex_lock(&td->bb_lock);
+	wr(td, R_NBLK, val);
+	mutex_unlock(&td->bb_lock);
+	return 0;
+}
+DEFINE_DEBUGFS_ATTRIBUTE(twn_nblk_fops, twn_nblk_get, twn_nblk_set, "%llu\n");
+
+static const struct debugfs_reg32 twn_dbg_regs[] = {
+	{ "CTRL",    R_CTRL },        { "NBLK",    R_NBLK },
+	{ "STATUS",  R_STATUS },      { "PIX_NZ",  R_PIX_NZ },
+	{ "CAP0",    R_CAP + 0x0 },   { "CAP1",    R_CAP + 0x4 },
+	{ "CAP2",    R_CAP + 0x8 },   { "CAP3",    R_CAP + 0xc },
+	{ "BB2HD",   R_BB2HD },       { "IRQ",     R_IRQ },
+	{ "HD_CTRL", R_HD_CTRL },     { "HD_COMMIT", R_HD_COMMIT },
+	{ "HD_RQ_STAT", R_HD_RQ_STAT },
+};
+
+static void twn_debugfs_init(struct twn_dev *td)
+{
+	td->regset.regs  = twn_dbg_regs;
+	td->regset.nregs = ARRAY_SIZE(twn_dbg_regs);
+	td->regset.base  = td->regs;
+	td->dbg = debugfs_create_dir("twn_fuse", NULL);
+	debugfs_create_regset32("regs", 0444, td->dbg, &td->regset);
+	debugfs_create_file_unsafe("nblk", 0644, td->dbg, td, &twn_nblk_fops);
+	debugfs_create_u32("irq_count", 0444, td->dbg, &td->irq_count);
+}
+
 /* ---- probe / remove ---- */
 
 static int twn_probe(struct platform_device *pdev)
@@ -464,9 +580,20 @@ static int twn_probe(struct platform_device *pdev)
 
 	mutex_init(&td->bb_lock);
 	mutex_init(&td->hd_lock);
+	init_completion(&td->bb_done);
+	init_completion(&td->hd_done);
 	platform_set_drvdata(pdev, td);
 
-	/* 4. the character device /dev/twn_fuse */
+	/* 4. the interrupt, if the device tree gives one (hardware 1.1); else poll */
+	td->irq = use_irq ? platform_get_irq_optional(pdev, 0) : -ENXIO;
+	if (td->irq > 0) {
+		ret = devm_request_irq(dev, td->irq, twn_isr, 0, dev_name(dev), td);
+		if (ret)
+			return ret;
+		wr(td, R_IRQ, IRQ_BB | IRQ_HD);
+	}
+
+	/* 5. the character device /dev/twn_fuse, last: from here on it can be opened */
 	td->misc.minor  = MISC_DYNAMIC_MINOR;
 	td->misc.name   = "twn_fuse";
 	td->misc.fops   = &twn_fops;
@@ -475,10 +602,10 @@ static int twn_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	if (platform_get_irq_optional(pdev, 0) > 0)
-		dev_info(dev, "the node has an interrupt; this driver still polls\n");
-	dev_info(dev, "NBLK %u, %zu KB DMA buffer at %pad, /dev/%s\n",
-		 nblk, td->arena_size >> 10, &td->arena_dma, td->misc.name);
+	twn_debugfs_init(td);
+	dev_info(dev, "NBLK %u, %zu KB DMA buffer at %pad, /dev/%s, %s\n",
+		 nblk, td->arena_size >> 10, &td->arena_dma, td->misc.name,
+		 td->irq > 0 ? "interrupt" : "polling");
 	return 0;
 }
 
@@ -487,14 +614,18 @@ static int twn_remove(struct platform_device *pdev)
 	struct twn_dev *td = platform_get_drvdata(pdev);
 
 	/*
-	 * Everything else (mapping, buffer, memory) was allocated with devm_ and
-	 * is released by the driver core.
+	 * Everything else (mapping, buffer, interrupt, memory) was allocated with
+	 * devm_ and is released by the driver core; stop the interrupt source first.
 	 */
+	debugfs_remove_recursive(td->dbg);
 	misc_deregister(&td->misc);
+	if (td->irq > 0)
+		wr(td, R_IRQ, 0);
 	return 0;
 }
 
 static const struct of_device_id twn_of_match[] = {
+	{ .compatible = "wjhuang,twn-fuse-1.1" },       /* with the interrupt */
 	{ .compatible = "wjhuang,twn-fuse-1.0" },
 	{ }
 };

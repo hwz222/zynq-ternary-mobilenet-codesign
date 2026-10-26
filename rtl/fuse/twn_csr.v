@@ -29,8 +29,13 @@
 //    0x0034 CYCLES  0x0038 CYC_ARR  0x003c CYC_DW  0x0040 CYC_STAL
 //    0x0044 CYC_PRE 0x0048 CYC_POST (read-only counters from the core)
 //    0x004c PIX_NZ  0x0050..0x005c CAP0..CAP3 (read-only observation words)
-//    0x0060 BB2HD   0x0100..0x013c head registers (HD_*)
+//    0x0060 BB2HD   0x0064 IRQ   0x0100..0x013c head registers (HD_*)
 //  The "lo/hi" pairs hold 40-bit addresses as two 32-bit words (hi uses [7:0]).
+//
+//  Interrupt (v1.1): irq = (bb_irq_en & ap_done) | (hd_irq_en & hd_done), one register
+//  stage, level high. The enables live in their own register (IRQ, 0x0064), so the
+//  START and clear-done writes to CTRL / HD_CTRL do not touch them; irq falls when
+//  the done it reports is cleared. CTRL[2] (irq_en) is still only stored, as before.
 // ============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -141,7 +146,10 @@ module twn_csr (
     input  wire        bb_par,
     input  wire        hd_sel,
     input  wire        hd_en_l,
-    input  wire        bb2hd_coll          // 1-cycle pulse; latched here
+    input  wire        bb2hd_coll,         // 1-cycle pulse; latched here
+
+    // ---- interrupt to the processor (level high, registered) ----
+    output reg         irq
 );
     localparam [15:0] A_CTRL     = 16'h0000,
                       A_NBLK     = 16'h0008,
@@ -160,7 +168,8 @@ module twn_csr (
                       A_PIX_NZ   = 16'h004c,
                       A_CAP0     = 16'h0050, A_CAP1 = 16'h0054,
                       A_CAP2     = 16'h0058, A_CAP3 = 16'h005c,
-                      A_BB2HD    = 16'h0060;
+                      A_BB2HD    = 16'h0060,
+                      A_IRQ      = 16'h0064;
 
     // ========================================================================
     //  A_BB2HD (0x0060): backbone output straight into the head's input slots
@@ -264,6 +273,7 @@ module twn_csr (
     endfunction
 
     reg irq_en, ap_done, tab_checked;       // irq_en is stored and read back only
+    reg bb_irq_en, hd_irq_en;               // A_IRQ: the enables that drive irq
     reg ovr_sticky;                      // STATUS[16], cleared only by reset
     reg [15:0] aw_hold;
     reg        aw_seen, w_seen;
@@ -285,6 +295,7 @@ module twn_csr (
             arready <= 1'b0; rvalid <= 1'b0; rresp <= 2'b00;
             aw_seen <= 1'b0; w_seen <= 1'b0;
             ap_start <= 1'b0; ap_done <= 1'b0; irq_en <= 1'b0;
+            bb_irq_en <= 1'b0; hd_irq_en <= 1'b0; irq <= 1'b0;
             d_wr_en <= 1'b0; d_check <= 1'b0; tab_checked <= 1'b0;
             ovr_sticky <= 1'b0;
             n_blocks <= 5'd17;
@@ -315,6 +326,14 @@ module twn_csr (
             if (d_check_done) tab_checked <= 1'b1;
             if (hd_busy) hd_start  <= 1'b0;
             if (hd_done) hd_done_l <= 1'b1;
+            // level interrupt from the registered state: it rises a cycle after a
+            // done is latched and falls a cycle after the done is cleared
+`ifdef CSR_IRQ_BREAK_MASK
+            // negative-test form (simulation only): the enables are ignored
+            irq <= ap_done | hd_done_l;
+`else
+            irq <= (bb_irq_en & ap_done) | (hd_irq_en & hd_done_l);
+`endif
 
             // ---- write channel ----
             // Ready drops in the cycle after its own handshake, so a
@@ -356,6 +375,11 @@ module twn_csr (
                             if (w_hold[0] && tab_checked && d_valid) ap_start <= 1'b1;
                             if (w_hold[1]) ap_done <= 1'b0;
                             irq_en <= w_hold[2];
+`ifdef CSR_IRQ_BREAK_CTRL
+                            // negative-test form (simulation only): the backbone enable
+                            // follows CTRL[2], so a START or clear-done write turns it off
+                            bb_irq_en <= w_hold[2];
+`endif
                         end
                         A_NBLK:   n_blocks <= w_hold[4:0];
                         A_ACT_LO: act_base[31:0]  <= w_hold;
@@ -375,6 +399,11 @@ module twn_csr (
                             bb2hd_en <= w_hold[0];
                             if (w_hold[1]) bb_par_clr  <= 1'b1;
                             if (w_hold[3]) coll_sticky <= 1'b0;
+                        end
+                        // IRQ write: [0] backbone done -> irq  [1] head done -> irq
+                        A_IRQ: begin
+                            bb_irq_en <= w_hold[0];
+                            hd_irq_en <= w_hold[1];
                         end
 
                         // ---- the head ----
@@ -483,6 +512,8 @@ module twn_csr (
                     A_CAP2:     rdata <= arr_cap[95:64];
                     A_CAP3:     rdata <= arr_cap[127:96];
                     A_BB2HD:    rdata <= {27'd0, hd_en_l, coll_sticky, hd_sel, bb_par, bb2hd_en};
+                    // IRQ read: [0] bb_irq_en [1] hd_irq_en [2] ap_done [3] hd_done [4] irq
+                    A_IRQ:      rdata <= {27'd0, irq, hd_done_l, ap_done, hd_irq_en, bb_irq_en};
 
                     // ---- the head ----
 `ifdef CSR_HD_BREAK_ASYM
@@ -519,7 +550,7 @@ module twn_csr (
     // and no named register falls inside either window. It calls SEL_DESC and
     // SEL_HRQ, the same functions the write path uses.
     // synthesis translate_off
-    localparam integer N_NAMED = 39;
+    localparam integer N_NAMED = 40;
     reg [15:0] named [0:N_NAMED-1];
     integer ck_i, ck_a, ck_both, ck_eaten;
     initial begin
@@ -536,6 +567,7 @@ module twn_csr (
         named[30]=A_HD_OUT_LO;    named[31]=A_HD_OUT_HI;   named[32]=A_HD_IN_BEATS;
         named[33]=A_HD_W_BEATS;   named[34]=A_HD_OUT_BEATS;named[35]=A_HD_SHAPE;
         named[36]=A_HD_FLAGS;     named[37]=A_HD_CLAMP;    named[38]=A_BB2HD;
+        named[39]=A_IRQ;
 
         ck_both = 0;
         for (ck_a = 0; ck_a < 65536; ck_a = ck_a + 1)

@@ -1,6 +1,6 @@
 # ============================================================================
 #  build_bd_fuse.tcl -- Vivado block design, synthesis and (optionally)
-#  implementation for twn_fuse_top, packaged as IP twn:user:twn_fuse:1.0.
+#  implementation for twn_fuse_top, packaged as IP twn:user:twn_fuse:1.1.
 #
 #  Block design "system" (the script creates no external ports):
 #    ps        zynq_ultra_ps_e 3.5. BOARD_PS=1 applies alinx_ps/ps_config.tcl.
@@ -17,7 +17,7 @@
 #    sc_hp2    axi_interconnect, STRATEGY 2: m_axi_gmem2 and m_axi_gmem3 (2 SI x 1 MI)
 #              -> HP2. With FUSE_HP3_SPLIT=1 it is 1 SI x 1 MI (gmem2 only) and a
 #              second 1 SI x 1 MI interconnect, sc_hp3, takes gmem3 -> HP3.
-#    irq_zero  xlconstant 0 -> ps/pl_ps_irq0.
+#    fuse_0/interrupt -> ps/pl_ps_irq0 (level high; before v1.1 a constant 0 was tied here).
 #  Every cell is clocked from pl_clk0; resets come from rst_pl/peripheral_aresetn.
 #  The only constraint file added is fuse_t1mem_pblock.xdc (FUSE_T1_PBLOCK=1).
 #
@@ -113,7 +113,7 @@ set_property -dict [list \
 ] $ps
 
 # --- the accelerator ---
-set krn [create_bd_cell -type ip -vlnv twn:user:twn_fuse:1.0 fuse_0]
+set krn [create_bd_cell -type ip -vlnv twn:user:twn_fuse:1.1 fuse_0]
 
 # FUSE_HD_PROBE=1 sets the IP's HD_PROBE parameter, which builds the head engine
 # (HSEQ and HDP in twn_fuse_top's g_hd_probe) on m_axi_gmem2 / m_axi_gmem3.
@@ -207,10 +207,9 @@ foreach r [list fuse_0/ap_rst_n sc_ctl/aresetn obs_gpio/s_axi_aresetn \
     connect_bd_net [get_bd_pins rst_pl/peripheral_aresetn] [get_bd_pins $r]
 }
 
-# --- no interrupt output; keep IRQ0 enabled so the PS pinout is unchanged ---
-set irqz [create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 irq_zero]
-set_property -dict [list CONFIG.CONST_VAL {0} CONFIG.CONST_WIDTH {1}] $irqz
-connect_bd_net [get_bd_pins irq_zero/dout] [get_bd_pins ps/pl_ps_irq0]
+# --- interrupt: the accelerator's level-high irq (twn_csr, register IRQ 0x0064) to IRQ0 ---
+# pl_ps_irq0[0] is GIC SPI 89; PetaLinux writes interrupts = <0 89 4> into the node.
+connect_bd_net [get_bd_pins fuse_0/interrupt] [get_bd_pins ps/pl_ps_irq0]
 
 # --- addresses ---
 # The control window and obs_gpio are placed explicitly before the automatic

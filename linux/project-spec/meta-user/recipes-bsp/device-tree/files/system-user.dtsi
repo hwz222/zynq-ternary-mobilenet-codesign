@@ -1,22 +1,15 @@
 /include/ "system-conf.dtsi"
-/ {
-    reserved-memory {
-        #address-cells = <2>;
-        #size-cells = <2>;
-        ranges;
-        pl_arena: pl_arena@60000000 {
-            no-map;
-            reg = <0x0 0x60000000 0x0 0x10000000>;   /* 256 MB @ 0x6000_0000, uncached */
-        };
-    };
-};
 
-/* Expose the accelerator's AXI-Lite control window to userspace: the board apps mmap /dev/uioN.
- * fuse_0 is the instance name of twn:user:twn_fuse in the block design (vivado/build_bd_fuse.tcl),
- * so the generated node is fuse_0@a0000000. The kernel command line carries
- * uio_pdrv_genirq.of_id=generic-uio (CONFIG_SUBSYSTEM_EXTRA_BOOTARGS in configs/config.user). */
+/* v1.1: the accelerator belongs to the twn_fuse kernel driver (linux/driver/twn_fuse), which the
+ * root file system loads at boot. fuse_0 is the instance name of twn:user:twn_fuse in the block
+ * design (vivado/build_bd_fuse.tcl), so the generated node is fuse_0@a0000000; the generator also
+ * writes its interrupt (pl_ps_irq0, GIC SPI 89, level high) and its clock.
+ *
+ * Until v1.0.0 this node said compatible = "generic-uio" and a 256 MB no-map region at
+ * 0x6000_0000 was reserved for /dev/mem. The driver allocates its own 8 MB from CMA, so the
+ * reservation is gone and those 256 MB are ordinary memory again. */
 &fuse_0 {
-    compatible = "generic-uio";
+    compatible = "wjhuang,twn-fuse-1.1";
     status = "okay";
 };
 
