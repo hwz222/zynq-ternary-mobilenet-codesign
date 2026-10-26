@@ -2,12 +2,14 @@
 the code as it is, with its real line numbers.
 
     python extract.py                 # every snippet listed in snippets.txt
+    python extract.py LIST OUT        # another handout: its snippet list and output directory
 
 snippets.txt has one line per snippet:   <repo-relative file> | <selector> | <label>
   fn:NAME   a function, struct, array or #define named NAME: from the line that defines it down to
             the first "}" in column 0 (for a #define: down to the first line without a trailing "\")
   at:TEXT   from the first line that contains TEXT down to the line before the next blank line
-The file may be written git:<commit>:<path> to quote it as it was in that commit (the v1.0.0 code).
+The file may be written git:<commit>:<path> to quote it as it was in that commit; NAMES gives the
+release name printed with the commit (v1.0.0: the UIO code; driver v1.0: the polling driver).
 The label names the output (build/snippets/<label>.c/.tex); \\snip{<label>} in handout.tex prints it.
 """
 import os
@@ -17,7 +19,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, '..', '..', '..'))
-OUT = os.path.join(HERE, 'build', 'snippets')
+LIST = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'snippets.txt')
+OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'build', 'snippets')
+NAMES = {'3bdd485': 'v1.0.0', '7615324': 'driver v1.0'}
 
 
 def read(path):
@@ -33,7 +37,7 @@ def shown(path):
     """the path printed above the box; for git:<commit>:<path>, also the commit"""
     if path.startswith('git:'):
         _, rev, rel = path.split(':', 2)
-        return '%s @ v1.0.0 (%s)' % (rel, rev)
+        return '%s @ %s (%s)' % (rel, NAMES.get(rev, 'commit'), rev)
     return path
 
 
@@ -65,7 +69,7 @@ def find(path, sel):
 def main():
     os.makedirs(OUT, exist_ok=True)
     seen = set()
-    for raw in open(os.path.join(HERE, 'snippets.txt'), encoding='utf-8'):
+    for raw in open(LIST, encoding='utf-8'):
         if not raw.strip() or raw.lstrip().startswith('#'):
             continue
         path, sel, label = [x.strip() for x in raw.split('|')]
