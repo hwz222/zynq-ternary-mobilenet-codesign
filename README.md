@@ -20,11 +20,11 @@ different weights for it.
 
 ## What it runs
 
-![Pose on four CC0 photos (C reference, same output as the board); detection, segmentation and depth on one of them (host models)](docs/figures/tasks.jpg)
+![Pose on four CC0 photos (C reference, same output as the board); detection, segmentation and depth on an indoor CC0 photo (host models)](docs/figures/tasks.jpg)
 
 Top: single-person pose, the reference task, computed by the integer C reference that the board
 matches bit for bit. Bottom: detection, indoor segmentation and depth models trained for the same
-fixed network, shown as host results (simulated quantisation; not yet run on the board). Photos are
+fixed network, on an indoor photo, shown as host results (simulated quantisation; not yet run on the board). Photos are
 CC0 from Wikimedia Commons ([credits](docs/figures/CREDITS.md)).
 
 ## Key numbers
