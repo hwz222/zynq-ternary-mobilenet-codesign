@@ -70,7 +70,9 @@ Creates a PetaLinux project outside the repository (`$PLNX_PROJ`, default
 in `artifacts/hw/`, or `XSA=<file>`), lays `linux/project-spec/` over it, builds, compiles
 `linux/boot.cmd` into `boot.scr`, and copies eight files: `build/linux/boot/{zynqmp_fsbl,pmufw,bl31,u-boot}.elf`
 and `build/linux/sd/{Image,system.dtb,rootfs.cpio.gz.u-boot,boot.scr}`. `BOARD_PW` becomes the root
-password of the image; without it `deploy.sh` cannot log in. By default (`OFFLINE=0`) PetaLinux
+password of the image; without it the image gets the published default password `twn-v1.1`, and the
+first interactive login must set a new one. The image loads the kernel driver at boot, keeps
+`/dev/mem` closed to RAM and to claimed registers, and enables the SMMU. By default (`OFFLINE=0`) PetaLinux
 fetches sources from the public mirrors; `OFFLINE=1 CACHE_PROJ=<earlier project>` reuses the
 downloads and shared state of an earlier PetaLinux 2023.2 project without network access. The
 script header lists the other variables. It can be re-run: the project is kept and bitbake resumes.
@@ -88,10 +90,12 @@ only this file; the Linux files stay valid as long as the XSA's PS configuration
 
 ## 6. Board apps (WSL)
 
-    bash board/build_apps.sh          # build/arm/mbv2_fuse_test, mbv2_fuse_pipe, mbv2_cam_fuse, mbv2_fuse_eval
+    bash board/build_apps.sh          # build/arm-drv/mbv2_fuse_test, mbv2_fuse_pipe, mbv2_cam_fuse, mbv2_fuse_eval
+    bash board/make_kit.sh            # build/twn_board_kit.tar.gz (after `make -C linux/driver/twn_fuse test`)
 
-Cross-compiles `sw/app` with the SDK installed by step 4 (`$PLNX_ROOT/sdk`). `FUSE_CLK_MHZ` (default
-240.0) is the PL clock used to convert cycle counters to milliseconds.
+Cross-compiles `sw/app` with the SDK installed by step 4 (`$PLNX_ROOT/sdk`), on the kernel driver
+(`HAL=drv`, the default; `HAL=uio` builds the UIO apps of a v1.0.0 image into `build/arm/`).
+`FUSE_CLK_MHZ` (default 240.0) is the PL clock used to convert cycle counters to milliseconds.
 
 ## 7. Board (Git Bash; the board on the network at `BOARD_IP`, default 192.168.10.2)
 

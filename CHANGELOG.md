@@ -4,9 +4,48 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] - planned for v1.1
+## [1.1.0] - 2026-10-27
+
+The accelerator under a Linux kernel driver, on a ready-to-boot image.
 
 ### Added
+
+- Hardware: a level-high interrupt (register `IRQ`, 0x0064, on `pl_ps_irq0` = GIC SPI 89); the IP is
+  packaged as `twn:user:twn_fuse:1.1` with an interrupt interface. Unit gate `rtl/fuse/sim/run_csr_irq.ps1`
+  with two planted defects.
+- Driver: interrupt and completion (polling kept as the fallback, `use_irq=0`); debugfs (`regs`, `nblk`,
+  `irq_count`, `dma_fault`); compatible `wjhuang,twn-fuse-1.1`; `map_device` (A/B measurements only).
+- `linux/driver/twn_fuse/wjhuang,twn-fuse.yaml` (device-tree binding) and `test/binding_check.py`;
+  `test/twn_bench.c`, `test/v11_check.sh`, `test/ab_measure.sh`, `smmu_dtb.sh`.
+- PetaLinux: the driver's module recipe, loaded at boot; kernel options `STRICT_DEVMEM`,
+  `IO_STRICT_DEVMEM`, `ARM_SMMU`; the SMMU enabled with the accelerator's four stream IDs; without
+  `BOARD_PW` a published default password that the first interactive login must change.
+- `tools/make_synthetic_fixtures.py` and `models/mbv2_pose/fixtures_synthetic/`: four formula images
+  with their exact expected outputs, so board checks need no dataset.
+- `board/make_kit.sh`: the board kit (apps, tests, weights, synthetic fixtures, `SHA256SUMS`).
+- Release assets: the root file system, `system_nosmmu.dtb`, `fuse_weights.bin` and the board kit.
+- `docs/zh-TW/driver-handout-2/`: the second study handout (Traditional Chinese).
+
+### Changed
+
+- The AXI masters issue Non-secure transactions (AxPROT 3'b010); with 3'b000 the SMMU could neither
+  translate nor check the accelerator's traffic.
+- The 256 MB reserved DDR region is gone (the driver allocates its buffer); the device-tree node is
+  the driver's, not UIO's. The UIO path works only with the v1.0.0 boot files.
+- `board/build_apps.sh`, `sw/app/Makefile.cross`: the driver backend is the default (`build/arm-drv`);
+  `board/deploy.sh` recognises the driver's device and can use the synthetic fixtures.
+
+### Measured
+
+- v1.1 image: 232.6 fps, fixtures bit-exact, 10.7 us of CPU per backbone frame with the interrupt
+  (465.8 us polling); bitstream 44,157 LUT, WNS 0.000 ns at 240 MHz (`results/board_results.json`,
+  `linux_driver_twn_fuse_v11_20261027`).
+
+### Not done
+
+- `make dt_binding_check` and sparse (`make C=1`): they need dtschema and sparse, not installed here.
+
+### Driver v1.0, merged after 1.0.0 and first released here
 
 - `linux/driver/twn_fuse/`: a Linux platform driver for the accelerator, replacing the UIO +
   `/dev/mem` access path (which is kept): registers mapped only in the kernel, an 8 MB DMA buffer
@@ -18,17 +57,8 @@ All notable changes to this project are recorded here. The format follows
   `board/build_apps.sh`; register-free helpers moved unchanged into `sw/app/pl_hal_fuse_enc.c`.
 - `docs/zh-TW/driver-handout/`: a study handout in Traditional Chinese that explains each technique
   with the driver's own code and board output.
-
-### Changed
-
 - `sw/app/mbv2_fuse_ps.c` asks for the 6 MB its buffer map needs (`FUSE_ARENA_NEED`, checked at
   compile time) instead of the whole 256 MB reserved region.
-
-### Planned
-
-- A ready-to-boot root file system image with a documented default password that must be changed at
-  first login.
-- Synthetic (non-person) test fixtures, so that board verification does not need an MPII download.
 
 ## [1.0.0] - 2026-10-26
 

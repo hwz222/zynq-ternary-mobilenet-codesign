@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Download the release assets listed in tools/release_assets.json, check their SHA-256, and put
-each one where the scripts of this tree expect it (paths under artifacts/, models/ and train/, all
-ignored by git).
+each one where the scripts of this tree expect it (paths under artifacts/, models/, golden/ and
+train/, all ignored by git).
 
-    python tools/fetch_release.py                      # everything (about 95 MB)
+    python tools/fetch_release.py                      # everything (about 125 MB)
     python tools/fetch_release.py --group boot model   # only the boot files and the exported model
     python tools/fetch_release.py --from-dir <dir>     # assets already downloaded by hand into <dir>
     python tools/fetch_release.py --check              # only verify the files already in place
 
-Groups: boot (BOOT.BIN, bitstream, XSA, kernel, device tree, boot script), model (the two exported
-weight files of models/mbv2_pose), checkpoints (PyTorch checkpoints of the pose and task models).
+Groups: boot (BOOT.BIN, bitstream, XSA, kernel, device trees, boot script, root file system), kit
+(the board kit), model (the two exported weight files of models/mbv2_pose and the backbone weights
+in the accelerator's layout), checkpoints (PyTorch checkpoints of the pose and task models).
 
 The base URL is the GitHub release of the version in the manifest; --url or the environment
 variable TERNPOSE_RELEASE_URL overrides it (for a mirror or a fork). Standard library only.

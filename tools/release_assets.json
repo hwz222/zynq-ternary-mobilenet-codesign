@@ -1,47 +1,55 @@
 {
-  "_what": "Release assets of zynq-ternary-mobilenet-codesign v1.0.0: name on the release page, SHA-256, size in bytes, and where tools/fetch_release.py puts each file in the tree (all destinations are ignored by git).",
-  "version": "v1.0.0",
-  "base_url": "https://github.com/hwz222/zynq-ternary-mobilenet-codesign/releases/download/v1.0.0",
+  "_what": "Release assets of zynq-ternary-mobilenet-codesign v1.1.0: name on the release page, SHA-256, size in bytes, and where tools/fetch_release.py puts each file in the tree (all destinations are ignored by git).",
+  "version": "v1.1.0",
+  "base_url": "https://github.com/hwz222/zynq-ternary-mobilenet-codesign/releases/download/v1.1.0",
   "assets": [
     {
       "name": "BOOT.BIN",
-      "sha256": "690d87cc5f4b6897fc3e6a86d660f9f54490940179a82e1f269161edfbcc5bd7",
-      "size": 7324112,
+      "sha256": "5d226057efc8760b39e5b26c0f538411abfde17fea56cd2eb4347f7ac9c44c22",
+      "size": 7323984,
       "dest": "artifacts/boot/BOOT.BIN",
       "group": "boot",
       "what": "boot image: FSBL, PMU firmware, ARM trusted firmware, U-Boot, device tree and the bitstream below"
     },
     {
       "name": "system_fuse_ternpose.bit",
-      "sha256": "52b400785924efe0326405e2f601bf05f7cfbfddcbf24c4071321b90c27d2a96",
+      "sha256": "11b4d88f583b8e23fc19cbcfcdc9d2a79c46269f0b1b90cc13af0bc0014f4cf7",
       "size": 5568786,
       "dest": "artifacts/hw/system_fuse_ternpose.bit",
       "group": "boot",
-      "what": "the accelerator bitstream (the PL image inside BOOT.BIN)"
+      "what": "the accelerator bitstream of v1.1 (interrupt, Non-secure AXI masters), the PL image inside BOOT.BIN"
     },
     {
       "name": "system_fuse_ternpose.xsa",
-      "sha256": "c0ce3d928879d765138637a812154757ed50fa02167f3b766da73bcbc58655b5",
-      "size": 2559911,
+      "sha256": "253ca13d2e9772476952f81c519dc9d859f1a6b519ec6cd9354d20401603868e",
+      "size": 2551429,
       "dest": "artifacts/hw/system_fuse_ternpose.xsa",
       "group": "boot",
       "what": "hardware description of the same build, input of linux/build_linux.sh"
     },
     {
       "name": "Image",
-      "sha256": "8650b8be272df8ee2a4f5936f4be1e6a30cfdf755e41ce609bafb4a01672e57b",
-      "size": 22745600,
+      "sha256": "0110440877a3738dd6df12248f660b05f84db5f45778221e6c1e5059d2e25db5",
+      "size": 22747648,
       "dest": "artifacts/linux/sd/Image",
       "group": "boot",
       "what": "Linux kernel built by linux/build_linux.sh"
     },
     {
       "name": "system.dtb",
-      "sha256": "18fff66fcfb7798bac1de1f70e77a6f54d56dcc56d32423846ac2a5ff5a905d1",
-      "size": 38541,
+      "sha256": "bc4255b1c54ae27ea03010454138f36be6e5dcd95cd7e103bc6a28346346cda8",
+      "size": 38441,
       "dest": "artifacts/linux/sd/system.dtb",
       "group": "boot",
-      "what": "device tree built by linux/build_linux.sh"
+      "what": "device tree built by linux/build_linux.sh: the accelerator node for the kernel driver, the SMMU on"
+    },
+    {
+      "name": "system_nosmmu.dtb",
+      "sha256": "6ceadb90b64b6a98d4f69ea6820bcc53c1b315cb399002b2a86322147c294d09",
+      "size": 34305,
+      "dest": "artifacts/linux/sd/system_nosmmu.dtb",
+      "group": "boot",
+      "what": "the same device tree with the SMMU off (copy it over system.dtb to boot without the SMMU)"
     },
     {
       "name": "boot.scr",
@@ -50,6 +58,22 @@
       "dest": "artifacts/linux/sd/boot.scr",
       "group": "boot",
       "what": "U-Boot script compiled from linux/boot.cmd"
+    },
+    {
+      "name": "rootfs.cpio.gz.u-boot",
+      "sha256": "8c54689ab21fe45cb13ba7e7b8b03a9c004f8d6f7f47f4b4dcd88acd700a7a87",
+      "size": 27684973,
+      "dest": "artifacts/linux/sd/rootfs.cpio.gz.u-boot",
+      "group": "boot",
+      "what": "root file system (initramfs) with the kernel driver loaded at boot; root password twn-v1.1, which the first interactive login must change"
+    },
+    {
+      "name": "twn_board_kit.tar.gz",
+      "sha256": "8440be649b2228b68c907407ec2f970cbbda5baed156973c524a923f6b1ed3a8",
+      "size": 3410511,
+      "dest": "artifacts/kit/twn_board_kit.tar.gz",
+      "group": "kit",
+      "what": "board kit (board/make_kit.sh): apps on the kernel driver, twn_bench, twn_errtest, board scripts, weights and the synthetic fixtures; on the board: sh board_check.sh"
     },
     {
       "name": "model_mbv2.bin",
@@ -66,6 +90,14 @@
       "dest": "models/mbv2_pose/model_mbv2_packed.bin",
       "group": "model",
       "what": "the same with the head weights appended in the head engine's stream order"
+    },
+    {
+      "name": "fuse_weights.bin",
+      "sha256": "a8ae156468434244a3f39bbb25e06bd6ea0840e650c0d82e7e547ff669e04e48",
+      "size": 740992,
+      "dest": "golden/p1_golden/vec/fuse_weights.bin",
+      "group": "model",
+      "what": "the backbone weights in the accelerator's DDR layout (tools/pack_fuse_weights.py), what board/deploy.sh copies to the board"
     },
     {
       "name": "probe_tern_dc32_best.pth",

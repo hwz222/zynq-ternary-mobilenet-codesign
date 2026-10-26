@@ -29,6 +29,28 @@ indoor segmentation, depth, a pose model for people lying down, a fall-alarm pro
 [`results/task_results.json`](../results/task_results.json); those models have not yet been exported to
 the board's integer format or run on the board.
 
+## The kernel driver and the v1.1 image
+
+Release v1.1 runs the same model through the kernel driver `linux/driver/twn_fuse` on a new
+bitstream (SHA-256 prefix `11b4d88f583b8e23`: the v1.0.0 design plus an interrupt and Non-secure AXI
+masters) in `BOOT.BIN` `5d226057efc8760b`. Entry `linux_driver_twn_fuse_v11_20261027` of
+[`results/board_results.json`](../results/board_results.json); raw logs in
+`results/raw/linux_driver_v11_20261027/`.
+
+| quantity | value | measured on / how |
+|---|---|---|
+| Throughput | 232.6 fps (runs: 232.55, 232.60, 232.59); 232.2 fps with the SMMU off | board, the v1.1 image, `mbv2_fuse_pipe` as above, kernel driver with the interrupt and the SMMU on |
+| Correctness | 4 of 4 synthetic and 4 of 4 MPII fixtures bit-exact | board, head in the PL and on the processor, SMMU on and off |
+| CPU time per backbone frame | 10.7 us with the interrupt, 465.8 us polling | `twn_bench`, same boot, `use_irq=0` for polling |
+| ioctl round trip | 1.62 us | `twn_bench`, 100,000 calls |
+| Resources | 44,157 LUT (93.5 %), 36,203 FF, 145 block-RAM tiles, 217 DSP | Vivado 2023.2, routed design |
+| Timing | 240 MHz, WNS 0.000 ns, WHS +0.008 ns | after the post-route recovery of `vivado/build_bd_fuse.tcl` (first routing -0.032 ns) |
+| Isolation | `/dev/mem` refused for DDR and the registers; an out-of-buffer read by the PL ends in an SMMU context fault | board, the v1.1 image |
+
+The headline numbers above stay those of the v1.0.0 bitstream. On the v1.0.0 boot files the driver
+path was 1.2 % faster than the UIO path; the four-arm comparison in the same entry attributes it to
+the processor's mapping of the buffer (Normal non-cacheable instead of Device memory).
+
 ## Reproducibility and provenance
 
 Every number quoted in this README or in the documentation is copied from an entry of

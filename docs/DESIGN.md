@@ -34,15 +34,21 @@ it needs exist, so the blocks run as a pipeline in rows, with row buffers on chi
 
 HP3 exists only with `FUSE_HP3_SPLIT=1`, which `vivado/build.cmd` sets. It adds two writes to the
 generated `psu_init` (the width of the fourth port), which is why the FSBL in `linux/` comes from the XSA
-of such a build. The accelerator does not use the ACP/HPC ports and has no interrupt line: the processor polls.
+of such a build. The accelerator does not use the ACP/HPC ports. From v1.1 it raises a level-high
+interrupt on `pl_ps_irq0` (GIC SPI 89) when a done bit is set and its enable in register `IRQ` (0x0064)
+is on; the v1.0.0 bitstream had no interrupt line and the processor polled.
 All masters are instances of `twn_axi_rd` / `twn_axi_wr`: INCR bursts of up to 256 beats of 16 bytes, never
-crossing 4 KB, one burst in flight per master.
+crossing 4 KB, one burst in flight per master. From v1.1 they issue Non-secure transactions (AxPROT
+3'b010), so the SMMU can translate them; their SMMU stream IDs, measured on the board, are HP0 0x0e80,
+HP1 0x12c0, HP2 0x1300, HP3 0x1740 (`linux/project-spec/.../system-user.dtsi`).
 
 ## 3. DDR arena
 
-A 256 MB region at 0x6000_0000 is reserved in the device tree (`no-map`, so the processor sees it as
-uncached device memory: reads are slow, which is why per-frame processor traffic is kept small). Offsets from
-the arena base (`sw/app/mbv2_fuse_ps.c`):
+From v1.1 the arena is the 8 MB DMA buffer of the kernel driver (`linux/driver/twn_fuse`); the app maps it
+and hands the driver offsets, and with the SMMU on the accelerator sees it at an I/O virtual address. In
+v1.0.0 it was a 256 MB region at 0x6000_0000 reserved in the device tree (`no-map`) and mapped through
+`/dev/mem`. Either way the processor maps it uncached: reads are slow, which is why per-frame processor
+traffic is kept small. Offsets from the arena base (`sw/app/mbv2_fuse_ps.c`):
 
 | offset | content |
 |---|---|

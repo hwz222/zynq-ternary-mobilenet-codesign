@@ -37,6 +37,11 @@ CC0 from Wikimedia Commons ([credits](docs/figures/CREDITS.md)).
 | FPGA resources | 93.3 % LUT, 96.7 % block RAM, 90.4 % DSP of the XCZU2CG | Vivado 2023.2, routed design |
 | Power | 7.66 W, whole board | 12 V input, continuous inference, earlier bitstream of the same design |
 
+The table is the v1.0.0 release bitstream. Release **v1.1** runs the same network through a Linux
+kernel driver on a ready-to-boot image: an interrupt instead of polling, `/dev/mem` closed, the
+accelerator's DMA confined by the SMMU; 232.6 fps on that image, and its bitstream (44,157 LUT,
+93.5 %) meets 240 MHz with WNS 0.000 ns.
+
 Every number with its source entry and the full table: [docs/RESULTS.md](docs/RESULTS.md).
 
 ## Where to start
@@ -44,10 +49,10 @@ Every number with its source entry and the full table: [docs/RESULTS.md](docs/RE
 | I want to ... | start here |
 |---|---|
 | understand the architecture | [docs/DESIGN.md](docs/DESIGN.md), [docs/REPOSITORY.md](docs/REPOSITORY.md) |
-| run it on the board | [docs/QUICKSTART.md](docs/QUICKSTART.md) |
+| run it on the board | [docs/QUICKSTART.md](docs/QUICKSTART.md) (the v1.1 image needs no toolchain) |
 | rebuild the bitstream or Linux | [docs/REBUILD.md](docs/REBUILD.md) |
 | read the RTL | [rtl/](rtl/README.md) |
-| use the Linux kernel driver instead of UIO | [linux/driver/twn_fuse/](linux/driver/twn_fuse/README.md) |
+| use or study the Linux kernel driver | [linux/driver/twn_fuse/](linux/driver/twn_fuse/README.md); study handouts in Traditional Chinese: [v1.0](docs/zh-TW/driver-handout/), [v1.1](docs/zh-TW/driver-handout-2/) |
 | train or export a model | [train/](train/README.md) |
 | check correctness | [docs/VERIFICATION.md](docs/VERIFICATION.md) |
 | see all results | [docs/RESULTS.md](docs/RESULTS.md) |

@@ -40,11 +40,15 @@ no step is allowed to change a single bit.
 | engine suites | `powershell -File rtl\fuse\sim\run_engine_tests.ps1` | the seven engines (ternary array, depthwise, head, residual, data movers, weight fetch, control), with break runs | `=== ENGINE TESTS: all N ok ===` |
 | 17 blocks | `run_p5.ps1` (in `-Integration`) | all 17 blocks through the real sequencer and arrays, 747,520 values, against P1 | `=== P5 bit-exact: 17 pass, 0 fail, ...` |
 | whole frame | `run_fuse_axi_boost.ps1 -Only tb_fuse_frame` (in `-Integration`) | every byte `twn_fuse_top` writes to DDR over a frame, through its AXI masters and a DDR model with latency and back-pressure, plus the exact issue-beat count (853,760) | `FRAME PASS` |
+| interrupt | `powershell -File rtl\fuse\sim\run_csr_irq.ps1` | the IRQ register and the level-high interrupt of `twn_csr` (v1.1), 18 checks, plus two planted defects (enables ignored; the enable written by every CTRL write) that must fail | `CSR_IRQ_GATE_SELFTEST_PASS` |
 | head | `run_hd_int.ps1` (in the head suite) | the head through CSR, sequencer, data movers and AXI, byte for byte, with and without the backbone-to-head direct write, plus destructive arms that must fail | `HD_INT_GATE_PASS` |
 | datapath kept | `vivado/fuse_dp_check.tcl` (run by `build.cmd`) | after synthesis and implementation every datapath instance still has cells (a utilisation total cannot tell "fits" from "synthesis removed it") | every instance non-zero |
 | timing | `build/timing_impl_fuse_ternpose.rpt` | post-route WNS >= 0 at 240 MHz | "All user specified timing constraints are met" |
 | board files | `bash board/deploy.sh data` | SHA-256 of the 9 files on the board against the tree | `all 9 files match` |
 | board fixtures | `bash board/deploy.sh verify` | the four fixtures through the whole system, head in the PL and on the processor | max abs diff 0, 14/14 keypoints, for all eight runs |
+| device-tree binding | `python3 linux/driver/twn_fuse/test/binding_check.py <kernel-source> build/linux/sd/system.dtb` | the binding against the driver's match table, its example compiled with the kernel's headers, and the generated node of the image (the parts of `dt_binding_check` that need no dtschema) | `BINDING CHECK: PASS` |
+| driver on the board | `sh board_check.sh` in the board kit | the fixtures through the kernel driver, head in the PL and on the processor; 14 refusals and successes of the driver, the 3 s timeout; rmmod refused while open or mapped; five unload/reload cycles; throughput | `BOARD CHECK: PASS` |
+| v1.1 checks | `sh v11_check.sh <mode>` in the board kit | interrupt vs polling, one interrupt per frame, debugfs, `/dev/mem` refused, the SMMU stopping an out-of-buffer read | see `results/raw/linux_driver_v11_20261027/` |
 | board batch | `mbv2_fuse_eval` + `src/score_board.py compare` | 2,289 board outputs against `golden/ref_batch` on the same inputs | 2,289 of 2,289 identical |
 
 `run_engine_tests.ps1 -Integration` runs the engine suites, the 17-block run and the whole-frame run
