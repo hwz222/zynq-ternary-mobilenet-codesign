@@ -28,7 +28,7 @@ v1.0 的 bitstream 沒有中斷線，driver 只能每 13--50 µs 讀一次 done 
 \begin{itemize}
 \item \textbf{CPU 時間}：每幀從 \pollCpuUs{} µs 降到 \irqCpuUs{} µs（\code{twn_bench}，同一次開機、同一個程式，只差 \code{use_irq}）。
 \item \textbf{等待延遲}：driver 量的時間減掉 PL 自己數的 cycle，從 \pollWaitUs{} µs 變成 \irqWaitUs{} µs。
-\item \textbf{吞吐量不變差}：pipeline \fpsIrq{} fps（第 10 節的 board check）。
+\item \textbf{吞吐量不變差}：pipeline \fpsIrq{} fps（開機組 E 的 board check，三次的平均）。
 \item \textbf{相容}：device tree 沒有 \code{interrupts} 的舊 bitstream，driver 自動退回輪詢（開機組 D 的 dmesg 寫 \code{polling}）。
 \end{itemize}
 \end{gain}
@@ -80,7 +80,7 @@ block design 把它接到 PS：
 
 PetaLinux 從 XSA 產生的節點（開機組 E 的 \code{system.dtb}，用 \code{dtc} 反組譯）：
 
-\boardfile[：PC 上的檢查，節點原文]{S3_binding_check.log}{24-33}
+\boardfile[：PC 上的檢查，節點原文]{S3_binding_check.log}{24-34}
 
 \code{interrupts = <0x00 0x59 0x04>} 的三個數字：0 表示 SPI（Shared Peripheral Interrupt，所有 CPU 共用的外部中斷），\code{0x59} = 89 是 SPI 編號，4 是 \code{IRQ_TYPE_LEVEL_HIGH}。GIC 內部的編號是 SPI 編號加 32，所以 \code{/proc/interrupts} 會顯示 121。
 
@@ -112,9 +112,17 @@ head 的兩個函式也一樣：\code{twn_hd_start()} 在 START 之前 \code{rei
 
 \textbf{板上：開機組 E。}driver 開機自動載入，說它用中斷；\code{/proc/interrupts} 有一條 GIC 121、Level：
 
-\boardfile{E1_boot_state.log}{11-14}
+\boardfile{E1_boot_state.log}{11-15}
 
-\irqBoardEvidence
+\textbf{中斷與輪詢比一比。}同一次開機、同一個 \code{twn_bench}，先用中斷，再用 \code{use_irq=0} 重新載入 driver 改成輪詢：
+
+\boardfile[：前一段是中斷，後一段是輪詢]{E3_bench.log}{6-10,14-23}
+
+CPU 時間從每幀 \pollCpuUs{} µs 降到 \irqCpuUs{} µs：輪詢時 process 每 13--50 µs 醒來一次，用中斷時一幀只醒來一次。等待延遲（driver 量的時間減 PL 的 cycle）從 \pollWaitUs{} µs 降到 \irqWaitUs{} µs；剩下的大部分是 PL 自己在 block 之間的空檔（第 2 節）。
+
+\textbf{每一幀剛好一次中斷。}跑 1000 幀前後，ISR 自己的計數和 kernel 的計數（\code{/proc/interrupts}，ISR 回傳 \code{IRQ_NONE} 的呼叫也算在內）都剛好加 1000，表示沒有多出來的空中斷：
+
+\boardfile{E6_irqcount.log}{4-11}
 
 \subsection{原理}
 

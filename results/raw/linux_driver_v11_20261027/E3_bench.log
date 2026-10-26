@@ -1,0 +1,28 @@
+== 2026-10-26 19:16 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko 3d1bbe778a4a9d4b
+# dmesg | grep 'twn_fuse a0000000' | tail -1
+[   56.807245] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000ffff800000, /dev/twn_fuse, interrupt
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'
+4
+# ./twn_bench 1000
+ioctl STATUS: 100000 calls, 1.62 us per call
+BB_RUN: 1000 frames, per frame: app 4146.3 us, driver 4143.0 us, PL cycles 4129.0 us
+        overhead: syscall+copy 3.3 us, wait (driver - PL cycles) 14.0 us
+        CPU time of this process: 10.7 us per frame (0.3 % of the frame time)
+CPU access to the buffer: 1-byte stores 315 MB/s, 8-byte stores 4242 MB/s, 8-byte loads 81 MB/s
+# grep twn_fuse /proc/interrupts
+ 55:       1804          0     GICv2 121 Level     a0000000.twn_fuse
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko use_irq=0
+# dmesg | grep 'twn_fuse a0000000' | tail -1
+[   63.318609] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000ffff800000, /dev/twn_fuse, polling
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'
+4
+# ./twn_bench 1000
+ioctl STATUS: 100000 calls, 1.62 us per call
+BB_RUN: 1000 frames, per frame: app 4171.9 us, driver 4168.3 us, PL cycles 4129.0 us
+        overhead: syscall+copy 3.6 us, wait (driver - PL cycles) 39.3 us
+        CPU time of this process: 465.8 us per frame (11.2 % of the frame time)
+CPU access to the buffer: 1-byte stores 316 MB/s, 8-byte stores 4246 MB/s, 8-byte loads 81 MB/s
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/iommu_group
+../../../../kernel/iommu_groups/15
+  (behind the SMMU: map_device=1 is refused, the Device-mapping run is skipped)
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko

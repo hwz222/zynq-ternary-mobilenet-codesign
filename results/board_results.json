@@ -1043,5 +1043,86 @@
     ],
     "fps_mean_drv_patched_dtb": 231.58,
     "note": "The driver path is not slower. The 0.8-1.0 % difference is not attributed: the driver path changes three things at once (polling in the kernel with usleep_range instead of nanosleep in the app; the CPU mapping of the buffer, Normal non-cacheable instead of Device-nGnRnE; the buffer moves from the 0x6000_0000 reserved region to CMA at 0x5010_0000). The headline 228.7 fps stays the UIO number of thesis_model_probe_tern_dc32_board_20261012. STATUS bit 16 (ring overrun, sticky) is 0 after boot and 1 after a UIO-only run with the driver never loaded (C1_rollback_to_uio_dtb.txt): a property of the bitstream, not of the driver; outputs stay bit-exact; cause not investigated."
+  },
+  "linux_driver_twn_fuse_v11_20261027": {
+    "current": true,
+    "date": "2026-10-27",
+    "ruler": "the board kit of the v1.1 release (board/make_kit.sh) on the v1.1 image: board_check.sh (mbv2_fuse_test, the 4 synthetic fixtures and, separately, the 4 MPII fixtures of deploy_probe_tern_dc32_20261012, FUSE_HEAD_PL=1 and 0; twn_errtest timeout; rmmod while open and while mapped; five unload/reload cycles; mbv2_fuse_pipe 120 frames, FUSE_BB2HD=1, FUSE_HEAD_PL=1, three runs), test/v11_check.sh (boot, bench, debugfs, synthetic, irqcount, smmu); one job per boot, not polled; board clock 240 MHz",
+    "build": "v1.1 image: BOOT.BIN 5d226057efc8760b (bitstream 11b4d88f583b8e23, XSA 253ca13d2e977247), Image 0110440877a3738d, system.dtb bc4255b1c54ae27e (SMMU on), system_nosmmu.dtb 6ceadb90b64b6a98, rootfs.cpio.gz.u-boot 8c54689ab21fe45c, boot.scr ea53e9648a37f16f, twn_fuse.ko 3d1bbe778a4a9d4b (from the image); board kit 8440be649b2228b6; branch v1.1-dev",
+    "source": "results/raw/linux_driver_v11_20261027/ (README.md lists every file)",
+    "measured_by": "bash linux/build_linux.sh; bash board/make_boot.sh; bash board/make_kit.sh; on the board: sh board_check.sh, sh v11_check.sh <mode>",
+    "timing": {
+      "wns_ns": 0.0,
+      "whs_ns": 0.008,
+      "note": "first routing -0.032 ns; the strategy's post-route phys_opt -0.015 ns; the recovery of vivado/build_bd_fuse.tcl: AggressiveExplore -0.006 ns, AlternateFlowWithRetiming 0.000 ns (S4_build_timing.log)"
+    },
+    "resources": {
+      "clb_lut": 44157,
+      "clb_register": 36203,
+      "bram_tiles": 145,
+      "dsp": 217
+    },
+    "bit_exact_fixtures": "4/4 synthetic and 4/4 MPII, head in the PL and on the processor, SMMU on (E2, E2m, E5, E8) and off (G2); again after the refused table and in each of five reload cycles",
+    "error_path_checks": "14/14 as expected (12 refusals, 2 successes)",
+    "timeout_s": 3.17,
+    "fps_runs_smmu_on": [
+      232.55,
+      232.6,
+      232.59
+    ],
+    "fps_mean_smmu_on": 232.58,
+    "fps_runs_smmu_on_mpii": [
+      232.82,
+      232.05,
+      232.91
+    ],
+    "fps_runs_smmu_off": [
+      232.67,
+      232.35,
+      231.49
+    ],
+    "fps_mean_smmu_off": 232.17,
+    "interrupt": {
+      "irq": "pl_ps_irq0, GIC SPI 89 (hwirq 121), level high",
+      "cpu_us_per_backbone_frame_irq": 10.7,
+      "cpu_us_per_backbone_frame_polling": 465.8,
+      "wait_us_driver_minus_pl_irq": 14.0,
+      "wait_us_driver_minus_pl_polling": 39.3,
+      "interrupts_per_1000_frames": 1000,
+      "irq_none_calls": 0
+    },
+    "ioctl_status_round_trip_us": 1.62,
+    "boot": "twn_fuse loaded at boot (4.8 s), bound by compatible wjhuang,twn-fuse-1.1; /dev/mem mmap of DDR and of the registers: Operation not permitted; MemTotal 2035396 kB (v1.0.0 boot 1773764 kB); no reserved-memory node; first interactive login forces a password change, Ctrl-C ignored",
+    "smmu": {
+      "stream_ids": {
+        "hp0": "0x0e80",
+        "hp1": "0x12c0",
+        "hp2": "0x1300",
+        "hp3": "0x1740"
+      },
+      "how_measured": "arm_smmu.disable_bypass=1: the SMMU reports unlisted stream IDs in GFSYNR1 (F0); with all four listed, no global fault (F1)",
+      "out_of_buffer_read": "debugfs dma_fault: context fault (cbfrsynra 0xe80) with the SMMU, unnoticed without",
+      "prerequisite": "AXI masters drive AxPROT 3'b010 (Non-secure); with 3'b000 the PL traffic was neither translated nor checked (first_bitstream/)"
+    },
+    "ab_v100_boot_files": {
+      "what": "v1.0.0 boot files (BOOT.BIN 690d87cc5f4b6897), v1.1 driver polling, 6 runs per arm (D1)",
+      "fps_mean_uio": 228.94,
+      "fps_mean_uio_other_buffer_address": 229.09,
+      "fps_mean_driver_device_mapping": 228.83,
+      "fps_mean_driver_normal_nc": 231.53,
+      "cpu_store_mb_s_normal_nc_1b_8b": [
+        316,
+        4250
+      ],
+      "cpu_store_mb_s_device_1b_8b": [
+        103,
+        853
+      ],
+      "cpu_load_mb_s": 81,
+      "write_in_ms_normal_nc": "0.09-0.10",
+      "write_in_ms_device": "0.14-0.15",
+      "note": "attributes the 0.8-1.0 % of linux_driver_twn_fuse_20261026 to the CPU-side memory attribute of the buffer mapping (Normal non-cacheable vs Device-nGnRnE); polling location and buffer address show no effect"
+    },
+    "note": "The headline throughput of the release stays the board number of the deployed model; the numbers here compare the v1.1 driver configurations. dt_binding_check and sparse were not run (they need dtschema and sparse installed); test/binding_check.py checks the binding and the generated node instead (S3)."
   }
 }

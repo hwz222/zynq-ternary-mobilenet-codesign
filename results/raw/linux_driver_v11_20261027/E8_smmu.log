@@ -1,0 +1,50 @@
+== 2026-10-26 19:16 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko 3d1bbe778a4a9d4b
+# dmesg | grep -i -E 'arm-smmu|iommu' | head -8
+[    0.866547] iommu: Default domain type: Translated 
+[    0.870920] iommu: DMA domain TLB invalidation policy: strict mode 
+[    1.283737] arm-smmu fd800000.smmu: probing hardware configuration...
+[    1.289600] arm-smmu fd800000.smmu: SMMUv2 with:
+[    1.294204] arm-smmu fd800000.smmu: 	stage 1 translation
+[    1.299510] arm-smmu fd800000.smmu: 	stage 2 translation
+[    1.304816] arm-smmu fd800000.smmu: 	nested translation
+[    1.310040] arm-smmu fd800000.smmu: 	stream matching with 48 register groups
+# ls /sys/kernel/iommu_groups/*/devices/ | grep -B1 twn_fuse
+/sys/kernel/iommu_groups/15/devices/:
+a0000000.twn_fuse
+# dmesg | grep 'twn_fuse a0000000' | tail -1
+[   68.211824] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000ffff800000 + 8192 KB: frame done, STATUS 00010043
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 5.06 ms  frame 9.44 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.63 ms  frame 8.87 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.54 ms  frame 8.78 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.59 ms  frame 8.84 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.49 ms  head 12.24 ms  frame 16.72 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.49 ms  frame 14.85 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.06 ms  frame 14.43 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.36 ms  head 10.26 ms  frame 14.62 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 514.1 ms = 4.28 ms/frame = 233.40 fps ===
+# echo 1 > /sys/kernel/debug/twn_fuse/dma_fault; echo exit $?
+exit 0
+# dmesg | grep -i -E 'arm-smmu|context fault|dma_fault' | tail -6
+[    1.336486] arm-smmu fd800000.smmu: 	Stage-2: 48-bit IPA -> 48-bit PA
+[    1.343130] arm-smmu fd800000.smmu: 	preserved 0 boot mappings
+[   68.200304] arm-smmu fd800000.smmu: Unhandled context fault: fsr=0x402, iova=0x00000000, fsynr=0x80000, cbfrsynra=0xe80, cb=15
+[   68.211824] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000ffff800000 + 8192 KB: frame done, STATUS 00010043
+[   74.469863] arm-smmu fd800000.smmu: Unhandled context fault: fsr=0x402, iova=0x00000000, fsynr=0x80000, cbfrsynra=0xe80, cb=15
+[   74.481386] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000ffff800000 + 8192 KB: frame done, STATUS 00010043
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.38 ms  head 5.04 ms  frame 9.42 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.23 ms  head 4.60 ms  frame 8.83 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.23 ms  head 4.50 ms  frame 8.73 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.23 ms  head 4.55 ms  frame 8.78 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.50 ms  head 12.13 ms  frame 16.63 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.51 ms  frame 14.87 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.36 ms  head 10.02 ms  frame 14.39 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.30 ms  frame 14.66 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==

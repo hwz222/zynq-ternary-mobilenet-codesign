@@ -1,0 +1,34 @@
+== 2026-10-26 19:29 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb 6ceadb90b64b6a98  twn_fuse.ko 3d1bbe778a4a9d4b
+# dmesg | grep 'twn_fuse a0000000' | tail -1
+[   40.412529] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'
+4
+# ./twn_bench 1000
+ioctl STATUS: 100000 calls, 1.62 us per call
+BB_RUN: 1000 frames, per frame: app 4146.7 us, driver 4143.3 us, PL cycles 4129.0 us
+        overhead: syscall+copy 3.3 us, wait (driver - PL cycles) 14.3 us
+        CPU time of this process: 10.8 us per frame (0.3 % of the frame time)
+CPU access to the buffer: 1-byte stores 316 MB/s, 8-byte stores 4237 MB/s, 8-byte loads 81 MB/s
+# grep twn_fuse /proc/interrupts
+ 54:       1804          0     GICv2 121 Level     a0000000.twn_fuse
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko use_irq=0
+# dmesg | grep 'twn_fuse a0000000' | tail -1
+[   46.924475] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, polling
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'
+4
+# ./twn_bench 1000
+ioctl STATUS: 100000 calls, 1.62 us per call
+BB_RUN: 1000 frames, per frame: app 4172.5 us, driver 4169.0 us, PL cycles 4129.0 us
+        overhead: syscall+copy 3.5 us, wait (driver - PL cycles) 40.0 us
+        CPU time of this process: 478.3 us per frame (11.5 % of the frame time)
+CPU access to the buffer: 1-byte stores 316 MB/s, 8-byte stores 4247 MB/s, 8-byte loads 81 MB/s
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko map_device=1
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'
+4
+# ./twn_bench 1000
+ioctl STATUS: 100000 calls, 1.62 us per call
+BB_RUN: 1000 frames, per frame: app 4146.7 us, driver 4143.4 us, PL cycles 4129.0 us
+        overhead: syscall+copy 3.3 us, wait (driver - PL cycles) 14.4 us
+        CPU time of this process: 10.8 us per frame (0.3 % of the frame time)
+CPU access to the buffer: 1-byte stores 103 MB/s, 8-byte stores 841 MB/s, 8-byte loads 81 MB/s
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko

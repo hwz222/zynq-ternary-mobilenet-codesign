@@ -45,18 +45,31 @@ export BOARD_PW=twn-v1.1
 bash board/deploy.sh pin
 bash board/deploy.sh pushlinux build/BOOT.BIN build/linux/sd
 # on the board: tar xzf twn_board_kit.tar.gz && cd twn_board_kit
-sh v11_check.sh boot (E1)   sh board_check.sh (E2)   sh v11_check.sh bench (E3)
-sh v11_check.sh debugfs (E4)   sh v11_check.sh synthetic (E5)   sh v11_check.sh irqcount (E6)
+sha256sum -c SHA256SUMS (E0)   sh v11_check.sh boot (E1)   sh board_check.sh (E2)
+sh v11_check.sh bench (E3)   sh v11_check.sh debugfs (E4)   sh v11_check.sh synthetic (E5)
+sh v11_check.sh irqcount (E6)   sh v11_check.sh smmu (E8)
 \end{cmdline}
 
-E7 是在序列埠（115200 baud）上做一次互動登入：先在密碼提示按 Ctrl-C，再輸入空密碼，最後設定新密碼。
+E2m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是在序列埠（115200 baud）上做一次互動登入：先在密碼提示按 Ctrl-C，再輸入空密碼，最後設定新密碼。
 
-\textbf{6. 開機組 F（SMMU，F1--F2）}
+\textbf{6. 開機組 F（找 stream ID，F0--F1）}
+
+在開機組 E 的開機檔上，把 \code{boot.scr} 換成 \code{bootargs} 多一個 \code{arm_smmu.disable_bypass=1} 的版本（從 \code{linux/boot.cmd} 用 \code{mkimage} 編），沒有登記的 stream ID 就會被 SMMU 擋下並回報：
 
 \begin{cmdline}
-sh linux/driver/twn_fuse/smmu_dtb.sh system.dtb system_smmu.dtb    # on the host, needs fdtput
-# copy system_smmu.dtb over system.dtb on the card (keep the original), reboot
-sh v11_check.sh smmu        (F1)
+dmesg | grep -o "GFSYNR1 0x[0-9a-f]*" | sort | uniq -c         (F0: the unlisted IDs)
+sh linux/driver/twn_fuse/smmu_dtb.sh system.dtb system_smmu.dtb  # on the host, the measured IDs
+sh v11_check.sh smmu                                               (F1)
+\end{cmdline}
+
+\textbf{7. 開機組 G（關掉 SMMU 的比較，G1--G4）}
+
+\begin{cmdline}
+cp system.dtb system_nosmmu.dtb       # on the host
+fdtput -t s system_nosmmu.dtb /axi/smmu@fd800000 status disabled
+fdtput -d system_nosmmu.dtb /amba_pl@0/twn_fuse@a0000000 iommus
+# copy it over system.dtb on the card (keep the original), reboot, then as in step 5:
+sh v11_check.sh boot (G1)   sh board_check.sh (G2)   sh v11_check.sh bench (G3)   sh v11_check.sh debugfs (G4)
 \end{cmdline}
 
 \textbf{回退。}開始前先 \code{deploy.sh pin}（保存目前的 \code{BOOT.BIN}）；\code{pushlinux} 會把被換掉的檔案保存在卡上的 \code{previous_linux/}。板子開不起來時，可以在序列埠攔下 U-Boot，用 \code{fatload} 與 \code{fatwrite} 把保存的檔案寫回。

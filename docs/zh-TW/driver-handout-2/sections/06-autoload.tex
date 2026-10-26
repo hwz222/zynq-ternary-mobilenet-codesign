@@ -24,7 +24,7 @@ driver v1.0 不在映像裡。每次開機要把 \code{twn_fuse.ko} 複製到板
 
 \begin{gain}
 \begin{itemize}
-\item 開機到可以用不需要任何手動步驟：開機第 4.7 秒 driver 就載入並綁上（開機組 E 的 dmesg）。
+\item 開機到可以用不需要任何手動步驟：開機第 4.8 秒 driver 就載入並綁上（開機組 E 的 dmesg）。
 \item driver 與映像的 kernel 一定相符：module 和 kernel 在同一次 PetaLinux 建置裡用同一棵樹編出來。
 \item repo 裡只有一份 driver 原始碼：\code{build_linux.sh} 建置時把它複製進 recipe。
 \item UIO 不再碰這個裝置：節點的 \code{compatible} 不再是 \code{generic-uio}。
@@ -54,9 +54,9 @@ driver v1.0 不在映像裡。每次開機要把 \code{twn_fuse.ko} 複製到板
 
 \textbf{板上：開機組 E，開機後沒有任何手動步驟。}
 
-\boardfile{E1_boot_state.log}{4-12}
+\boardfile{E1_boot_state.log}{4-13}
 
-第 5 行：module 已經載入。第 7--8 行：它是映像裡的檔案（\code{/lib/modules/.../extra/}），開機載入清單裡有它。第 10 行：裝置綁在 \code{twn_fuse} 上。第 12 行：開機第 4.7 秒 probe 成功，用中斷模式。
+第 5 行：module 已經載入。第 7--8 行：它是映像裡的檔案（\code{/lib/modules/.../extra/}），開機載入清單裡有它。第 10 行：裝置綁在 \code{twn_fuse} 上。第 12 行：裝置被放進 SMMU 的 iommu group（第 8 節）。第 13 行：開機第 4.8 秒 probe 成功，用中斷模式。
 
 \subsection{原理}
 
@@ -74,7 +74,7 @@ driver v1.0 不在映像裡。每次開機要把 \code{twn_fuse.ko} 複製到板
 \subsection{面試會問}
 
 \begin{qa}{driver 怎麼做到開機就自動載入？}
-我寫了一個 Yocto 的 module recipe：\code{inherit module} 讓它用映像自己的 kernel 樹編譯，所以 vermagic 一定對；\code{KERNEL_MODULE_AUTOLOAD} 產生 \code{/etc/modules-load.d} 的設定，開機由 systemd 載入；\code{IMAGE_INSTALL} 把它放進 rootfs。device tree 在 \code{system-user.dtsi} 把 PetaLinux 產生的節點的 \code{compatible} 改成 driver 比對表裡的字串，所以載入後 driver core 直接比對成功、呼叫 probe，不再需要 \code{driver_override}。另外 udev 也會用 modalias 載入它，兩條路都在。板上開機第 4.7 秒 driver 就綁好，用中斷模式。
+我寫了一個 Yocto 的 module recipe：\code{inherit module} 讓它用映像自己的 kernel 樹編譯，所以 vermagic 一定對；\code{KERNEL_MODULE_AUTOLOAD} 產生 \code{/etc/modules-load.d} 的設定，開機由 systemd 載入；\code{IMAGE_INSTALL} 把它放進 rootfs。device tree 在 \code{system-user.dtsi} 把 PetaLinux 產生的節點的 \code{compatible} 改成 driver 比對表裡的字串，所以載入後 driver core 直接比對成功、呼叫 probe，不再需要 \code{driver_override}。另外 udev 也會用 modalias 載入它，兩條路都在。板上開機第 4.8 秒 driver 就綁好，用中斷模式。
 \end{qa}
 
 \subsection{關鍵函式速查}

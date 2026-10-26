@@ -1,0 +1,15 @@
+./README.txt: OK
+./bind.sh: OK
+./board_check.sh: OK
+./data/fuse_weights.bin: OK
+./data/model_mbv2.bin: OK
+./data/model_mbv2_packed.bin: OK
+./golden/fix_0.bin: OK
+./golden/fix_1.bin: OK
+./golden/fix_2.bin: OK
+./golden/fix_3.bin: OK
+./mbv2_fuse_pipe_drv: OK
+./mbv2_fuse_test_drv: OK
+./twn_bench: OK
+./twn_errtest: OK
+./v11_check.sh: OK

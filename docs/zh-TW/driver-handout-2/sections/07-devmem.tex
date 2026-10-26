@@ -45,9 +45,9 @@ app 用 \code{/dev/mem} 把這塊實體位址映射進來（第 1 節的 \code{u
 
 \textbf{板上：開機組 E。}
 
-\boardfile[（開機組 E）]{E1_boot_state.log}{15-30}
+\boardfile[（開機組 E）]{E1_boot_state.log}{16-31}
 
-\code{MemTotal} 多了約 255.5 MB；\code{reserved-memory} 節點不在了；kernel 設定裡兩個選項都開了；\code{devmem} 兩次都被拒絕。\code{CmaTotal} 不變，仍是 256 MB，driver 的 8 MB 從這裡配。
+\code{MemTotal} 多了約 255.5 MB；\code{reserved-memory} 節點不在了；kernel 設定裡兩個選項都開了；\code{devmem} 兩次都被拒絕。\code{CmaTotal} 不變，仍是 256 MB。沒有 SMMU 時，driver 的 8 MB 從 CMA 配；這個映像打開了 SMMU，buffer 改從一般記憶體配（第 8 節），所以 \code{CmaFree} 幾乎沒有減少。
 
 \subsection{原理}
 

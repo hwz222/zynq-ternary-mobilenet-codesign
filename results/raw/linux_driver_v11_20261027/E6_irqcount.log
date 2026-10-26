@@ -1,0 +1,11 @@
+== 2026-10-26 19:16 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko 3d1bbe778a4a9d4b
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'
+4
+# cat /sys/kernel/debug/twn_fuse/irq_count; grep twn_fuse /proc/interrupts
+37
+ 55:       1841          0     GICv2 121 Level     a0000000.twn_fuse
+# ./twn_bench 1000 | grep BB_RUN
+BB_RUN: 1000 frames, per frame: app 4147.0 us, driver 4143.7 us, PL cycles 4129.0 us
+# cat /sys/kernel/debug/twn_fuse/irq_count; grep twn_fuse /proc/interrupts
+1037
+ 55:       2841          0     GICv2 121 Level     a0000000.twn_fuse

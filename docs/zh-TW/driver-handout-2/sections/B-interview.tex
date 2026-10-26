@@ -16,7 +16,7 @@ RTL 加一個暫存器輸出的 level 中斷，等於致能 AND done，致能放
 \end{qashort}
 
 \begin{qashort}{4. 改了 RTL 之後 timing 收不了怎麼辦？（第 4 節）}
-先固定配方，只動 RTL。建置腳本在 route 後若 WNS 小於 0，自動跑 \code{phys_opt_design}，不行再重新 route。若只是改常數這種小改動，還可以在已經收斂的 routed design 上做 ECO，只改那幾根 pin，timing 一點都不動。
+先固定配方，只動 RTL。建置腳本在 route 後若 WNS 小於 0，自動跑 \code{phys_opt_design}，不行再重新 route。這次把 AxPROT 從 0 改成 1，只改常數，route 完卻是 $-$0.032 ns，靠這一步補到 0。我也準備了備案：Vivado 對同樣的輸入給出同樣的結果，可以重現上一版收斂的設計，再用 ECO 只改那幾根常數 pin。
 \end{qashort}
 
 \begin{qashort}{5. 除錯功能放哪裡？（第 5 節）}
@@ -24,7 +24,7 @@ RTL 加一個暫存器輸出的 level 中斷，等於致能 AND done，致能放
 \end{qashort}
 
 \begin{qashort}{6. driver 怎麼開機自動載入？（第 6 節）}
-Yocto 的 module recipe：\code{inherit module} 用映像自己的 kernel 樹編，vermagic 一定對；\code{KERNEL_MODULE_AUTOLOAD} 讓 systemd 開機載入；device tree 把 \code{compatible} 改成 driver 認得的字串，不再需要 \code{driver_override}。板上開機第 4.7 秒就綁好。
+Yocto 的 module recipe：\code{inherit module} 用映像自己的 kernel 樹編，vermagic 一定對；\code{KERNEL_MODULE_AUTOLOAD} 讓 systemd 開機載入；device tree 把 \code{compatible} 改成 driver 認得的字串，不再需要 \code{driver_override}。板上開機第 4.8 秒就綁好。
 \end{qashort}
 
 \begin{qashort}{7. 為什麼關掉 /dev/mem？（第 7 節）}

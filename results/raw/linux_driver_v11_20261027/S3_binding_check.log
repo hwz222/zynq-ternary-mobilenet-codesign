@@ -1,4 +1,4 @@
-== 2026-10-26 17:54 UTC  host (WSL Ubuntu 22.04)  system.dtb b1e2fda6e333dbc7 (PetaLinux, XSA 853b2d89767d5163)
+== 2026-10-26 19:14 UTC  host (WSL Ubuntu 22.04)  system.dtb bc4255b1c54ae27e (PetaLinux, XSA 253ca13d2e977247)
 # python3 linux/driver/twn_fuse/test/binding_check.py <kernel-source> build/linux_v11/sd/system.dtb
 PASS binding has $id
 PASS binding has $schema
@@ -14,12 +14,12 @@ PASS example 0: compiles with dtc
 PASS example 0: has required property compatible
 PASS example 0: has required property reg
 PASS example 0: version 1.1 has an interrupt
+PASS example 0: property clock-names is described
 PASS example 0: property clocks is described
 PASS example 0: property compatible is described
-PASS example 0: property interrupts is described
-PASS example 0: property clock-names is described
-PASS example 0: property reg is described
 PASS example 0: property interrupt-names is described
+PASS example 0: property interrupts is described
+PASS example 0: property reg is described
 PASS system.dtb: one node with a wjhuang,twn-fuse compatible
      node twn_fuse@a0000000:
        clock-names = "ap_clk";
@@ -30,12 +30,14 @@ PASS system.dtb: one node with a wjhuang,twn-fuse compatible
        interrupts = <0x00 0x59 0x04>;
        reg = <0x00 0xa0000000 0x00 0x10000>;
        status = "okay";
+       iommus = <0x11 0xe80 0x11 0x12c0 0x11 0x1300 0x11 0x1740>;
        phandle = <0x72>;
 PASS dtb node: property clock-names is described
 PASS dtb node: property clocks is described
 PASS dtb node: property compatible is described
 PASS dtb node: property interrupt-names is described
 PASS dtb node: property interrupts is described
+PASS dtb node: property iommus is described
 PASS dtb node: property reg is described
 PASS dtb node: has required property compatible
 PASS dtb node: has required property reg

@@ -108,9 +108,9 @@ v1.1: `results/board_results.json`, entry `linux_driver_twn_fuse_v11_20261027`; 
 `results/raw/linux_driver_v11_20261027/` (README there). In short, on the v1.1 image: the driver
 bound at boot with the interrupt; four MPII and four synthetic fixtures bit-exact with the head in
 the PL and on the processor; the board check (refusals, 3 s timeout, unload/reload, throughput)
-passes; one interrupt per frame and none extra; CPU time per backbone frame <TBD-IRQ> us with the
-interrupt and <TBD-POLL> us polling; `/dev/mem` refused for DDR and for the registers; the 256 MB
-reservation returned to the kernel; with the SMMU <TBD-SMMU>.
+passes; one interrupt per frame and none extra; CPU time per backbone frame 10.7 us with the
+interrupt and 465.8 us polling; `/dev/mem` refused for DDR and for the registers; the 256 MB
+reservation returned to the kernel; with the SMMU on (the default of the image), an out-of-buffer read by the PL ends in an SMMU context fault, at the same throughput as without it (232.58 vs 232.17 fps).
 
 Limits: `dt_binding_check` and sparse (`make C=1`) were not run (they need dtschema and sparse
 installed); the driver does not claim the PL clock (`clocks = <&zynqmp_clk 71>`) and relies on

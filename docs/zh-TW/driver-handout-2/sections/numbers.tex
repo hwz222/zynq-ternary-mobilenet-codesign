@@ -29,17 +29,17 @@
 \newcommand{\splitNcPeriod}{4.31--4.33}
 \newcommand{\splitDevPeriod}{4.35--4.38}
 %
-% ---- 開機組 E：v1.1 映像，driver 由映像載入，中斷
-% PROVISIONAL：以下取自第一版 bitstream（first_bitstream/E3_bench.log 第 10、23 行等），
-% 最終 bitstream 的 E3_bench.log 出來後要換成它的值與行號
-\newcommand{\irqCpuUs}{11.9}
-\newcommand{\pollCpuUs}{477.3}
-\newcommand{\irqWaitUs}{14.6}
-\newcommand{\pollWaitUs}{45.1}
-\newcommand{\fpsIrq}{232.79}
-\newcommand{\irqBoardEvidence}{}
+% ---- 開機組 E：v1.1 發佈映像（board_hashes_E.txt）
+\newcommand{\relBoot}{5d226057efc8760b}
+\newcommand{\relDtb}{bc4255b1c54ae27e}
+% 中斷與輪詢：E3_bench.log 第 9-10 行（中斷）、第 22-23 行（use_irq=0）
+\newcommand{\irqCpuUs}{10.7}
+\newcommand{\pollCpuUs}{465.8}
+\newcommand{\irqWaitUs}{14.0}
+\newcommand{\pollWaitUs}{39.3}
+% pipeline 吞吐量，三次的平均：E2_board_check.log 第 37-39 行（232.55、232.60、232.59）
+\newcommand{\fpsIrq}{232.58}
 %
-% ---- 第 8 節：SMMU 的結果，PROVISIONAL，等新 bitstream 上板後改寫
-\newcommand{\smmuGain}{\textcolor{red}{（待補：SMMU 的結果）}}
-\newcommand{\smmuSecondPart}{\textcolor{red}{（待補：第二次的板上結果）}}
-\newcommand{\smmuInterviewTail}{}
+% ---- 第 8 節：SMMU 開（E2_board_check.log 第 37-39 行：232.55、232.60、232.59）與關（G2_board_check.log 第 37-39 行：232.67、232.35、231.49）
+\newcommand{\smmuOnFps}{232.58}
+\newcommand{\smmuOffFps}{232.17}

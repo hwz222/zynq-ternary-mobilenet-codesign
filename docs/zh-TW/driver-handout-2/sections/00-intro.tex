@@ -34,7 +34,7 @@
 
 \textbf{程式碼都是真的。}每段程式碼都由第一冊的 \code{extract.py} 從 repo 抽出，框上方是檔名和真實行號。標題寫著「\code{@ driver v1.0 (7615324)}」的，是第一冊那個版本的程式碼。
 
-\textbf{紀錄也是真的。}黑框直接從 \code{results/raw/linux_driver_v11_20261027/} 的紀錄檔讀出原文，框上方是檔名與行號，行首是 \texttt{\#} 加一個空格的那一行是執行的指令。板上紀錄的時間是 UTC（台灣時間減 8 小時）。紀錄來自三種開機組（一次開機所用的整組開機檔），檔名的第一個字母就是開機組：
+\textbf{紀錄也是真的。}黑框直接從 \code{results/raw/linux_driver_v11_20261027/} 的紀錄檔讀出原文，框上方是檔名與行號，行首是 \texttt{\#} 加一個空格的那一行是執行的指令。板上紀錄的時間是 UTC（台灣時間減 8 小時）。紀錄來自四種開機組（一次開機所用的整組開機檔），檔名的第一個字母就是開機組：
 
 \begin{center}
 \small
@@ -43,11 +43,14 @@
 代號 & 開機檔 & 用在 \\
 \midrule
 D & v1.0.0 的開機檔（\code{BOOT.BIN} \code{690d87cc5f4b6897}、\code{system.dtb} \code{18fff66fcfb7798b}），bitstream 沒有中斷線，有 UIO 和 \code{/dev/mem}；driver 是 v1.1 的程式，手動載入，輪詢 & 第 1、2、5 節，第 7 節的「之前」 \\
-E & v1.1 的開機檔（\code{BOOT.BIN} \code{7da00842c7c104e1}、\code{system.dtb} \code{b1e2fda6e333dbc7}），中斷版 bitstream，driver 由映像開機時自動載入 & 第 3、6、7、10 節 \\
-F & 開機組 E，只把 \code{system.dtb} 換成打開 SMMU 的版本 & 第 8 節 \\
+E & v1.1 的發佈映像（\code{BOOT.BIN} \texttt{\relBoot}、\code{system.dtb} \texttt{\relDtb}）：中斷版、AXI master 送 Non-secure 交易的 bitstream，SMMU 打開，driver 由映像開機時自動載入 & 第 3、5--8、10 節 \\
+F & 找 stream ID 用的診斷組：開機組 E 的 bitstream（\code{BOOT.BIN} \code{18a066f87cfbad8d}），搭配第一次建出的 v1.1 kernel 與 rootfs；\code{system.dtb} 打開 SMMU，開機參數多一個 \code{arm_smmu.disable_bypass=1} & 第 8 節 \\
+G & 開機組 E，只把 \code{system.dtb} 換成關掉 SMMU 的版本 & 第 8 節的比較 \\
 \bottomrule
 \end{tabularx}
 \end{center}
+
+另外，\code{first_bitstream/} 子目錄是第一版 v1.1 bitstream 的紀錄：除了 SMMU 之外全部通過，因為 SMMU 的問題（第 8 節）而被取代。
 
 雜湊都是 SHA-256 的前 16 個十六進位字元。檔名開頭是 S 的是 PC 上的模擬與檢查，不是板上紀錄。
 

@@ -13,9 +13,17 @@ the SMMU, and that failure is why the bitstream was replaced:
   accelerator given stream IDs 0x0e80, 0x1280, 0x1680. Every fixture failed and `dma_fault` caused
   no SMMU fault. A second boot with `arm_smmu.disable_bypass=1` (not kept as a log) still showed no
   fault of any kind.
+- `S2_hd_int_gate.log`, `S3_binding_check.log`, `S4_*`: the head integration gate on that RTL, the
+  binding check of that image's device tree, and that build's timing (WNS +0.037 ns at the first
+  route) and utilization reports.
+- `S5_rebuild_determinism.log`: a rebuild of the same commit in another directory, kept as the
+  base for an ECO in case the corrected RTL did not meet timing; same synthesis reports, same
+  first placement estimate. Stopped when the corrected build met timing.
 
 Cause: the AXI masters (`rtl/src/twn_axi_rd.v`, `twn_axi_wr.v`) drove AxPROT = 3'b000, i.e. Secure
 transactions. The Linux SMMU driver programs only the Non-secure stream mapping, so Secure traffic
 from the PL was neither translated nor checked; with the buffer at an I/O virtual address the PL
 read and wrote the wrong place. The masters now drive 3'b010 (Non-secure), the bitstream was
-rebuilt, and the logs one directory up (same file names) were taken again on the new image.
+rebuilt (WNS 0.000 ns after the post-route recovery), and the logs one directory up (same file
+names) were taken again on the new image. The stream IDs 0x1280 and 0x1680 were wrong as well
+(see F0 one directory up).

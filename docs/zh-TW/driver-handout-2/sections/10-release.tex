@@ -43,9 +43,9 @@ v1.0.0 沒有附 root file system，因為建好的映像裡有板子的 root �
 
 \code{[ -t 0 ]} 表示標準輸入是終端機，也就是有人在互動登入；\code{ssh} 直接帶指令執行的情況不是互動登入，不會被攔下（但仍然要密碼才能登入）。\code{trap '' INT QUIT TSTP} 讓 shell 忽略這三個訊號；被忽略的訊號在 \code{exec} 之後仍然被忽略，所以 \code{passwd} 也收不到 Ctrl-C。
 
-\textbf{板上：序列埠上的第一次登入（開機組 E）。}在密碼提示時先按 Ctrl-C，再輸入空密碼，最後才設新密碼：
+\textbf{板上：序列埠上的第一次登入（開機組 E）。}在第一個密碼提示按 Ctrl-C，接著輸入空密碼、在確認時輸入另一個密碼（兩者不同），最後才正確設定新密碼（第 2 行寫著實際按的鍵，板子不回顯密碼）：
 
-\boardfile{E7_first_login.log}{1-30}
+\boardfile{E7_first_login.log}{1-4,8-23}
 
 \textbf{合成 fixture。}四張圖完全由公式產生：
 

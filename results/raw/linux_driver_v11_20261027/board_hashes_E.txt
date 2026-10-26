@@ -1,0 +1,27 @@
+== board files
+3d1bbe778a4a9d4b  /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko
+e0776bcb3b6228d4  README.txt
+c8dee7a5d8cca69d  SHA256SUMS
+1b6268559de008b5  bind.sh
+a346b3c241daaaa9  board_check.sh
+93274f61af5ef716  mbv2_fuse_pipe_drv
+ddbbfc1d577ec7da  mbv2_fuse_test_drv
+4637d6805bd00137  twn_bench
+0e9a45caed1ba20a  twn_errtest
+0471ef9d8d526510  v11_check.sh
+a8ae156468434244  data/fuse_weights.bin
+accd59743da29a6e  data/model_mbv2.bin
+67728c886e2a4618  data/model_mbv2_packed.bin
+d5422a581bb99212  golden/fix_0.bin
+25a8c00010eb60dc  golden/fix_1.bin
+33ef1f95d20dd3d9  golden/fix_2.bin
+ef021de9fcb72324  golden/fix_3.bin
+00ba35795fa6dcc8  /home/root/mpii/golden/fix_0.bin
+cce0dc613522cd92  /home/root/mpii/golden/fix_1.bin
+56c627da6f831221  /home/root/mpii/golden/fix_2.bin
+2ef37ef2fc46b274  /home/root/mpii/golden/fix_3.bin
+5d226057efc8760b  BOOT.BIN
+0110440877a3738d  Image
+ea53e9648a37f16f  boot.scr
+bc4255b1c54ae27e  system.dtb
+8c54689ab21fe45c  rootfs.cpio.gz.u-boot
