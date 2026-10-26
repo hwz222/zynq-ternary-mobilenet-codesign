@@ -47,11 +47,18 @@ bench)
         x "FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'"
         x "./twn_bench 1000"
     fi
-    # part 3 of twn_bench again, with the buffer mapped as Device memory (what /dev/mem gives)
-    x "rmmod twn_fuse; insmod $(ko) map_device=1"
-    x "FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'"
-    x "./twn_bench 1000"
-    x "rmmod twn_fuse; insmod $(ko)" ;;
+    # part 3 of twn_bench again, with the buffer mapped as Device memory (what /dev/mem gives);
+    # behind the SMMU the buffer has no fixed physical address to map, and the driver refuses
+    if [ -e /sys/bus/platform/devices/a0000000.twn_fuse/iommu_group ]; then
+        x "readlink /sys/bus/platform/devices/a0000000.twn_fuse/iommu_group"
+        echo "  (behind the SMMU: map_device=1 is refused, the Device-mapping run is skipped)"
+        x "rmmod twn_fuse; insmod $(ko)"
+    else
+        x "rmmod twn_fuse; insmod $(ko) map_device=1"
+        x "FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -c 'final max|diff|=0'"
+        x "./twn_bench 1000"
+        x "rmmod twn_fuse; insmod $(ko)"
+    fi ;;
 irqcount)
     # one interrupt per backbone frame, none extra: the handler's count and the kernel's count
     # (/proc/interrupts, which also counts calls that returned IRQ_NONE) must both grow by 1000

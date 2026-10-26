@@ -1,4 +1,62 @@
 \clearpage
-\section*{如何重現}
-\addcontentsline{toc}{section}{如何重現}
-\todo{如何重現}
+\section{如何重現}
+
+指令都在 repo 根目錄執行：Vivado 與 PC 上的模擬在 Windows，PetaLinux、driver 與 app 的編譯在 WSL，連板子用 Git Bash 的 \code{plink} / \code{pscp}（\code{board/deploy.sh}）。每一步後面的括號是它產生的紀錄檔。
+
+\textbf{1. RTL 的 gate 與 bitstream（Windows）}
+
+\begin{cmdline}
+powershell -File rtl\fuse\sim\run_csr_irq.ps1      (S1: interrupt unit gate)
+powershell -File rtl\fuse\sim\run_hd_int.ps1       (S2: head integration gate)
+vivado\build.cmd                                    (S4: timing and utilization reports)
+\end{cmdline}
+
+\textbf{2. Linux 映像與開機檔（WSL）}
+
+\begin{cmdline}
+bash linux/build_linux.sh          # no BOARD_PW: the published default password, changed at first login
+bash board/make_boot.sh build/system_fuse_ternpose.bit build/BOOT.BIN
+python3 linux/driver/twn_fuse/test/binding_check.py <kernel-source> build/linux/sd/system.dtb   (S3)
+\end{cmdline}
+
+\textbf{3. app、測試程式與板上工具包（WSL）}
+
+\begin{cmdline}
+bash board/build_apps.sh                       # HAL=drv (default): build/arm-drv
+HAL=uio bash board/build_apps.sh               # the UIO apps, for boot D only
+make -C linux/driver/twn_fuse prepare all test # twn_fuse.ko (boot D), twn_errtest, twn_bench
+bash board/make_kit.sh                         # build/twn_board_kit.tar.gz
+\end{cmdline}
+
+\textbf{4. 開機組 D（v1.0.0 的開機檔，D1--D6）}
+
+把 v1.0.0 的五個開機檔放上 SD 卡開機，複製 \code{twn_fuse.ko}、兩版 app（改名為 \code{_uio}、\code{_drv}）、\code{ab_measure.sh}、\code{v11_check.sh} 與 \code{data/}、\code{golden/}（\code{syn/} 放合成 fixture），然後：
+
+\begin{cmdline}
+sh v11_check.sh ab          (D1)     sh v11_check.sh bench      (D2)
+sh v11_check.sh debugfs     (D3)     sh v11_check.sh synthetic  (D4)
+sh v11_check.sh boot        (D5)     sh v11_check.sh split      (D6)
+\end{cmdline}
+
+\textbf{5. 開機組 E（v1.1 映像，E1--E7）}
+
+\begin{cmdline}
+export BOARD_PW=twn-v1.1
+bash board/deploy.sh pin
+bash board/deploy.sh pushlinux build/BOOT.BIN build/linux/sd
+# on the board: tar xzf twn_board_kit.tar.gz && cd twn_board_kit
+sh v11_check.sh boot (E1)   sh board_check.sh (E2)   sh v11_check.sh bench (E3)
+sh v11_check.sh debugfs (E4)   sh v11_check.sh synthetic (E5)   sh v11_check.sh irqcount (E6)
+\end{cmdline}
+
+E7 是在序列埠（115200 baud）上做一次互動登入：先在密碼提示按 Ctrl-C，再輸入空密碼，最後設定新密碼。
+
+\textbf{6. 開機組 F（SMMU，F1--F2）}
+
+\begin{cmdline}
+sh linux/driver/twn_fuse/smmu_dtb.sh system.dtb system_smmu.dtb    # on the host, needs fdtput
+# copy system_smmu.dtb over system.dtb on the card (keep the original), reboot
+sh v11_check.sh smmu        (F1)
+\end{cmdline}
+
+\textbf{回退。}開始前先 \code{deploy.sh pin}（保存目前的 \code{BOOT.BIN}）；\code{pushlinux} 會把被換掉的檔案保存在卡上的 \code{previous_linux/}。板子開不起來時，可以在序列埠攔下 U-Boot，用 \code{fatload} 與 \code{fatwrite} 把保存的檔案寫回。

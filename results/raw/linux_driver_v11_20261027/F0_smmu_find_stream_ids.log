@@ -1,0 +1,22 @@
+== 2026-10-26 19:06 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 18a066f87cfbad8d  system.dtb 4889daa18dd6a320  (iommus 0xe80 0x1280 0x1680; boot.scr adds arm_smmu.disable_bypass=1)
+# cat /proc/cmdline
+earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw uio_pdrv_genirq.of_id=generic-uio arm_smmu.disable_bypass=1
+# dmesg | grep -E "arm-smmu fd800000.smmu: (Unexpected|	GFSR|Unhandled)" | head -12
+[   36.995236] arm-smmu fd800000.smmu: Unexpected global fault, this could be serious
+[   37.002813] arm-smmu fd800000.smmu: 	GFSR 0x80000002, GFSYNR0 0x00000000, GFSYNR1 0x000012c0, GFSYNR2 0x00000000
+[   37.013154] arm-smmu fd800000.smmu: Unexpected global fault, this could be serious
+[   37.020709] arm-smmu fd800000.smmu: 	GFSR 0x80000002, GFSYNR0 0x00000000, GFSYNR1 0x00001300, GFSYNR2 0x00000000
+[   37.034510] arm-smmu fd800000.smmu: Unexpected global fault, this could be serious
+[   37.042081] arm-smmu fd800000.smmu: 	GFSR 0x80000002, GFSYNR0 0x00000000, GFSYNR1 0x000012c0, GFSYNR2 0x00000000
+[   37.052387] arm-smmu fd800000.smmu: Unexpected global fault, this could be serious
+[   37.059943] arm-smmu fd800000.smmu: 	GFSR 0x80000002, GFSYNR0 0x00000000, GFSYNR1 0x00001740, GFSYNR2 0x00000000
+[   37.073292] arm-smmu fd800000.smmu: Unexpected global fault, this could be serious
+[   37.080864] arm-smmu fd800000.smmu: 	GFSR 0x80000002, GFSYNR0 0x00000000, GFSYNR1 0x000012c0, GFSYNR2 0x00000000
+[   37.091183] arm-smmu fd800000.smmu: Unexpected global fault, this could be serious
+[   37.098743] arm-smmu fd800000.smmu: 	GFSR 0x80000002, GFSYNR0 0x00000000, GFSYNR1 0x00001740, GFSYNR2 0x00000000
+# dmesg | grep -o "GFSYNR1 0x[0-9a-f]*" | sort | uniq -c
+      6 GFSYNR1 0x000012c0
+      1 GFSYNR1 0x00001300
+      3 GFSYNR1 0x00001740
+# dmesg | grep -o "cbfrsynra=0x[0-9a-f]*" | sort | uniq -c
+      1 cbfrsynra=0xe80

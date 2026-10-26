@@ -1,4 +1,80 @@
 \clearpage
 \section{SMMU：限制 PL 能碰的記憶體}
 \label{sec:smmu}
-\todo{SMMU：限制 PL 能碰的記憶體}
+
+\begin{oneline}
+driver 只檢查自己寫進暫存器的位址，PL 照著描述子去讀寫時，仍然碰得到整個 DDR。SMMU（ARM 的 IOMMU）在 PL 和 DDR 之間做位址轉換：device tree 打開它、登記加速器 HP 埠的 stream ID，DMA API 就把 buffer 放到一個 I/O 虛擬位址（IOVA），PL 只能存取映射過的那 8 MB。第一次打開沒有效果，原因是 PL 送出的是 Secure 交易；改成 Non-secure 之後才生效。
+\end{oneline}
+
+\begin{before}
+driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底位址落在 buffer 內（第一冊第 5 節）。PL 執行時用「基底加上描述子裡的偏移」去存取 DDR，描述子由 app 提供，PL 也可能因為 RTL 的錯誤而越界。沒有 SMMU 時，越界的存取不會被任何東西擋下。開機組 D 的測試：\code{dma_fault}（第 5 節）讓 PL 從 buffer 結尾之後讀輸入，結果「frame done」，沒有任何錯誤：
+
+\boardfile{D3_debugfs.log}{68-71}
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item \textbf{SMMU（MMU-500）}：替 PS 外的匯流排主控端（這裡是 PL 的 HP 埠）做位址轉換與權限檢查，概念和 CPU 的 MMU 相同。
+\item \textbf{stream ID}：每筆交易進 SMMU 時帶的來源編號。ZynqMP 的組成是「TBU 編號（bit 14:10）、埠的 master ID（bit 9:6）、AXI ID（bit 5:0）」。
+\item \textbf{device tree 的 \code{iommus}}：告訴 kernel 這個裝置用哪些 stream ID；kernel 就把裝置放進一個 IOMMU group、給它自己的轉換表。
+\item \textbf{DMA API 與 IOMMU}：driver 的程式完全不用改，\code{dma_alloc_coherent()} 在有 IOMMU 時自動配一段 IOVA、建好映射，回傳的 \code{dma_addr_t} 就是 IOVA。
+\item \textbf{AxPROT 與 TrustZone}：AXI 交易的 bit 1 標示 Secure 或 Non-secure；Linux 只設定 SMMU 的 Non-secure 那一側。
+\item \textbf{診斷參數 \code{arm_smmu.disable_bypass=1}}：沒登記的 stream ID 一律擋下並回報，用來找出真正的 stream ID。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\smmuGain
+\end{gain}
+
+\subsection{第一次：打開了，卻沒有效果}
+
+\code{smmu_dtb.sh} 在 \code{system.dtb} 的副本上做兩件事：打開 SMMU 節點，並在加速器節點寫入三個 stream ID：
+
+\snip[bash]{smmu_dtb}
+
+開機後 SMMU 正常啟動，加速器也被放進自己的 IOMMU group，buffer 位址變成 IOVA \code{0xff_ff80_0000}：
+
+\boardfile[（第一版 bitstream）]{first_bitstream/F1_smmu_guessed_ids.log}{11-20}
+
+但四張 fixture 全錯，而且越界讀取也沒有觸發任何 SMMU 錯誤。再用 \code{arm_smmu.disable_bypass=1} 開機（沒登記的 stream ID 應該被擋下並回報），結果一樣：fixture 全錯，kernel log 裡一條 SMMU 錯誤都沒有。兩個現象合起來的意思是：PL 的交易根本沒有經過 Linux 設定的那一套轉換。
+
+\textbf{原因：AXI master 送的是 Secure 交易。}加速器的 AXI master 把 AxPROT 接成常數 \code{3'b000}，bit 1 是 0，代表 Secure。SMMU 對 Secure 與 Non-secure 交易各有一套設定；Linux 跑在 Non-secure，只能設定 Non-secure 那一套。Secure 那一套不是 Linux 設定的；從板上的結果看，它直接放行、不轉換。所以 PL 拿 IOVA 當成實體位址去存取，讀寫到錯的地方。
+
+\snip[Verilog]{axi_rd_prot}
+
+修正是把 bit 1 設成 1（\code{3'b010}：Non-secure、非特權、資料存取）。\code{twn_axi_rd.v} 與 \code{twn_axi_wr.v} 是加速器所有 AXI master 共用的模組，改這兩行就涵蓋四個 HP 埠。
+
+\smmuSecondPart
+
+\subsection{原理}
+
+\textbf{SMMU 怎麼轉換。}SMMU 的結構和 CPU 的 MMU 很像：每個 IOMMU domain 有一套頁表，裝置發出的位址（IOVA）經頁表轉成實體位址，沒有映射的位址會產生 context fault。kernel 的 DMA API 在有 IOMMU 時，從裝置的 DMA mask 往下配 IOVA（這裡的 mask 是 40 bits，所以 IOVA 是 \code{0xff_ff80_0000}，緊貼在 $2^{40}$ 下面），再把 buffer 的實體頁映射上去。
+
+\textbf{stream ID 怎麼算。}ZynqMP 的 SMMU 有 6 個 TBU（轉換單元），各自負責幾個匯流排埠。PL 經 HP0 進來的交易走 TBU 3，HP1、HP2 走 TBU 4，HP3 走 TBU 5；PL 埠的 master ID 是 \code{1010}。AXI ID 由 RTL 決定，這個設計的 master 都送 0。所以 HP0 是 \code{(3 << 10) | (0b1010 << 6) = 0xe80}。
+
+\textbf{為什麼診斷時也看不到錯誤。}\code{disable_bypass} 只影響 Non-secure 那一套設定裡「沒有登記的 stream ID」。Secure 交易根本不走這一套，所以不會被擋，也不會被回報。這種「完全沒有反應」比錯誤訊息更難查：要從「測試的結果和預期的差異，連錯誤都沒有」反推出交易沒有進到被設定的路徑。
+
+\textbf{SMMU 能保護什麼、不能保護什麼。}它保證 PL 只能存取 driver 為它映射的頁，PL 的 RTL 錯誤或惡意的描述子都碰不到 kernel 和其他 process 的記憶體。它不檢查 buffer 內部的存取是否合理（例如輸出寫到權重區），那仍然要靠 driver 的 offset 檢查。
+
+\subsection{面試會問}
+
+\begin{qa}{你怎麼用 SMMU 隔離 FPGA 的 DMA？遇到什麼問題？}
+在 device tree 打開 SMMU，給加速器的節點寫 \code{iommus}，列出它 HP 埠的 stream ID；stream ID 是 TBU 編號、埠的 master ID 和 AXI ID 拼起來的。driver 不用改，DMA API 在有 IOMMU 時自動配 IOVA、建頁表，PL 只能存取那 8 MB。第一次打開時 fixture 全錯，而且連 \code{disable_bypass} 都看不到任何錯誤，表示交易根本沒進 Linux 設定的那套轉換。原因是我的 AXI master 把 AxPROT 接成 0，送的是 Secure 交易，而 Linux 只設定 SMMU 的 Non-secure 那一側。把 AxPROT[1] 改成 1 之後，越界讀取會變成 context fault。\smmuInterviewTail
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{smmu_dtb.sh} & \code{linux/driver/twn_fuse/} & 打開 SMMU、寫入 \code{iommus} \\
+\code{arprot}、\code{awprot} & \code{rtl/src/twn_axi_rd.v}:\lineof{axi_rd_prot}、\code{twn_axi_wr.v} & Non-secure 交易 \\
+\code{twn_fault_set()} & \code{twn_fuse.c}:\lineof{drv_fault_set} & 越界讀取的測試 \\
+\code{map_device} 的檢查 & \code{twn_fuse.c}:\lineof{drv_mmap} & 有 IOMMU 時拒絕 Device 映射 \\
+\bottomrule
+\end{tabularx}
+\end{center}

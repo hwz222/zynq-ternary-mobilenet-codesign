@@ -68,3 +68,13 @@ linux/build_linux.sh                             | at:# the kernel driver's reci
 linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx/twn-v11.cfg | at11:# v1.1 kernel options | kcfg
 linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx_%.bbappend | at5:FILESEXTRAPATHS | kbbappend
 git:7615324:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at10:    reserved-memory { | v10_dtsi_reserved
+
+# ---- 10. release ----
+linux/build_linux.sh                             | at:# root password: kept out of the repo | build_pw
+linux/project-spec/meta-user/recipes-core/board-config/files/twn-firstlogin.sh | at12:# Installed only | firstlogin
+linux/project-spec/meta-user/recipes-core/board-config/board-config.bb | at:# "1" in images built with | bc_install
+tools/make_synthetic_fixtures.py                 | at25:def images():                    | syn_images
+
+# ---- 8. SMMU ----
+linux/driver/twn_fuse/smmu_dtb.sh                | at:# Stream ID = TBU number             | smmu_dtb
+rtl/src/twn_axi_rd.v                             | at4:    assign arcache = 4'b0011;      | axi_rd_prot

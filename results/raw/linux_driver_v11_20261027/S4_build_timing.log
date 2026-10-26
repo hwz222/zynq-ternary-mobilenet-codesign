@@ -1,11 +1,14 @@
-== 2026-10-27 build of FUSE_TAG=v11irq with vivado/build.cmd (Vivado 2023.2), bitstream 8168c91ab4205501, XSA 853b2d89767d5163
-# console output of vivado/build.cmd, filtered: grep -E 'Post Placement Timing Summary|Physopt 32-619|Route 35-20|POSTROUTE|IMPL RESULT|VERDICT' | grep -v '^#' | awk '!seen[$0]++'  (the last phys_opt estimate before routing kept, the earlier ones dropped)
+== 2026-10-27 build of FUSE_TAG=v11 with vivado/build.cmd (Vivado 2023.2), bitstream 11b4d88f583b8e23, XSA 253ca13d2e977247
+# console output of vivado/build.cmd and of the implementation run (impl_1/runme.log), filtered: placement, the last phys_opt estimate before routing, routing, the strategy's post-route phys_opt, the recovery of build_bd_fuse.tcl, the result, the checks
   VERDICT: all 25 datapath instances are present in the netlist.
   CC_ROWS3 VERDICT: RB_C has 63 LUT (> 45, the depth-2 count) -- the define TOOK EFFECT
-INFO: [Place 30-746] Post Placement Timing Summary WNS=-0.295. For the most accurate timing information please run report_timing.
-INFO: [Physopt 32-619] Estimated Timing Summary | WNS=-0.016 | TNS=-2.891 |
-INFO: [Route 35-20] Post Routing Timing Summary | WNS=0.037  | TNS=0.000  | WHS=0.008  | THS=0.000  |
-POSTROUTE start: WNS 0.037 WHS 0.008
-IMPL RESULT (FUSE): WNS = 0.037 ns @ 240 MHz  (TIMING MET)
-T132 PBLOCK VERDICT: 18 RB_T1 block RAMs, columns X2:12 X3:6
-T132 PBLOCK VERDICT: 6 OUTSIDE X0..X2 -- the constraint DID NOT HOLD
+INFO: [Place 30-746] Post Placement Timing Summary WNS=-0.472. For the most accurate timing information please run report_timing.
+INFO: [Physopt 32-619] Estimated Timing Summary | WNS=-0.116 | TNS=-69.719 |
+INFO: [Route 35-20] Post Routing Timing Summary | WNS=-0.032 | TNS=-4.403 | WHS=0.008  | THS=0.000  |
+INFO: [Physopt 32-668] Current Timing Summary | WNS=-0.015 | TNS=-2.572 | WHS=0.008 | THS=0.000 |
+POSTROUTE start: WNS -0.015 WHS 0.008
+POSTROUTE phys_opt AggressiveExplore: WNS -0.006 WHS 0.008
+POSTROUTE phys_opt AlternateFlowWithRetiming: WNS 0.000 WHS 0.008
+IMPL RESULT (FUSE): WNS = 0.000 ns @ 240 MHz  (TIMING MET)
+T132 PBLOCK VERDICT: 18 RB_T1 block RAMs, columns X2:13 X3:4 X4:1
+T132 PBLOCK VERDICT: 5 OUTSIDE X0..X2 -- the constraint DID NOT HOLD

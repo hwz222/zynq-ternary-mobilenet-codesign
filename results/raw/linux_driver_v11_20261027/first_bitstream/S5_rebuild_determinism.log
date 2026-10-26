@@ -1,0 +1,9 @@
+== Same inputs, same intermediate results in Vivado 2023.2: the first v1.1 build (2026-10-27 01:06, FUSE_TAG=v11irq) and a rebuild of the same commit (2ca704b) in another directory (02:34)
+# first estimate of the post-placement phys_opt, first build (console output of vivado/build.cmd)
+INFO: [Physopt 32-619] Estimated Timing Summary | WNS=-0.622 | TNS=-443.497 |
+# the same, rebuild (impl_1/runme.log)
+INFO: [Physopt 32-619] Estimated Timing Summary | WNS=-0.622 | TNS=-443.497 |
+# synthesis reports of the two builds, compared without the date, host, command and version lines
+util_synth_fuse_v11irq.rpt: identical
+timing_synth_fuse_v11irq.rpt: identical
+(the rebuild was stopped during placement, once the build of the corrected RTL had met timing; the fallback it was for, an ECO that moves the six AxPROT[1] pins of the PS8 from ground to VCC on its routed design, was not needed and was not run)

@@ -1,66 +1,86 @@
 # twn_fuse: Linux platform driver for the accelerator
 
-A kernel driver that owns the accelerator's control registers and DDR buffer. It replaces the
-user-space access path of v1.0.0, which is kept and still works:
+A kernel driver that owns the accelerator's control registers and DDR buffer. From v1.1 the Linux
+image loads it at boot and is built around it; the user-space path of v1.0.0 (UIO + `/dev/mem`)
+works only with the v1.0.0 boot files.
 
 | | UIO path (v1.0.0, `sw/app/pl_hal_fuse.c`) | this driver (`sw/app/pl_hal_fuse_drv.c`) |
 |---|---|---|
 | control registers (64 KB at 0xA000_0000) | `/dev/uio4` mapped into the app | mapped only in the kernel (`devm_platform_ioremap_resource`) |
-| DDR buffer the PL reads and writes | 256 MB at a fixed physical address, `/dev/mem` | 8 MB from the DMA API (`dmam_alloc_coherent`), `mmap` of that buffer only |
+| DDR buffer the PL reads and writes | 256 MB reserved at a fixed physical address, `/dev/mem` | 8 MB from the DMA API (`dmam_alloc_coherent`), `mmap` of that buffer only |
 | addresses the app hands to the PL | physical | offsets into the buffer, range-checked by the driver |
 | register sequences (clear done, start, wait) | the app must get them right | inside one ioctl each |
-| completion | user-space poll, `exit(1)` after 3 s | `readl_poll_timeout`, `-ETIMEDOUT` after 3 s |
-| who may use it | any process with access to `/dev/mem` | one open file at a time (a second `open` returns `-EBUSY`; `fork`/`dup` share the open file) |
+| completion | user-space poll, `exit(1)` after 3 s | interrupt and completion (hardware 1.1), else `readl_poll_timeout`; `-ETIMEDOUT` after 3 s |
+| who may use it | any process with access to `/dev/mem` | one open file at a time (a second `open` returns `-EBUSY`) |
+| loading | `uio_pdrv_genirq` binds the node (`generic-uio`) | the v1.1 image loads `twn_fuse` at boot and the node says `wjhuang,twn-fuse-1.1` |
 
-There is no interrupt: the bitstream ties `pl_ps_irq0` to 0, so the driver polls the done bits.
-The DMA buffer is not isolated by an IOMMU (the SMMU is not used): the driver checks every base
-address it writes, but the PL itself can still reach any DDR address a descriptor points it to.
+## Versions of the hardware
+
+| compatible | bitstream | completion |
+|---|---|---|
+| `wjhuang,twn-fuse-1.1` | v1.1: a level-high interrupt (register IRQ, 0x0064) on `pl_ps_irq0` = GIC SPI 89; AXI masters issue Non-secure transactions, so the SMMU can translate them | interrupt |
+| `wjhuang,twn-fuse-1.0` | v1.0.0: no interrupt line | polling |
+
+The driver also falls back to polling when the node has no interrupt or `use_irq=0` is given.
+The device-tree binding is `wjhuang,twn-fuse.yaml` in this directory.
 
 ## Files
 
 | file | what it is |
 |---|---|
-| `twn_fuse.c` | the driver: probe, DMA buffer, `mmap`, nine ioctls, sysfs attributes |
+| `twn_fuse.c` | the driver: probe, DMA buffer, `mmap`, nine ioctls, interrupt handler, sysfs and debugfs |
 | `twn_fuse_ioctl.h` | the ioctl interface, shared with `sw/app/pl_hal_fuse_drv.c` |
-| `Kbuild`, `Makefile` | out-of-tree build against the PetaLinux kernel |
-| `bind.sh` | on the board: hand the device to `twn_fuse` or back to UIO without a reboot |
-| `patch_dtb.sh` | a copy of `system.dtb` whose accelerator node has `compatible = "wjhuang,twn-fuse-1.0"` |
+| `wjhuang,twn-fuse.yaml` | device-tree binding (dt-schema) |
+| `Kbuild`, `Makefile` | out-of-tree build against the PetaLinux kernel (the image builds it with `linux/project-spec/meta-user/recipes-modules/twn-fuse`) |
+| `bind.sh` | on the board: unload and load the module (with parameters), or hand the device to UIO on a v1.0.0 image |
+| `patch_dtb.sh` | v1.0.0 device tree: a copy whose node says `wjhuang,twn-fuse-1.0` |
+| `smmu_dtb.sh` | a copy of a device tree with the SMMU enabled and the accelerator's stream IDs |
 | `test/twn_errtest.c` | the driver's refusals: bad offsets, bad pointers, second open, the 3 s timeout (`timeout`), a mapping kept after close (`hold`) |
-| `test/board_check.sh` | the board check: fixtures on both paths, refusals, unload/reload, throughput; expects the apps renamed `mbv2_fuse_{test,pipe}_{uio,drv}` |
+| `test/twn_bench.c` | ioctl round trip, backbone frame time split (app / driver / PL cycles), CPU time, CPU access to the buffer |
+| `test/board_check.sh` | the board check: fixtures, refusals, unload/reload, throughput (UIO as well where the device tree still reserves its buffer) |
+| `test/v11_check.sh` | the checks of v1.1: `ab`, `bench`, `irqcount`, `split`, `debugfs`, `synthetic`, `boot`, `smmu` |
+| `test/ab_measure.sh` | four-arm throughput A/B (UIO, UIO elsewhere, driver with Device mapping, driver) |
+| `test/binding_check.py` | the parts of `dt_binding_check` that run without dtschema, and the node of a real `.dtb` |
 
 ## Build
 
-In WSL / Linux, with the PetaLinux project built by `linux/build_linux.sh` and its SDK installed:
+The v1.1 image builds and installs the module itself (`linux/build_linux.sh`). By hand, in WSL /
+Linux, with the PetaLinux project and its SDK:
 
     cd linux/driver/twn_fuse
     make prepare          # once: a private copy of the kernel build directory, made ready for modules
     make                  # twn_fuse.ko
-    make test             # test/twn_errtest
+    make test             # test/twn_errtest, test/twn_bench
     cd ../../..
-    HAL=drv bash board/build_apps.sh     # the apps on the driver backend, into build/arm-drv
+    bash board/build_apps.sh            # the apps on the driver backend, into build/arm-drv
+    bash board/make_kit.sh              # build/twn_board_kit.tar.gz: apps, tests, weights, fixtures
 
 Variables: `PLNX_ROOT` (default `$HOME/petalinux`), `PLNX_PROJ`, `SDK_DIR`, `KOUT` (default
-`$HOME/twn_kbuild`). The module loads only on the kernel of the same PetaLinux build: compare
-`modinfo twn_fuse.ko | grep vermagic` with `uname -r` on the board.
+`$HOME/twn_kbuild`). A module loads only on the kernel of the same PetaLinux build.
 
 ## Use on the board
 
-With the release `system.dtb` (the node says `generic-uio`), switch at run time:
+On the v1.1 image nothing has to be done: the driver is loaded at boot and `/dev/twn_fuse` exists.
+`sh bind.sh drv <path-of-twn_fuse.ko> <param>=<value>` reloads it with module parameters.
 
-    sh bind.sh drv ./twn_fuse.ko     # a0000000.twn_fuse -> twn_fuse, /dev/twn_fuse appears
-    sh bind.sh uio                   # back to /dev/uio4 (fails while an app has the driver open)
+Module parameters:
 
-To have the device matched by the driver itself, boot a patched device tree:
+| parameter | default | what it does |
+|---|---|---|
+| `arena_mb` | 8 | size of the DMA buffer in MB (the pose app needs 6 MB, `FUSE_ARENA_NEED` in `sw/app/mbv2_fuse_ps.c`) |
+| `use_irq` | 1 | 0: poll even when the device tree gives an interrupt |
+| `map_device` | 0 | 1: map the buffer to user space as Device memory, like `/dev/mem` (A/B measurement only; refused behind an IOMMU) |
 
-    sh patch_dtb.sh system.dtb system_twn_fuse.dtb      # on the host (needs fdtput)
+debugfs, under `/sys/kernel/debug/twn_fuse/` (root only, not a stable interface): `regs` (the debug
+registers by name), `nblk` (run only the first n blocks, 1..17), `irq_count` (interrupts handled),
+`dma_fault` (write 1: one frame that reads its input from the first byte after the buffer, a test
+of the SMMU; the output is meaningless).
 
-Keep the original on the card and copy the patched one over `system.dtb`; after the reboot,
-`insmod twn_fuse.ko` binds the device with no `driver_override`. The module is not in the root file
-system image, so it is loaded by hand after every boot. To go back, copy the original over
-`system.dtb` and reboot.
+sysfs, under `/sys/bus/platform/devices/a0000000.twn_fuse/`: `cycles_total`, `cycles_array`,
+`cycles_dw`, `cycles_stall`, `cycles_idle_pre`, `cycles_idle_post`, `status`, `nblk`.
 
-Module parameter: `arena_mb` (default 8), the size of the DMA buffer. The pose app needs 6 MB
-(`FUSE_ARENA_NEED` in `sw/app/mbv2_fuse_ps.c`).
+On a v1.0.0 image: `sh bind.sh drv ./twn_fuse.ko` takes the device from UIO and `sh bind.sh uio`
+gives it back; or boot a device tree made with `patch_dtb.sh`.
 
 ## Interface
 
@@ -79,24 +99,22 @@ Module parameter: `arena_mb` (default 8), the size of the DMA buffer. The pose a
 `mmap(fd, size, offset 0)` maps the DMA buffer (`size` up to the buffer size). Every offset must be
 16-byte aligned and inside the buffer.
 
-sysfs, under `/sys/bus/platform/devices/a0000000.twn_fuse/`: `cycles_total`, `cycles_array`,
-`cycles_dw`, `cycles_stall`, `cycles_idle_pre`, `cycles_idle_post`, `status`, `nblk`.
-
 ## Verified
 
-On the board, same bitstream, under both device trees: the four fixtures bit-exact on both paths
-with the head in the PL and on the processor; 14/14 checks of `twn_errtest` as expected (12 refusals,
-2 successes), the 3 s timeout returning after 3.01 s; rmmod refused while the device is open and
-while only a mapping is left; five unload/reload cycles; pipeline throughput for both paths (the
-driver path is not slower; the difference, 0.8 % and 1.0 % on the two boots, is not attributed).
-Under the original device tree also: ten reloads with a 64 MB buffer (640 MB in all, CMA is 256 MB).
-Numbers: `results/board_results.json`, entry `linux_driver_twn_fuse_20261026`; logs:
-`results/raw/linux_driver_20261026/`.
+v1.0 (polling, first handout): `results/board_results.json`, entry `linux_driver_twn_fuse_20261026`;
+logs in `results/raw/linux_driver_20261026/`.
 
-Limits: the kernel has `CONFIG_STRICT_DEVMEM` off, so a root process can still map the registers
-through `/dev/mem`; without an SMMU the driver checks the addresses it writes, not where the PL's
-descriptors send it; the driver does not claim the PL clock (`clocks = <&zynqmp_clk 71>`) and relies
-on the `clk_ignore_unused` boot argument.
+v1.1: `results/board_results.json`, entry `linux_driver_twn_fuse_v11_20261027`; logs in
+`results/raw/linux_driver_v11_20261027/` (README there). In short, on the v1.1 image: the driver
+bound at boot with the interrupt; four MPII and four synthetic fixtures bit-exact with the head in
+the PL and on the processor; the board check (refusals, 3 s timeout, unload/reload, throughput)
+passes; one interrupt per frame and none extra; CPU time per backbone frame <TBD-IRQ> us with the
+interrupt and <TBD-POLL> us polling; `/dev/mem` refused for DDR and for the registers; the 256 MB
+reservation returned to the kernel; with the SMMU <TBD-SMMU>.
+
+Limits: `dt_binding_check` and sparse (`make C=1`) were not run (they need dtschema and sparse
+installed); the driver does not claim the PL clock (`clocks = <&zynqmp_clk 71>`) and relies on
+the `clk_ignore_unused` boot argument.
 
 ## License
 
@@ -104,5 +122,6 @@ on the `clk_ignore_unused` boot argument.
 is MIT so that Apache-2.0 user-space code can include it. The rest of this directory follows the
 repository's Apache-2.0 license.
 
-A study handout in Traditional Chinese that explains each technique with this code is in
-[`docs/zh-TW/driver-handout/`](../../../docs/zh-TW/driver-handout/).
+Study handouts in Traditional Chinese that explain each technique with this code:
+[`docs/zh-TW/driver-handout/`](../../../docs/zh-TW/driver-handout/) (v1.0) and
+[`docs/zh-TW/driver-handout-2/`](../../../docs/zh-TW/driver-handout-2/) (v1.1).

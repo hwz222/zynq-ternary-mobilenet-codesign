@@ -7,9 +7,21 @@
  *
  * Until v1.0.0 this node said compatible = "generic-uio" and a 256 MB no-map region at
  * 0x6000_0000 was reserved for /dev/mem. The driver allocates its own 8 MB from CMA, so the
- * reservation is gone and those 256 MB are ordinary memory again. */
+ * reservation is gone and those 256 MB are ordinary memory again.
+ *
+ * The SMMU translates the accelerator's DMA, so the PL reaches only the pages the driver maps
+ * for it. The stream IDs (TBU [14:10] | master ID [9:6] | AXI ID [5:0]) of the four HP ports
+ * were read on the board with arm_smmu.disable_bypass=1 (linux/driver/twn_fuse/smmu_dtb.sh):
+ * HP0 0x0e80, HP1 0x12c0, HP2 0x1300, HP3 0x1740. Enabling the SMMU also puts the PS's own DMA
+ * masters that zynqmp.dtsi lists (Ethernet, SD, USB, DMA engines, DisplayPort) behind it.
+ * To run without it, delete the &smmu block and the iommus line. */
 &fuse_0 {
     compatible = "wjhuang,twn-fuse-1.1";
+    status = "okay";
+    iommus = <&smmu 0xe80>, <&smmu 0x12c0>, <&smmu 0x1300>, <&smmu 0x1740>;
+};
+
+&smmu {
     status = "okay";
 };
 

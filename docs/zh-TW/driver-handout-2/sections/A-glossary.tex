@@ -1,4 +1,55 @@
 \clearpage
-\section*{名詞表}
-\addcontentsline{toc}{section}{名詞表}
-\todo{名詞表}
+\section{名詞表}
+
+這一冊新出現的名詞，依英文字母排序（不分大小寫）。「節」是第一次詳細說明的地方，「導」是導讀。第一冊已經解釋過的名詞（例如 probe、ioremap、CMA、completion、mmap、ioctl）請看第一冊的附錄 A。
+
+\small
+\begin{xltabular}{\textwidth}{l X c}
+\toprule
+名詞 & 一句話說明 & 節 \\
+\midrule
+\endhead
+A/B 實驗 & 兩組設定只差一件事，用來確定是哪一件事造成差異 & 1 \\
+ABI & 給使用者程式的介面約定；改了就會讓舊程式壞掉 & 5 \\
+AxPROT & AXI 交易附帶的 3 個保護位元；bit 1 是 0 表示 Secure、1 表示 Non-secure & 8 \\
+binding & device tree 節點的規格檔，寫明可以有哪些屬性 & 9 \\
+bypass & SMMU 對沒有登記的 stream ID 不做轉換、直接放行 & 8 \\
+context bank & SMMU 裡的一組轉換設定，對應一個 IOMMU domain & 8 \\
+context fault & 交易在 SMMU 轉換時找不到對應的頁，被擋下並回報 & 8 \\
+debugfs & 只給開發者用的 kernel 檔案系統，掛在 \code{/sys/kernel/debug} & 5 \\
+Device-nGnRnE & ARM 的裝置記憶體屬性：不合併、不重排、寫入要等終點回應 & 1 \\
+dt-schema & 用 JSON Schema 寫 device tree binding 的格式與檢查工具 & 9 \\
+ECO & engineering change order，在已經 route 好的設計上只改一小部分 & 8 \\
+EOI & end of interrupt，ISR 結束時通知中斷控制器 & 3 \\
+GIC & Generic Interrupt Controller，ARM 的中斷控制器 & 3 \\
+hrtimer & kernel 的高精度計時器，\code{usleep_range} 靠它叫醒 & 2 \\
+initramfs & 開機時整個載入記憶體的 root file system，重開機就回到原樣 & 10 \\
+interrupt storm & level 中斷的來源沒清掉，ISR 被一直重複呼叫 & 3 \\
+IOMMU & 替裝置做位址轉換與存取檢查的硬體；ARM 上叫 SMMU & 8 \\
+IOVA & I/O 虛擬位址：經過 SMMU 時，裝置看到的位址 & 8 \\
+IP-XACT 介面 & Vivado 封裝 IP 時，把一組 port 宣告成某種標準介面（例如 interrupt） & 3 \\
+ISR & interrupt service routine，中斷處理函式 & 3 \\
+level / edge & 中斷的兩種觸發方式：線保持高電位的期間都算／只在變化的瞬間算一次 & 3 \\
+modalias & 裝置的識別字串，udev 用它找出該載入哪個 module & 6 \\
+module parameter & 載入 module 時可以給的參數，例如 \code{use_irq=0} & 1 \\
+Normal non-cacheable & ARM 的一般記憶體屬性，不經過 cache，但寫入可以合併 & 1 \\
+pblock & Vivado 的位置限制：把某些邏輯放在晶片的某一塊區域 & 4 \\
+phys\_opt\_design & Vivado 在 placement 或 route 之後，針對 timing 做的局部最佳化 & 4 \\
+\code{pl_ps_irq0} & PL 送到 PS 的中斷輸入，第 0 條對應 GIC 的 SPI 89 & 3 \\
+posted write & 寫入送出後 CPU 就繼續執行，不等寫入真正到達 & 3 \\
+recipe & Yocto 的建置描述檔（\code{.bb}），說明一個套件怎麼取得、編譯、安裝 & 6 \\
+Secure / Non-secure & ARM TrustZone 的兩個世界；Linux 跑在 Non-secure & 8 \\
+slack & 一條路徑還剩多少時間餘裕；負的表示來不及 & 4 \\
+SMMU & System MMU，ARM 的 IOMMU；ZynqMP 用的是 MMU-500 & 8 \\
+sparse & kernel 專用的靜態分析工具，用 \code{make C=1} 執行 & 9 \\
+SPI（中斷） & Shared Peripheral Interrupt，所有 CPU 共用的外部中斷；GIC 編號是 SPI 編號加 32 & 3 \\
+stream ID & 每筆交易進 SMMU 時帶的來源編號，SMMU 用它決定用哪一組轉換 & 8 \\
+\code{STRICT_DEVMEM} & kernel 選項：\code{/dev/mem} 不能存取系統記憶體 & 7 \\
+TBU & SMMU 的轉換單元，ZynqMP 有 6 個，各自負責一組匯流排埠 & 8 \\
+TrustZone & ARM 把系統分成 Secure 與 Non-secure 兩個世界的硬體機制 & 8 \\
+WHS & worst hold slack，hold 檢查最差的那條路徑的餘裕 & 4 \\
+write gathering & 把連續的小寫入在 CPU 內合併成一筆大寫入 & 1 \\
+Yocto & PetaLinux 底下用來建置整個 Linux 映像的系統 & 6 \\
+\bottomrule
+\end{xltabular}
+\normalsize

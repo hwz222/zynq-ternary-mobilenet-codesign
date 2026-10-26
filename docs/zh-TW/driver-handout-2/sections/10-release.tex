@@ -1,4 +1,84 @@
 \clearpage
 \section{發佈 v1.1}
 \label{sec:release}
-\todo{發佈 v1.1}
+
+\begin{oneline}
+v1.1 的發佈檔可以直接開機使用：除了開機檔，還附上 root file system（公開的預設密碼 \code{twn-v1.1}，第一次互動登入時強制改掉）、四張不含人物的合成 fixture，以及一個板上工具包。拿到板子的人不需要 PetaLinux、不需要交叉編譯器，也不需要 MPII 資料集，就能驗證加速器。
+\end{oneline}
+
+\begin{before}[原本怎麼做（v1.0.0 的發佈）]
+v1.0.0 沒有附 root file system，因為建好的映像裡有板子的 root 密碼雜湊（\code{/etc/shadow}）；也沒有附 fixture，因為四張 fixture 都是 MPII 的人物照片，不能再散布。想在板子上驗證，得自己用 PetaLinux 建 rootfs、自己下載 MPII 重新產生 fixture、自己用 SDK 交叉編譯 app。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item \textbf{公開的預設密碼}：\code{build_linux.sh} 沒有給 \code{BOARD_PW} 時，用 \code{twn-v1.1}，雜湊用 \code{openssl passwd -6}（SHA-512 crypt）算好，經 Yocto 的 \code{EXTRA_USERS_PARAMS} 寫進映像。
+\item \textbf{首次登入強制改密碼}：\code{/etc/profile.d/} 的腳本在互動式 root 登入時執行 \code{passwd}，改成功前不給 shell，並忽略 Ctrl-C、Ctrl-\textbackslash{}、Ctrl-Z。
+\item \textbf{合成 fixture}：用公式畫出四張圖（漸層、棋盤加圓、條紋、平滑雜訊），標準答案由與加速器逐位元相同的整數參考模型算出。
+\item \textbf{板上工具包}（\code{board/make_kit.sh}）：driver 版的 app、測試程式、權重、合成 fixture 打成一個 tar 檔，附 \code{SHA256SUMS}。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item 開機即用：把開機檔放上 SD 卡、開機、改密碼、解開工具包，\code{sh board_check.sh} 就能得到 \code{BOARD CHECK: PASS}（第 3 節的板上檢查就是用這個工具包跑的）。
+\item 發佈檔裡沒有個人資料：映像只有公開預設密碼的雜湊；fixture 不含任何人物。
+\item 預設密碼不會被留著用：第一次互動登入一定要改，改之前按 Ctrl-C 也跳不過。
+\end{itemize}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{密碼寫進映像的方式。}密碼本身不進 repo，只把雜湊寫進 PetaLinux 專案自己的設定檔：
+
+\snip[bash]{build_pw}
+
+\code{TWN_FORCE_PW_CHANGE} 決定要不要裝首次登入的腳本：
+
+\snip[{}]{bc_install}
+
+\textbf{首次登入的腳本。}
+
+\snip[bash]{firstlogin}
+
+\code{[ -t 0 ]} 表示標準輸入是終端機，也就是有人在互動登入；\code{ssh} 直接帶指令執行的情況不是互動登入，不會被攔下（但仍然要密碼才能登入）。\code{trap '' INT QUIT TSTP} 讓 shell 忽略這三個訊號；被忽略的訊號在 \code{exec} 之後仍然被忽略，所以 \code{passwd} 也收不到 Ctrl-C。
+
+\textbf{板上：序列埠上的第一次登入（開機組 E）。}在密碼提示時先按 Ctrl-C，再輸入空密碼，最後才設新密碼：
+
+\boardfile{E7_first_login.log}{1-30}
+
+\textbf{合成 fixture。}四張圖完全由公式產生：
+
+\snip[Python]{syn_images}
+
+腳本若找得到 MPII 的 fixture，會先用同一個參考模型重算它，要求結果和既有的標準答案完全相同，確認這個參考模型就是板子拿來比對的那一個，再產生合成的標準答案。四張合成 fixture 在兩種開機組、兩種 head 位置都逐位元相同（開機組 D 的 \code{D4_synthetic.log}，開機組 E 的 \code{E5_synthetic.log}）。
+
+\subsection{原理}
+
+\textbf{為什麼映像裡不能放真正的密碼。}\code{/etc/shadow} 存的是雜湊，但雜湊可以離線暴力破解；而且同一份映像會被很多人使用，等於大家共用一組密碼。公開預設密碼加上強制修改，是嵌入式產品常見的做法：密碼本來就是公開的，安全性來自「第一次用的人一定會改掉」。
+
+\textbf{initramfs 的副作用。}這個映像的 root file system 是開機時載入記憶體的 initramfs，改的密碼只存在記憶體裡，重開機就回到預設密碼，下一次互動登入又會被要求修改。要保存，得把 root file system 放到 SD 卡的分割區上；這次沒有做。
+
+\textbf{為什麼合成圖也能當驗證。}驗證的目標是「PL 的計算和參考模型逐位元相同」，不是「姿態估得準不準」。任何輸入都會走過全部 65 個 operator，只要每個 operator 的輸出逐位元相同，用什麼圖都可以。四張圖分別有平滑區、尖銳邊緣、週期圖樣和雜訊，讓數值範圍盡量分散。
+
+\subsection{面試會問}
+
+\begin{qa}{你的發佈映像怎麼處理 root 密碼？}
+我不在映像裡放任何真正的密碼。建置腳本沒有給密碼時，用公開的預設密碼，雜湊用 \code{openssl passwd -6} 算好、經 Yocto 的 \code{EXTRA_USERS_PARAMS} 寫進去，同時裝一個 \code{profile.d} 腳本：互動式 root 登入時，\code{passwd} 成功之前不給 shell，而且忽略 Ctrl-C、Ctrl-\textbackslash{}、Ctrl-Z。我在序列埠上實際試過：按 Ctrl-C 跳不過，空密碼被拒絕，改完才拿到 shell。限制是 rootfs 是 initramfs，重開機會回到預設密碼，下次登入再被要求改一次。測試輸入也換成公式產生的合成圖，所以整個發佈檔沒有個人資料。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+預設密碼 & \code{linux/build_linux.sh}:\lineof{build_pw} & 沒給 \code{BOARD_PW} 時寫入預設密碼的雜湊 \\
+\code{twn-firstlogin.sh} & \code{linux/project-spec/meta-user/recipes-core/board-config/files/} & 首次登入強制改密碼 \\
+\code{images()} & \code{tools/make_synthetic_fixtures.py}:\lineof{syn_images} & 四張合成圖 \\
+\code{make_kit.sh} & \code{board/} & 打包板上工具包 \\
+\bottomrule
+\end{tabularx}
+\end{center}

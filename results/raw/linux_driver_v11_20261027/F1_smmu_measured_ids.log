@@ -1,0 +1,54 @@
+== 2026-10-26 19:07 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 18a066f87cfbad8d  system.dtb 1c39e2e7a20bd5a1  twn_fuse.ko 3d1bbe778a4a9d4b
+# dmesg | grep -i -E 'arm-smmu|iommu' | head -8
+[    0.866538] iommu: Default domain type: Translated 
+[    0.870911] iommu: DMA domain TLB invalidation policy: strict mode 
+[    1.283045] arm-smmu fd800000.smmu: probing hardware configuration...
+[    1.288913] arm-smmu fd800000.smmu: SMMUv2 with:
+[    1.293517] arm-smmu fd800000.smmu: 	stage 1 translation
+[    1.298822] arm-smmu fd800000.smmu: 	stage 2 translation
+[    1.304129] arm-smmu fd800000.smmu: 	nested translation
+[    1.309353] arm-smmu fd800000.smmu: 	stream matching with 48 register groups
+# ls /sys/kernel/iommu_groups/*/devices/ | grep -B1 twn_fuse
+/sys/kernel/iommu_groups/15/devices/:
+a0000000.twn_fuse
+# dmesg | grep 'twn_fuse a0000000' | tail -1
+[   36.494969] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000ffff800000 + 8192 KB: frame done, STATUS 00010043
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.41 ms  head 5.11 ms  frame 9.52 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.49 ms  frame 8.75 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.30 ms  head 4.57 ms  frame 8.87 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.54 ms  frame 8.79 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.49 ms  head 12.00 ms  frame 16.49 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.41 ms  head 9.87 ms  frame 14.27 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.36 ms  head 10.02 ms  frame 14.39 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.06 ms  frame 14.43 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 515.2 ms = 4.29 ms/frame = 232.94 fps ===
+# echo 1 > /sys/kernel/debug/twn_fuse/dma_fault; echo exit $?
+exit 0
+# dmesg | grep -i -E 'arm-smmu|context fault|dma_fault' | tail -6
+[    1.335798] arm-smmu fd800000.smmu: 	Stage-2: 48-bit IPA -> 48-bit PA
+[    1.342443] arm-smmu fd800000.smmu: 	preserved 0 boot mappings
+[   36.481643] arm-smmu fd800000.smmu: Unhandled context fault: fsr=0x402, iova=0x00000000, fsynr=0x80000, cbfrsynra=0xe80, cb=15
+[   36.494969] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000ffff800000 + 8192 KB: frame done, STATUS 00010043
+[   65.566206] arm-smmu fd800000.smmu: Unhandled context fault: fsr=0x402, iova=0x00000000, fsynr=0x80000, cbfrsynra=0xe80, cb=15
+[   65.577735] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000ffff800000 + 8192 KB: frame done, STATUS 00010043
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.41 ms  head 5.02 ms  frame 9.43 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.47 ms  frame 8.72 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.53 ms  frame 8.78 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.53 ms  frame 8.78 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.51 ms  head 11.79 ms  frame 16.29 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 10.05 ms  frame 14.44 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 10.03 ms  frame 14.42 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 10.03 ms  frame 14.42 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# cat /proc/cmdline
+earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw uio_pdrv_genirq.of_id=generic-uio arm_smmu.disable_bypass=1
+# dmesg | grep -c "global fault"
+0
