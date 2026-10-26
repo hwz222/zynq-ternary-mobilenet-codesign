@@ -12,7 +12,7 @@ The first letter of a file name is where it was taken:
 |---|---|---|
 | S | PC (Vivado 2023.2, WSL) | simulation gates, the binding check, the bitstream build |
 | D | v1.0.0 boot files (BOOT.BIN `690d87cc5f4b6897`, system.dtb `18fff66fcfb7798b`): UIO and `/dev/mem` available, no interrupt line; the v1.1 driver loaded by hand (`twn_fuse.ko` `5f77eacd80e62272`), polling | the four-arm A/B, ioctl cost, debugfs, synthetic fixtures, the boot state before v1.1, pipeline stage times |
-| E | the v1.1 release image (BOOT.BIN `5d226057efc8760b` with bitstream `11b4d88f583b8e23`, system.dtb `bc4255b1c54ae27e` with the SMMU on, Image `0110440877a3738d`, rootfs `8c54689ab21fe45c`), checked with the board kit `8440be649b2228b6` | everything on the image users get |
+| E | the v1.1 release image (BOOT.BIN `5d226057efc8760b` with bitstream `11b4d88f583b8e23`, system.dtb `bc4255b1c54ae27e` with the SMMU on, Image `0110440877a3738d`, rootfs `8c54689ab21fe45c`), checked with the board kit `8440be649b2228b6` (E0-E8) and the release kit `97cc94ee729e5f78` (E9) | everything on the image users get |
 | F | the final bitstream (BOOT.BIN `18a066f87cfbad8d`) with the first v1.1 kernel and root file system, the SMMU enabled in system.dtb, `arm_smmu.disable_bypass=1` on the command line | finding the SMMU stream IDs |
 | G | boot E with `system_nosmmu.dtb` (`6ceadb90b64b6a98`) | the same checks with the SMMU off, for comparison |
 
@@ -39,6 +39,7 @@ The first letter of a file name is where it was taken:
 | `E7_first_login.log` | first interactive login on the serial console: Ctrl-C ignored, empty and mismatched passwords refused, then the forced change |
 | `E8_smmu.log` | the SMMU check on the release image: fixtures, 233.40 fps, context fault on the out-of-buffer read |
 | `board_hashes_E.txt` | the files on the board for boot E |
+| `E9_release_kit.log` | the release board kit (`97cc94ee729e5f78`: the same files with the binaries stripped of debug information, which held build paths) on boot E: hashes OK, no debug information left, board check PASS, synthetic fixtures bit-exact |
 | `F0_smmu_find_stream_ids.log` | with the guessed IDs: the SMMU reports the unlisted 0x12c0, 0x1300, 0x1740 |
 | `F1_smmu_measured_ids.log` | with the measured IDs: no global fault, fixtures bit-exact |
 | `G1_boot_state.log` ... `G4_debugfs.log` | the SMMU off: 232.67 / 232.35 / 231.49 fps, CPU 10.8 us per frame, `dma_fault` unnoticed |

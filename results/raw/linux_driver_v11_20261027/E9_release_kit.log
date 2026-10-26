@@ -1,0 +1,81 @@
+== 2026-10-26 19:52 UTC  kit 97cc94ee729e5f78  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e
+# sha256sum -c SHA256SUMS
+./README.txt: OK
+./bind.sh: OK
+./board_check.sh: OK
+./data/fuse_weights.bin: OK
+./data/model_mbv2.bin: OK
+./data/model_mbv2_packed.bin: OK
+./golden/fix_0.bin: OK
+./golden/fix_1.bin: OK
+./golden/fix_2.bin: OK
+./golden/fix_3.bin: OK
+./mbv2_fuse_pipe_drv: OK
+./mbv2_fuse_test_drv: OK
+./twn_bench: OK
+./twn_errtest: OK
+./v11_check.sh: OK
+# file mbv2_fuse_test_drv twn_bench (stripped)
+mbv2_fuse_test_drv: 0 .debug_info sections
+mbv2_fuse_pipe_drv: 0 .debug_info sections
+twn_bench: 0 .debug_info sections
+twn_errtest: 0 .debug_info sections
+== 2026-10-26 19:52 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  twn_fuse.ko 3d1bbe778a4a9d4b  backends: drv
+== 1. fixtures, both backends
+a0000000.twn_fuse -> twn_fuse
+  mbv2_fuse_test_drv FUSE_HEAD_PL=1: 4/4 fixtures bit-exact
+  mbv2_fuse_test_drv FUSE_HEAD_PL=0: 4/4 fixtures bit-exact
+== 2. refusals and timeout
+PASS second open of the device (one owner at a time)      -> Device or resource busy
+PASS STATUS                                               -> ok
+     arena 8388608 bytes, CTRL 00000000 STATUS 00010043
+PASS mmap the whole buffer                                -> ok
+PASS mmap one page more than the buffer                   -> Invalid argument
+PASS mmap at a non-zero offset                            -> Invalid argument
+PASS SET_BASES, weights at the end of the buffer          -> Invalid argument
+PASS SET_BASES, offset not 16-byte aligned                -> Invalid argument
+PASS BB_RUN, input offset 1 TB                            -> Invalid argument
+PASS HD_COMMIT, output runs one beat past the end         -> Invalid argument
+PASS STATUS into an unmapped pointer                      -> Bad address
+PASS SET_TABLE whose words pointer is unmapped            -> Bad address
+PASS an ioctl number the driver does not know             -> Inappropriate ioctl for device
+PASS SET_TABLE that the PL's check refuses                -> Invalid argument
+PASS BB_RUN with no valid table                           -> Connection timed out
+     returned after 3.05 s
+PASS: 0 check(s) failed
+[   34.923318] twn_fuse a0000000.twn_fuse: descriptor table refused: error 1 at block 0
+[   37.972128] twn_fuse a0000000.twn_fuse: frame timed out: CTRL 00000000 STATUS 000100c2
+  mbv2_fuse_test_drv FUSE_HEAD_PL=1: 4/4 fixtures bit-exact
+  mbv2_fuse_test_drv FUSE_HEAD_PL=0: 4/4 fixtures bit-exact
+== 3. unload while open, while only mapped, then five unload/reload cycles
+  rmmod while open: refused (rmmod: ERROR: Module twn_fuse is in use)
+  rmmod while only mapped: refused (rmmod: ERROR: Module twn_fuse is in use)
+  cycle 1: 4/4 fixtures bit-exact
+  cycle 2: 4/4 fixtures bit-exact
+  cycle 3: 4/4 fixtures bit-exact
+  cycle 4: 4/4 fixtures bit-exact
+  cycle 5: 4/4 fixtures bit-exact
+== 4. pipeline throughput (120 frames, FUSE_BB2HD=1)
+  drv run 1: === fused cross-frame pipeline: 120 frames in 518.8 ms = 4.32 ms/frame = 231.30 fps ===
+  drv run 2: === fused cross-frame pipeline: 120 frames in 516.7 ms = 4.31 ms/frame = 232.24 fps ===
+  drv run 3: === fused cross-frame pipeline: 120 frames in 515.7 ms = 4.30 ms/frame = 232.69 fps ===
+BOARD CHECK: PASS
+== 2026-10-26 19:52 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko 3d1bbe778a4a9d4b
+# sha256sum syn/golden/fix_*.bin | cut -c1-16,65-
+d5422a581bb99212  syn/golden/fix_0.bin
+25a8c00010eb60dc  syn/golden/fix_1.bin
+33ef1f95d20dd3d9  syn/golden/fix_2.bin
+ef021de9fcb72324  syn/golden/fix_3.bin
+  (no reserved buffer in this device tree: the UIO backend cannot run)
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.40 ms  head 5.12 ms  frame 9.52 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.56 ms  frame 8.81 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.50 ms  frame 8.76 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.24 ms  head 4.53 ms  frame 8.78 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.51 ms  head 12.21 ms  frame 16.72 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 10.33 ms  frame 14.72 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 9.92 ms  frame 14.31 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 10.23 ms  frame 14.61 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==

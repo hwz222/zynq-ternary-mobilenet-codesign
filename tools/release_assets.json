@@ -69,8 +69,8 @@
     },
     {
       "name": "twn_board_kit.tar.gz",
-      "sha256": "8440be649b2228b68c907407ec2f970cbbda5baed156973c524a923f6b1ed3a8",
-      "size": 3410511,
+      "sha256": "97cc94ee729e5f78863919cce5c9cc75a040eba82f7b829b1e3b4ae8937efe48",
+      "size": 3090817,
       "dest": "artifacts/kit/twn_board_kit.tar.gz",
       "group": "kit",
       "what": "board kit (board/make_kit.sh): apps on the kernel driver, twn_bench, twn_errtest, board scripts, weights and the synthetic fixtures; on the board: sh board_check.sh"

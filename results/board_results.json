@@ -1048,7 +1048,7 @@
     "current": true,
     "date": "2026-10-27",
     "ruler": "the board kit of the v1.1 release (board/make_kit.sh) on the v1.1 image: board_check.sh (mbv2_fuse_test, the 4 synthetic fixtures and, separately, the 4 MPII fixtures of deploy_probe_tern_dc32_20261012, FUSE_HEAD_PL=1 and 0; twn_errtest timeout; rmmod while open and while mapped; five unload/reload cycles; mbv2_fuse_pipe 120 frames, FUSE_BB2HD=1, FUSE_HEAD_PL=1, three runs), test/v11_check.sh (boot, bench, debugfs, synthetic, irqcount, smmu); one job per boot, not polled; board clock 240 MHz",
-    "build": "v1.1 image: BOOT.BIN 5d226057efc8760b (bitstream 11b4d88f583b8e23, XSA 253ca13d2e977247), Image 0110440877a3738d, system.dtb bc4255b1c54ae27e (SMMU on), system_nosmmu.dtb 6ceadb90b64b6a98, rootfs.cpio.gz.u-boot 8c54689ab21fe45c, boot.scr ea53e9648a37f16f, twn_fuse.ko 3d1bbe778a4a9d4b (from the image); board kit 8440be649b2228b6; branch v1.1-dev",
+    "build": "v1.1 image: BOOT.BIN 5d226057efc8760b (bitstream 11b4d88f583b8e23, XSA 253ca13d2e977247), Image 0110440877a3738d, system.dtb bc4255b1c54ae27e (SMMU on), system_nosmmu.dtb 6ceadb90b64b6a98, rootfs.cpio.gz.u-boot 8c54689ab21fe45c, boot.scr ea53e9648a37f16f, twn_fuse.ko 3d1bbe778a4a9d4b (from the image); board kit 8440be649b2228b6 for E0-E8; the release kit 97cc94ee729e5f78 (binaries stripped) checked in E9; branch v1.1-dev",
     "source": "results/raw/linux_driver_v11_20261027/ (README.md lists every file)",
     "measured_by": "bash linux/build_linux.sh; bash board/make_boot.sh; bash board/make_kit.sh; on the board: sh board_check.sh, sh v11_check.sh <mode>",
     "timing": {
@@ -1123,6 +1123,11 @@
       "write_in_ms_device": "0.14-0.15",
       "note": "attributes the 0.8-1.0 % of linux_driver_twn_fuse_20261026 to the CPU-side memory attribute of the buffer mapping (Normal non-cacheable vs Device-nGnRnE); polling location and buffer address show no effect"
     },
-    "note": "The headline throughput of the release stays the board number of the deployed model; the numbers here compare the v1.1 driver configurations. dt_binding_check and sparse were not run (they need dtschema and sparse installed); test/binding_check.py checks the binding and the generated node instead (S3)."
+    "note": "The headline throughput of the release stays the board number of the deployed model; the numbers here compare the v1.1 driver configurations. dt_binding_check and sparse were not run (they need dtschema and sparse installed); test/binding_check.py checks the binding and the generated node instead (S3).",
+    "fps_runs_release_kit": [
+      231.3,
+      232.24,
+      232.69
+    ]
   }
 }

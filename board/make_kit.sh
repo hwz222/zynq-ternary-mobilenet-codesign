@@ -38,6 +38,15 @@ cp "$ROOT/models/mbv2_pose/model_mbv2.bin" "$ROOT/models/mbv2_pose/model_mbv2_pa
 cp "$ROOT/models/mbv2_pose/fixtures_synthetic/"fix_[0-3].bin "$K/golden/"
 ln -s . "$K/syn"
 chmod +x "$K/mbv2_fuse_test_drv" "$K/mbv2_fuse_pipe_drv" "$K/twn_bench" "$K/twn_errtest"
+# The binaries carry debug information, and with it the build machine's paths: strip them with
+# the SDK's strip, then refuse to pack if any file still names a build path.
+SDKENV=$(ls "${PLNX_ROOT:-$HOME/petalinux}"/sdk/environment-setup-* 2>/dev/null | head -1 || true)
+[ -n "$SDKENV" ] && . "$SDKENV"
+${STRIP:-aarch64-xilinx-linux-strip} --strip-all "$K/mbv2_fuse_test_drv" "$K/mbv2_fuse_pipe_drv" \
+    "$K/twn_bench" "$K/twn_errtest"
+if grep -r -l -a -E '/home/[a-z]|/mnt/[a-z]/|[A-Z]:[/\\]' "$K"; then
+    echo "ABORT: the files above still contain a build path"; rm -rf "$STAGE"; exit 1
+fi
 cat > "$K/README.txt" <<'EOF'
 twn_board_kit: check the accelerator on the v1.1 image of zynq-ternary-mobilenet-codesign.
 
