@@ -1,0 +1,1 @@
+{"exp_id": "smoke", "train_split": "val", "epochs": 1, "batch": 64, "workers": 8, "lr": 1e-3, "eval_every": 1, "warmup_iters": 20}

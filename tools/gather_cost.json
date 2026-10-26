@@ -1,0 +1,149 @@
+{
+  "_README": "T_gather per block, derived from a measured attribution log by tools/gather_cost.py. Consumed by tools/tailpack.py, which refuses to enable tail packing without it. Regenerate whenever the gather, the schedule, or the array geometry changes.",
+  "_provenance": {
+    "source_log": "dev_records/fuse_session/attrib_blkcyc_tp4_20260819.log",
+    "source_sha256": "2b7627f1d71730052db27d0b94ca926c776d2de07de1fb0995929ef0dd714559",
+    "commit": "e6bdb8a1bec2f273c41a267456530fb04564f1d8",
+    "branch": "rtl-fused-256",
+    "ruler": "tb_fuse_frame with FUSE_BLK_CYC; DUT.gath_busy counted per block",
+    "manifest": "golden/p1_golden/vec/p1_manifest.json"
+  },
+  "blocks": {
+    "0": {
+      "gather_busy_cycles": 118454,
+      "granted_cycles": 207788,
+      "words_expand": 12288,
+      "words_project": 4096,
+      "words_total": 16384,
+      "t_gather": 7.2299
+    },
+    "1": {
+      "gather_busy_cycles": 44032,
+      "granted_cycles": 132782,
+      "words_expand": 4096,
+      "words_project": 1024,
+      "words_total": 5120,
+      "t_gather": 8.6
+    },
+    "2": {
+      "gather_busy_cycles": 46592,
+      "granted_cycles": 100453,
+      "words_expand": 1024,
+      "words_project": 2048,
+      "words_total": 3072,
+      "t_gather": 15.1667
+    },
+    "3": {
+      "gather_busy_cycles": 16640,
+      "granted_cycles": 59214,
+      "words_expand": 1024,
+      "words_project": 512,
+      "words_total": 1536,
+      "t_gather": 10.8333
+    },
+    "4": {
+      "gather_busy_cycles": 13568,
+      "granted_cycles": 33445,
+      "words_expand": 256,
+      "words_project": 512,
+      "words_total": 768,
+      "t_gather": 17.6667
+    },
+    "5": {
+      "gather_busy_cycles": 13568,
+      "granted_cycles": 33445,
+      "words_expand": 256,
+      "words_project": 512,
+      "words_total": 768,
+      "t_gather": 17.6667
+    },
+    "6": {
+      "gather_busy_cycles": 4736,
+      "granted_cycles": 21870,
+      "words_expand": 256,
+      "words_project": 128,
+      "words_total": 384,
+      "t_gather": 12.3333
+    },
+    "7": {
+      "gather_busy_cycles": 5632,
+      "granted_cycles": 27663,
+      "words_expand": 64,
+      "words_project": 192,
+      "words_total": 256,
+      "t_gather": 22.0
+    },
+    "8": {
+      "gather_busy_cycles": 5632,
+      "granted_cycles": 27663,
+      "words_expand": 64,
+      "words_project": 192,
+      "words_total": 256,
+      "t_gather": 22.0
+    },
+    "9": {
+      "gather_busy_cycles": 5632,
+      "granted_cycles": 27663,
+      "words_expand": 64,
+      "words_project": 192,
+      "words_total": 256,
+      "t_gather": 22.0
+    },
+    "10": {
+      "gather_busy_cycles": 5632,
+      "granted_cycles": 33927,
+      "words_expand": 64,
+      "words_project": 192,
+      "words_total": 256,
+      "t_gather": 22.0
+    },
+    "11": {
+      "gather_busy_cycles": 9728,
+      "granted_cycles": 71719,
+      "words_expand": 64,
+      "words_project": 320,
+      "words_total": 384,
+      "t_gather": 25.3333
+    },
+    "12": {
+      "gather_busy_cycles": 9728,
+      "granted_cycles": 71719,
+      "words_expand": 64,
+      "words_project": 320,
+      "words_total": 384,
+      "t_gather": 25.3333
+    },
+    "13": {
+      "gather_busy_cycles": 3344,
+      "granted_cycles": 53166,
+      "words_expand": 64,
+      "words_project": 80,
+      "words_total": 144,
+      "t_gather": 23.2222
+    },
+    "14": {
+      "gather_busy_cycles": 4160,
+      "granted_cycles": 42567,
+      "words_expand": 32,
+      "words_project": 128,
+      "words_total": 160,
+      "t_gather": 26.0
+    },
+    "15": {
+      "gather_busy_cycles": 4160,
+      "granted_cycles": 42567,
+      "words_expand": 32,
+      "words_project": 128,
+      "words_total": 160,
+      "t_gather": 26.0
+    },
+    "16": {
+      "gather_busy_cycles": 4160,
+      "granted_cycles": 63327,
+      "words_expand": 32,
+      "words_project": 128,
+      "words_total": 160,
+      "t_gather": 26.0
+    }
+  }
+}

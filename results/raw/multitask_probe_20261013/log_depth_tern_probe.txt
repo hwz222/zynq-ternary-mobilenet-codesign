@@ -1,0 +1,8 @@
+[init] backbone 306 tensors from ../../artifacts/mbv2_pose/probe_tern_dc32_best.pth, head 20 tensors from ../../artifacts/nyu_depth/depth_tern_distill_best_bn.pth
+[data] + 23996 indoor COCO images with teacher depth
+[data] 71580 train frames, 1118 iters/epoch, 4 epochs
+epoch   0 | loss 3.3065 silog 3.282 | lr 2.72e-04 | 478s | d1 0.6506 absrel 0.2328 rmse 0.711 | best d1 0.6506
+epoch   1 | loss 2.7624 silog 2.743 | lr 1.67e-04 | 342s | d1 0.6381 absrel 0.2369 rmse 0.724 | best d1 0.6506
+epoch   2 | loss 2.5746 silog 2.556 | lr 5.02e-05 | 300s | d1 0.7019 absrel 0.1916 rmse 0.632 | best d1 0.7019
+epoch   3 | loss 2.4676 silog 2.450 | lr 3.00e-06 | 298s | d1 0.7227 absrel 0.1763 rmse 0.617 | best d1 0.7227
+[done] best d1 0.7227; ternary check 34/34

@@ -1,0 +1,10 @@
+{
+  "_what": "depth on the deployed pose backbone: backbone from probe_tern_dc32, head from the trained depth_tern_distill, full fine-tune on NYU + teacher-labelled indoor COCO",
+  "exp_id": "depth_tern_probe",
+  "ternary": true, "init": "rebase", "pseudo_coco": true,
+  "backbone_ckpt": "../../artifacts/mbv2_pose/probe_tern_dc32_best.pth",
+  "head_ckpt": "../../artifacts/nyu_depth/depth_tern_distill_best_bn.pth",
+  "epochs": 4, "batch": 64, "workers": 12,
+  "lr": 3e-4, "backbone_lr_mult": 0.5, "warmup_iters": 300,
+  "w_l1": 0.1, "eval_every": 1, "seed": 45
+}

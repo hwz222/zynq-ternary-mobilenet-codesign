@@ -1,0 +1,7 @@
+{
+  "_what": "comparison arm: as pose_fallEnhancement, but BatchNorm statistics frozen and a 3x lower learning rate",
+  "exp_id": "pose_fallEnhancement_gentle",
+  "epochs": 6, "batch": 48, "workers": 8,
+  "lr": 1e-4, "backbone_lr_mult": 0.5, "freeze_bn": true,
+  "lying_weight": 4.0, "rot90_aug": 0.15, "color_aug": 0.3, "seed": 42
+}

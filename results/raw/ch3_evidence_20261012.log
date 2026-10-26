@@ -1,0 +1,34 @@
+fp32_baseline              88.720   loop 88.71649258019809   orchestrator None   weights 15364800   MACs 3859808256
+<conda-env>\Lib\site-packages\torch\_tensor.py:1679: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\c10/core/TensorImpl.h:1976.)
+  return super().rename(names)
+int8_baseline              88.706   loop 88.67254842308083   orchestrator 88.67254842308083   weights 15364800   MACs 3859808256
+twn_s4b1                   88.625   loop 88.66578778352432   orchestrator 88.66578778352432   weights 15364800   MACs 3859808256
+twn_s4                     88.247   loop 88.36155900348173   orchestrator 88.36155900348173   weights 15364800   MACs 3859808256
+twn_s34                    88.013   loop 88.02690734543488   orchestrator 88.02690734543488   weights 15364800   MACs 3859808256
+twn_s234                   87.905   loop 87.8950748740831   orchestrator 87.8950748740831   weights 15364800   MACs 3859808256
+twn_s1234                  87.564   loop 87.57394449514923   orchestrator 87.57394449514923   weights 15364800   MACs 3859808256
+twn_bk_stem                87.642   loop 87.67197376871853   orchestrator 87.67197376871853   weights 15364800   MACs 3859808256
+twn_bk_deconv              87.692   loop 87.72605888517053   orchestrator 87.72605888517053   weights 15364800   MACs 3859808256
+twn_no_final               87.378   loop 87.4252104249062   orchestrator 87.4252104249062   weights 15364800   MACs 3859808256
+twn_bk_final               86.036   loop 86.0663218740493   orchestrator 86.0663218740493   weights 15364800   MACs 3859808256
+twn_all                    85.407   loop 85.42068079640333   orchestrator 85.42068079640333   weights 15364800   MACs 3859808256
+mbv2_fp                    87.516   loop 87.50971841936247   orchestrator 87.50971841936247   weights 5191616   MACs 1805705216
+mbv2_dc32_fp               86.739   loop 86.74238582969949   orchestrator 86.74238582969949   weights 1977216   MACs 398254080
+mbv2_dc32_pwstem           83.731   loop 83.75756346550384   orchestrator 83.75756346550384   weights 1977216   MACs 398254080
+mbv2_dc32_bbpc             74.759   loop 74.76253253557786   orchestrator 74.76253253557786   weights 1977216   MACs 398254080
+probe_tern_dc128           86.273   loop 86.35702937497888   orchestrator None   weights 2961600   MACs 749789184
+probe_int8_dc128           88.196   loop 88.2398674914647   orchestrator None   weights 2961600   MACs 749789184
+probe_skip_dc32            85.972   loop 86.07646283338404   orchestrator None   weights 1982080   MACs 403234816
+dsc_fp                     80.638   loop 80.6544299090694   orchestrator 80.6544299090694   weights 5630464   MACs 1930313728
+dsc_pw                     80.137   loop 80.16766386100124   orchestrator 80.16766386100124   weights 5630464   MACs 1930313728
+dsc_pwdw                   78.248   loop 78.28144542473719   orchestrator 78.28144542473719   weights 5630464   MACs 1930313728
+c_dc64                     85.711   loop 85.71138829733293   orchestrator 85.71138829733293   weights 11823168   MACs 2489843712
+h_dc64_i8                  87.371   loop 87.36436466889768   orchestrator 87.36436466889768   weights 11823168   MACs 2489843712
+h_b2221_s4w256_dc32_i8     86.080   loop 86.05956123449279   orchestrator 86.05956123449279   weights 4187776   MACs 1942749184
+exit=0
+dsc_dc32_fp                80.790   loop 80.78626238042119   orchestrator 80.78626238042119   weights 1727936   MACs 478822400
+<conda-env>\Lib\site-packages\torch\_tensor.py:1679: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\c10/core/TensorImpl.h:1976.)
+  return super().rename(names)
+dsc_dc32_pwstem            79.502   loop 79.48821958557279   orchestrator 79.48821958557279   weights 1727936   MACs 478822400
+dsc_dc32_bbpc              77.443   loop 77.42622452083967   orchestrator 77.42622452083967   weights 1727936   MACs 478822400
+exit=0

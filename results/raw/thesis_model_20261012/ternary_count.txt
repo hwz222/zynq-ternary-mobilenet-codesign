@@ -1,0 +1,2 @@
+probe_tern_dc32: layers 34 of 34 values [-1, 0, 1] weights 1715936 zeros 764249 frac 0.4454
+room_mix_w3_head32: layers 34 of 34 values [-1, 0, 1] weights 1715936 zeros 797084 frac 0.4645

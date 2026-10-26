@@ -1,0 +1,49 @@
+<conda-env>\Lib\site-packages\torch\_tensor.py:1679: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\c10/core/TensorImpl.h:1976.)
+  return super().rename(names)
+<conda-env>\Lib\site-packages\torch\_tensor.py:1679: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\c10/core/TensorImpl.h:1976.)
+  return super().rename(names)
+<repo>\train\mbv2_pose\export\extract_mbv2.py:85: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\generated\python_variable_methods.cpp:837.)
+  scale = float(qw.scale.reshape(-1)[0])
+[load] model + checkpoint: <repo>\train\mbv2_pose\checkpoints\probe_tern_dc32\best.pth  (input 256x256)
+[STRICT-INT8] 嚴格int8方案 export: seams /127, ReLU x(255/127) 0..127, no -128
+[calibrate] seam scales over 32 images
+  f1:7.87e-02 f2:4.23e-02 f3:5.93e-02 f4:2.93e-02 f5:3.78e-02 f6:5.05e-02 f7:2.73e-02 f8:3.70e-02 f9:4.49e-02 f10:4.20e-02 f11:2.25e-02 f12:3.07e-02 f13:4.96e-02 f14:2.08e-02 f15:3.08e-02 f16:1.27e-01 f17:1.93e-02
+[extract] 65 ops (10 residual adds), blob 1930.9 KB, rq entries 15872
+[emit] input 256x256 -> heatmap 64x64, MAXACT=1572864
+[validate] argmax agreement vs Brevitas on 16 images
+  images all-14-joints exact: 2/16 | max coord diff: 17 px @64
+  fixture 0: 65 checksums, acc sum 5700438
+  fixture 1: 65 checksums, acc sum 5268641
+  fixture 2: 65 checksums, acc sum 5574324
+  fixture 3: 65 checksums, acc sum 5765077
+[done] artifacts under <repo>\train\mbv2_pose\runs\export
+<conda-env>\Lib\site-packages\torch\_tensor.py:1679: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\c10/core/TensorImpl.h:1976.)
+  return super().rename(names)
+<repo>\train\mbv2_pose\export\extract_mbv2.py:85: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\generated\python_variable_methods.cpp:837.)
+  scale = float(qw.scale.reshape(-1)[0])
+[pack] ternary 1715936 weights (44.5% zeros) -> linear 428984 B + hw-ordered 532608 B | int8 261280 B
+[gate] linear round-trip PASS | hw-ordered decode PASS (34 pw ops)
+[emit] <repo>\build\thesis_model\export\export_strict_int8\data\model_mbv2_packed.bin (1222880 B total)
+[emit] <repo>\build\thesis_model\export\export_strict_int8\hls\pack_meta_mbv2.h
+[head] op61:slice(320x32)  op62:resident(32x32)  op63:resident(32x32)  op64:final(32x14)
+[hd_pl] <repo>\build\thesis_model\export\export_strict_int8\data\model_mbv2_packed.bin
+[hd_pl] prefix sha 24f63df7bdf28a70 preserved; new blob sha 67728c886e2a4618 (1222880 -> 1420000 B, +197120)
+[hd_pl] meta updated: <repo>\build\thesis_model\export\export_strict_int8\hls\pack_meta_mbv2.h
+[hd_pl] offsets (w8-section-relative): op61=261280, op62=425120, op63=441504, op64=457888
+checkpoint <repo>\train\mbv2_pose\checkpoints\probe_tern_dc32\best.pth c731da80a73704c9
+[ternary gate] 34 ternary layers, all in {-1,0,+1}+zeros: PASS  (layers with zeros: 34; zero fraction min 0.407 max 0.740)
++ <repo>\train\mbv2_pose\export\extract_mbv2.py --strict-int8 --ckpt <repo>\train\mbv2_pose\checkpoints\probe_tern_dc32\best.pth
++ <repo>\train\mbv2_pose\export\pack_ternary.py
++ <repo>\train\mbv2_pose\export\append_hd_pl.py <repo>\build\thesis_model\export\export_strict_int8\data\model_mbv2_packed.bin <repo>\build\thesis_model\export\export_strict_int8\hls\pack_meta_mbv2.h
+  model_mbv2.bin               accd59743da29a6e
+  model_mbv2_packed.bin        67728c886e2a4618
+  model_meta.c                 c17ea5350fea16a5
+  model_meta.h                 5169fcc42762fde6
+  pack_meta_mbv2.h             ae8e97d9460412d1
+  fixtures/fix_0.bin           00ba35795fa6dcc8
+  fixtures/fix_1.bin           cce0dc613522cd92
+  fixtures/fix_2.bin           56c627da6f831221
+  fixtures/fix_3.bin           2ef37ef2fc46b274
+[export done] <repo>\build\thesis_model\export\models_layout

@@ -1,0 +1,5 @@
+[init] pose backbone: 306/306 tensors from <repo>\artifacts\mbv2_pose\room_mix_w3_head32_best.pth
+[data] 30000 train images, 468 iters/epoch, 2 epochs
+epoch   0 | loss 7.3451 (hm 5.1127 wh 1.6566 off 0.5758) | lr 8.39e-04 | 254s | AP 0.52 AP50 1.53 | best 0.52
+epoch   1 | loss 3.6458 (hm 2.2514 wh 0.8921 off 0.5023) | lr 1.00e-05 | 139s | AP 0.78 AP50 2.07 | best 0.78
+[done] best AP 0.78; ternary check 34/34

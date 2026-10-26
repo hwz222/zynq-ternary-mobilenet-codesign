@@ -1,0 +1,7 @@
+{
+  "_what": "pose_fallEnhancement: probe_tern_dc32 (all tensors) fine-tuned on MPII + sports + COCO lying people (x4) with +-90 degree crop rotation on 15 % of samples",
+  "exp_id": "pose_fallEnhancement",
+  "epochs": 8, "batch": 48, "workers": 10,
+  "lr": 3e-4, "backbone_lr_mult": 0.5,
+  "lying_weight": 4.0, "rot90_aug": 0.15, "color_aug": 0.3, "seed": 42
+}

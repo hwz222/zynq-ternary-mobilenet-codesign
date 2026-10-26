@@ -1,0 +1,17 @@
+{
+  "_what": "12-class CenterNet detector, ternary pw_stem backbone relayed from the pose model, full fine-tune",
+  "exp_id": "det12_tern_pose",
+  "ternary": true,
+  "init": "pose",
+  "epochs": 14,
+  "batch": 64,
+  "workers": 12,
+  "lr": 0.001,
+  "backbone_lr_mult": 0.3,
+  "warmup_iters": 1000,
+  "w_wh": 1.0,
+  "w_off": 1.0,
+  "eval_every": 2,
+  "seed": 42,
+  "_schedule_note": "Started 2026-10-12 with epochs=24; stopped after epoch 6 and resumed from last.pth with epochs=14 to finish sooner (the cosine schedule is computed from the current total, so the learning rate stepped from 0.86x to 0.61x of the peak at the switch)."
+}

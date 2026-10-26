@@ -1,0 +1,10 @@
+[init] backbone 306 tensors from ../../artifacts/mbv2_pose/probe_tern_dc32_best.pth, head 20 tensors from ../../artifacts/coco_seg/seg16_tern_pose_last_bn.pth
+[data] 609 indoor images with a person lying down sampled x3.0
+[data] 47305 indoor train images, 739 iters/epoch, 6 epochs
+epoch   0 | loss 1.5802 | lr 4.86e-04 | 378s
+epoch   1 | loss 1.3191 | lr 4.06e-04 | 203s | mIoU 25.41 pixacc 54.8 | best 25.41
+epoch   2 | loss 1.2490 | lr 2.79e-04 | 201s
+epoch   3 | loss 1.1974 | lr 1.42e-04 | 205s | mIoU 28.97 pixacc 57.6 | best 28.97
+epoch   4 | loss 1.1623 | lr 3.85e-05 | 205s | mIoU 31.16 pixacc 59.7 | best 31.16
+epoch   5 | loss 1.1449 | lr 5.00e-06 | 205s | mIoU 24.76 pixacc 53.5 | best 31.16
+[done] best mIoU 31.16; ternary check 34/34

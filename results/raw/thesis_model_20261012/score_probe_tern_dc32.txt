@@ -1,0 +1,8 @@
+start 2026-10-12T21:21:19.5584341+08:00 ckpt checkpoints\probe_tern_dc32\best.pth
+ckpt_sha256 c731da80a73704c92adc8a2870337d501ed9fc37bd467ca1453670aad6bd8bf5
+loaded      374 tensors; model keys the checkpoint lacks: 0, checkpoint keys unused: 0
+checkpoint  checkpoints/probe_tern_dc32/best.pth
+ruler       MPII val, 2289 instances, PCKh@0.5, 14 joints, input 256, cuda
+mean        85.992
+groups      Head 96.81  Shoulder 93.51  Elbow 85.37  Wrist 79.20  Hip 86.10  Knee 80.98  Ankle 76.19
+exit 0 end 2026-10-12T21:22:00.6247355+08:00

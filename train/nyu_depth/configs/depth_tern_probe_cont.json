@@ -1,0 +1,8 @@
+{
+  "_what": "continuation of depth_tern_probe (4 epochs, delta1 0.733 after BatchNorm re-estimation) with a fresh cosine schedule on NYU + teacher-labelled indoor COCO",
+  "exp_id": "depth_tern_probe_cont",
+  "ternary": true, "init": "checkpoints/depth_tern_probe/best_bn.pth", "pseudo_coco": true,
+  "epochs": 4, "batch": 64, "workers": 12,
+  "lr": 3e-4, "backbone_lr_mult": 0.5, "warmup_iters": 300,
+  "w_l1": 0.1, "eval_every": 1, "seed": 46
+}

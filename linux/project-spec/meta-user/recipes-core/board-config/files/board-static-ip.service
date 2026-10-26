@@ -1,0 +1,14 @@
+[Unit]
+Description=Static IP 192.168.10.2 on eth0 for direct PC debug link
+After=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/ip link set eth0 up
+ExecStart=/sbin/ip addr add 192.168.10.2/24 dev eth0
+ExecStart=/bin/sh -c 'command -v dropbear >/dev/null && ! pgrep -x dropbear >/dev/null && dropbear -R -p 22 || true'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

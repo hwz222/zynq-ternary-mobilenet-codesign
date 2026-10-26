@@ -1,0 +1,12 @@
+board: uio4 = twn_fuse
+== board against tree, sha16 -- all 9 files must match ==
+mbv2_fuse_test               board 90cd538fa3146b5b  tree 90cd538fa3146b5b  ok
+mbv2_fuse_pipe               board a49e5822c25f675b  tree a49e5822c25f675b  ok
+data/fuse_weights.bin        board a8ae156468434244  tree a8ae156468434244  ok
+data/model_mbv2.bin          board accd59743da29a6e  tree accd59743da29a6e  ok
+data/model_mbv2_packed.bin   board 67728c886e2a4618  tree 67728c886e2a4618  ok
+golden/fix_0.bin             board 00ba35795fa6dcc8  tree 00ba35795fa6dcc8  ok
+golden/fix_1.bin             board cce0dc613522cd92  tree cce0dc613522cd92  ok
+golden/fix_2.bin             board 56c627da6f831221  tree 56c627da6f831221  ok
+golden/fix_3.bin             board 2ef37ef2fc46b274  tree 2ef37ef2fc46b274  ok
+all 9 files match

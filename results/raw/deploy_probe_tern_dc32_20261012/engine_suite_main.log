@@ -1,0 +1,64 @@
+=== engine unit tests: tree <repo>
+    work <temp>\twn_sim\engines_33356
+
+--- ternary array: twn_fuse_select / twn_fuse_tree / twn_fuse_requant / twn_fuse_array
+  [ok  ] ternary    datapath                           4 of 4 cases PASS
+  [ok  ] ternary    break NO_REPLICATE                 expected signature (pack>1 FAIL, pack 1 PASS) on 4 of 4
+  [ok  ] ternary    break CORRECT_AT_ROOT              expected signature (pack>1 FAIL, pack 1 PASS) on 4 of 4
+  [ok  ] ternary    full array, golden rows            8 stages PASS, 34816 elements
+  [ok  ] ternary    break RQ_NO_ROUND (b07e)           caught: 2256 mismatches
+  [ok  ] ternary    tb_fuse_rq_round                   1 pass, 0 fail; breaks 2 bite, 0 did not
+
+--- depthwise: twn_dw_array / twn_dwseq / twn_dw_pack / row buffer
+  [ok  ] depthwise  run_p3.ps1                         8 pass, 0 fail
+  [ok  ] depthwise  break RQ_NO_ROUND (8 rows)         0 pass, 8 ran and failed, 0 build errors, 0 no result (must be 0 / 8 / 0 / 0)
+  [ok  ] depthwise  tb_dwseq                           1 pass, 0 fail; breaks 4 bite, 0 did not
+  [ok  ] depthwise  tb_dw_pack                         1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] depthwise  tb_rowbuf_lanewr                   1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] depthwise  tb_rowbuf_mod3                     1 pass, 0 fail; breaks 1 bite, 0 did not
+
+--- head: twn_hd_seq / twn_hd_compute / twn_csr head windows / HP2 masters
+  [ok  ] head       run_hd_seq.ps1                     HD_SEQ_GATE_SELFTEST_PASS
+  [ok  ] head       run_csr_hd.ps1                     CSR_HD_GATE_SELFTEST_PASS
+  [ok  ] head       run_hd_frame.ps1                   HD_FRAME_GATE_SELFTEST_PASS
+  [ok  ] head       run_hd_int.ps1                     HD_INT_GATE_PASS
+
+--- residual: twn_res_add / twn_res_buf
+  [ok  ] residual   tb_res_add                         1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] residual   tb_res_buf                         1 pass, 0 fail; breaks 2 bite, 0 did not
+
+--- activation movers: twn_act_rd/wr, twn_ring_warb, twn_act_gather, twn_act_scatter, twn_rowbuf
+  [ok  ] movers     tb_act_rt                          1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] movers     tb_ring_warb                       1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] movers     tb_act_gather                      1 pass, 0 fail; breaks 4 bite, 0 did not
+  [ok  ] movers     tb_act_scatter                     1 pass, 0 fail; breaks 2 bite, 0 did not
+  [ok  ] movers     tb_rowbuf_ring                     1 pass, 0 fail; breaks 0 bite, 0 did not
+  [ok  ] movers     tb_rowbuf_slice                    1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] movers     tb_rowbuf_extmem                   1 pass, 0 fail; breaks 0 bite, 0 did not
+  [ok  ] movers     tb_rowptr_rule                     1 pass, 0 fail; breaks 2 bite, 0 did not
+
+--- weight fetch: twn_wfetch (into twn_wmem's four regions)
+  [ok  ] weights    tb_wfetch                          1 pass, 0 fail; breaks 2 bite, 0 did not
+
+--- control: twn_desctab / twn_frameseq / twn_uop_enc / twn_uop_issue / twn_blockseq
+  [ok  ] control    tb_desctab                         1 pass, 0 fail; breaks 0 bite, 0 did not
+  [ok  ] control    tb_csr_axil_b2b                    1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] control    tb_frameseq                        1 pass, 0 fail; breaks 0 bite, 0 did not
+  [ok  ] control    tb_uop_enc                         1 pass, 0 fail; breaks 3 bite, 0 did not
+  [ok  ] control    tb_uop_issue                       1 pass, 0 fail; breaks 1 bite, 0 did not
+  [ok  ] control    tb_p4_schedule                     1 pass, 0 fail; breaks 0 bite, 0 did not
+
+--- integration: 17 blocks through the real sequencer and arrays; then the whole frame
+  [ok  ] integration run_p5.ps1 (17 blocks)             === P5 bit-exact: 17 pass, 0 fail, 747520 values checked ===
+  [ok  ] integration tb_fuse_frame (whole frame)        === tb_fuse_frame: 28 checks, 0 errors, FRAME PASS ===
+
+=== summary ===
+  ternary       6 of  6 ok
+  depthwise     6 of  6 ok
+  head          4 of  4 ok
+  residual      2 of  2 ok
+  movers        8 of  8 ok
+  weights       1 of  1 ok
+  control       6 of  6 ok
+  integration   2 of  2 ok
+=== ENGINE TESTS: all 35 ok ===

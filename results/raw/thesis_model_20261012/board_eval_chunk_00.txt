@@ -1,0 +1,13 @@
+fuse_hal: control UIO = /dev/uio4
+fuse_hd: four descriptors committed (HD_COMMIT 000000f3), 256 requant words (HD_RQ_STAT 0000100f)
+mbv2_fuse_head: OPT-001 on -- block 16 writes the head's input slots directly (A_BB2HD 00000005)
+  op61  modeA  IC=320 OC=32  8x8   in  1280 x16  w 10240  out   512  clamp 0..127 relu 1
+  op62  modeB  IC=32  OC=32 16x16  in   512 x1   w  1024  out  2048  clamp 0..127 relu 1
+  op63  modeB  IC=32  OC=32 32x32  in  2048 x1   w  1024  out  8192  clamp 0..127 relu 1
+  op64  type4  IC=32  OC=16 64x64  in  8192 x1   w    32  out 16384  clamp 0..0 relu 0
+== mbv2_fuse_eval: 300 images, head in the fabric ==
+  100 / 300
+  200 / 300
+  300 / 300
+== wrote 300 of 300 records (229488 bytes each) in 2.8 s ==
+rc=0

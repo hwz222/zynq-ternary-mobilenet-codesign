@@ -1,0 +1,8 @@
+{
+  "_what": "continuation of depth_tern_pose (BatchNorm re-estimated) on NYU + indoor COCO images labelled by Depth Anything V2 metric indoor Small (src/pseudo_label.py)",
+  "exp_id": "depth_tern_distill",
+  "ternary": true, "init": "checkpoints/depth_tern_pose/best_bn.pth", "pseudo_coco": true,
+  "epochs": 6, "batch": 64, "workers": 12,
+  "lr": 5e-4, "backbone_lr_mult": 0.5, "warmup_iters": 300,
+  "w_l1": 0.1, "eval_every": 2, "seed": 44
+}

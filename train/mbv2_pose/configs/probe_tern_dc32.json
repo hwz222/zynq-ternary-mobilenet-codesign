@@ -1,0 +1,28 @@
+{
+  "_what": "The model on the board (models/mbv2_pose since 2026-10-12): MobileNetV2 backbone, ternary pointwise+stem convs ('pw_stem' region: 33 pointwise + stem = 34 layers), INT8 depthwise convs and INT8 deconvolution head of 32 channels. One training stage on top of sports_r2_w3 (lineage step 2): backbone frozen, head re-trained. Launch with: python -m src.run_recipe configs/probe_tern_dc32.json --stage B [--workdir DIR]",
+  "exp_id": "probe_tern_dc32",
+  "seed": 42,
+  "ruler": "MPII val 2289 instances, PCKh@0.5, 14 joints, src.evaluate via python -m src.score_ckpt",
+  "expected_pckh_standalone": 85.992,
+  "expected_pckh_in_training_loop": 86.053,
+  "data_sources": {
+    "mpii": "TWN_DATA_ROOT/mpii/{annot,images}; images from TWN_MPII_IMAGES",
+    "sports": "TWN_DATA_ROOT/sports/{annot,images}; Penn Action frames from TWN_SPORTS_IMAGES"
+  },
+  "stages": {
+    "B": {
+      "name": "probe_tern_dc32",
+      "what": "backbone of sports_r2_w3 frozen, head (3 deconv + final 1x1, 197,265 params) re-initialised and refitted with the plain ground-truth loss",
+      "entry": "src.probe_head_capacity",
+      "argv": ["tern", "32", "18"],
+      "argv_meaning": "backbone=ternary pw_stem (default source sports_r2_w3), deconv channels 32, epochs 18",
+      "recipe": {"optimizer": "Adam", "lr": 1.0e-3, "lr_drops": "x0.1 at epoch 10 and 15", "batch": 48,
+                 "loss": "JointsMSELoss (GT only, no teacher)", "workers": 4,
+                 "sampling": "MPII + sports, uniform over records (no per-source weights)"},
+      "needs": {"head_src": "sports_r2_w3"},
+      "env": {},
+      "extra_sources": ["sports"],
+      "produces": "probe_tern_dc32"
+    }
+  }
+}

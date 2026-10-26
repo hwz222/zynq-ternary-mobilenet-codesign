@@ -1,0 +1,10 @@
+[init] all tensors from checkpoints/seg16_tern_probe/last_bn.pth
+[data] 609 indoor images with a person lying down sampled x3.0
+[data] 47305 indoor train images, 739 iters/epoch, 6 epochs
+epoch   0 | loss 1.1952 | lr 4.86e-04 | 300s
+epoch   1 | loss 1.1771 | lr 4.06e-04 | 235s | mIoU 25.45 pixacc 53.7 | best 25.45
+epoch   2 | loss 1.1430 | lr 2.79e-04 | 238s
+epoch   3 | loss 1.1128 | lr 1.42e-04 | 240s | mIoU 28.44 pixacc 55.9 | best 28.44
+epoch   4 | loss 1.0808 | lr 3.85e-05 | 201s | mIoU 34.02 pixacc 61.2 | best 34.02
+epoch   5 | loss 1.0610 | lr 5.00e-06 | 201s | mIoU 33.07 pixacc 60.8 | best 34.02
+[done] best mIoU 34.02; ternary check 34/34

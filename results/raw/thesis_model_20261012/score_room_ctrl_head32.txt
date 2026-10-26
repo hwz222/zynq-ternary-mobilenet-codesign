@@ -1,0 +1,8 @@
+start 2026-10-12T21:22:37.3315463+08:00 ckpt <earlier-repo>\experiments\room_ctrl_head32\best.pth
+ckpt_sha256 ada0a97d6d57db43da5279662d5f69a248245a2ff38a8a85fb9273209ee4ad85
+loaded      374 tensors; model keys the checkpoint lacks: 0, checkpoint keys unused: 0
+checkpoint  <earlier-repo>/experiments/room_ctrl_head32/best.pth
+ruler       MPII val, 2289 instances, PCKh@0.5, 14 joints, input 256, cuda
+mean        85.806
+groups      Head 96.72  Shoulder 93.48  Elbow 85.02  Wrist 79.53  Hip 85.80  Knee 80.26  Ankle 75.91
+exit 0 end 2026-10-12T21:23:20.0801801+08:00

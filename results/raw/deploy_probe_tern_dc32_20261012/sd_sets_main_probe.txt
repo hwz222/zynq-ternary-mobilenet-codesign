@@ -1,0 +1,46 @@
+== deploy_probe_tern_dc32
+d888019525640dc1  mbv2_fuse_test
+a89c6e6fef689e04  mbv2_fuse_pipe
+47f9006f5b57673b  mbv2_cam_fuse
+a8ae156468434244  data/fuse_weights.bin
+accd59743da29a6e  data/model_mbv2.bin
+67728c886e2a4618  data/model_mbv2_packed.bin
+00ba35795fa6dcc8  golden/fix_0.bin
+cce0dc613522cd92  golden/fix_1.bin
+56c627da6f831221  golden/fix_2.bin
+2ef37ef2fc46b274  golden/fix_3.bin
+b3834a83cb2a234d  restore.sh
+== demo_working
+d888019525640dc1  mbv2_fuse_test_strict
+a89c6e6fef689e04  mbv2_fuse_pipe_strict
+47f9006f5b57673b  mbv2_cam_fuse
+a8ae156468434244  data/fuse_weights.bin
+accd59743da29a6e  data/model_mbv2.bin
+67728c886e2a4618  data/model_mbv2_packed.bin
+00ba35795fa6dcc8  golden/fix_0.bin
+cce0dc613522cd92  golden/fix_1.bin
+56c627da6f831221  golden/fix_2.bin
+2ef37ef2fc46b274  golden/fix_3.bin
+#
+# This directory holds the fused design set for BOOT.BIN 690d87cc5f4b6897 and the
+# deployed model probe_tern_dc32 (2026-10-12; the earlier set is in prev_room_mix_w3_head32_20261012/).
+#
+== demo_working/prev_room_mix_w3_head32_20261012
+75d89b75195b0b33  mbv2_cam_fuse
+c59b988c467fd338  mbv2_fuse_pipe_strict
+b5b3d1b36d7620f8  mbv2_fuse_test_strict
+b15be9440f73dd11  restore_demo.sh
+bcdfbbc02b0975b7  data/fuse_weights.bin
+2d2456c0e2e3e212  data/model_mbv2.bin
+e9672c3bc4cad155  data/model_mbv2_packed.bin
+7e649f570e2ca710  golden/fix_0.bin
+95ff29f8fd741e28  golden/fix_1.bin
+a8d6400324f6d99e  golden/fix_2.bin
+bfb4d362b9e6ba5f  golden/fix_3.bin
+== rollback_room_mix_w3_head32
+data
+golden
+mbv2_cam_fuse
+mbv2_fuse_pipe
+mbv2_fuse_test
+restore.sh

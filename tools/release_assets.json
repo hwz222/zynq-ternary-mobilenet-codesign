@@ -1,0 +1,129 @@
+{
+  "_what": "Release assets of zynq-ternary-mobilenet-codesign v1.0.0: name on the release page, SHA-256, size in bytes, and where tools/fetch_release.py puts each file in the tree (all destinations are ignored by git).",
+  "version": "v1.0.0",
+  "base_url": "https://github.com/hwz222/zynq-ternary-mobilenet-codesign/releases/download/v1.0.0",
+  "assets": [
+    {
+      "name": "BOOT.BIN",
+      "sha256": "690d87cc5f4b6897fc3e6a86d660f9f54490940179a82e1f269161edfbcc5bd7",
+      "size": 7324112,
+      "dest": "artifacts/boot/BOOT.BIN",
+      "group": "boot",
+      "what": "boot image: FSBL, PMU firmware, ARM trusted firmware, U-Boot, device tree and the bitstream below"
+    },
+    {
+      "name": "system_fuse_ternpose.bit",
+      "sha256": "52b400785924efe0326405e2f601bf05f7cfbfddcbf24c4071321b90c27d2a96",
+      "size": 5568786,
+      "dest": "artifacts/hw/system_fuse_ternpose.bit",
+      "group": "boot",
+      "what": "the accelerator bitstream (the PL image inside BOOT.BIN)"
+    },
+    {
+      "name": "system_fuse_ternpose.xsa",
+      "sha256": "c0ce3d928879d765138637a812154757ed50fa02167f3b766da73bcbc58655b5",
+      "size": 2559911,
+      "dest": "artifacts/hw/system_fuse_ternpose.xsa",
+      "group": "boot",
+      "what": "hardware description of the same build, input of linux/build_linux.sh"
+    },
+    {
+      "name": "Image",
+      "sha256": "8650b8be272df8ee2a4f5936f4be1e6a30cfdf755e41ce609bafb4a01672e57b",
+      "size": 22745600,
+      "dest": "artifacts/linux/sd/Image",
+      "group": "boot",
+      "what": "Linux kernel built by linux/build_linux.sh"
+    },
+    {
+      "name": "system.dtb",
+      "sha256": "18fff66fcfb7798bac1de1f70e77a6f54d56dcc56d32423846ac2a5ff5a905d1",
+      "size": 38541,
+      "dest": "artifacts/linux/sd/system.dtb",
+      "group": "boot",
+      "what": "device tree built by linux/build_linux.sh"
+    },
+    {
+      "name": "boot.scr",
+      "sha256": "ea53e9648a37f16f9d1805bdebb2a0937ddcafbb8fab7a83ec9b4d8f00a70f5d",
+      "size": 549,
+      "dest": "artifacts/linux/sd/boot.scr",
+      "group": "boot",
+      "what": "U-Boot script compiled from linux/boot.cmd"
+    },
+    {
+      "name": "model_mbv2.bin",
+      "sha256": "accd59743da29a6e950a2b73580c14f5a334c10da7f7cc0f88bb0e14c5d75f7a",
+      "size": 1977216,
+      "dest": "models/mbv2_pose/model_mbv2.bin",
+      "group": "model",
+      "what": "the exported integer network (ternary backbone, requantisation, INT8 head)"
+    },
+    {
+      "name": "model_mbv2_packed.bin",
+      "sha256": "67728c886e2a4618df4935f976a94e53a741f83ee8f52c2440c716a7176d93fe",
+      "size": 1420000,
+      "dest": "models/mbv2_pose/model_mbv2_packed.bin",
+      "group": "model",
+      "what": "the same with the head weights appended in the head engine's stream order"
+    },
+    {
+      "name": "probe_tern_dc32_best.pth",
+      "sha256": "c731da80a73704c92adc8a2870337d501ed9fc37bd467ca1453670aad6bd8bf5",
+      "size": 8724383,
+      "dest": "artifacts/mbv2_pose/probe_tern_dc32_best.pth",
+      "group": "checkpoints",
+      "what": "the deployed pose checkpoint (source of models/mbv2_pose)"
+    },
+    {
+      "name": "sports_r2_w3_best.pth",
+      "sha256": "cfd666b058b96a1d847292d42162e6e4e09f6a75bef14420fe6f7dfb65c8d5e3",
+      "size": 8724319,
+      "dest": "train/mbv2_pose/checkpoints/sports_r2_w3/best.pth",
+      "group": "checkpoints",
+      "what": "lineage step 2, the input of the deployed model's training recipe"
+    },
+    {
+      "name": "det12v2_tern_probe_cont_best_bn.pth",
+      "sha256": "bb42fd0be70659fb14deda9249fd30ba6a96479703a4d5999125c1fa4307c049",
+      "size": 8747251,
+      "dest": "artifacts/coco_det/det12v2_tern_probe_cont_best_bn.pth",
+      "group": "checkpoints",
+      "what": "12-class detector on the deployed backbone (current)"
+    },
+    {
+      "name": "seg16_tern_probe_cont_last_bn.pth",
+      "sha256": "6d95b139c83977f9877d01d8e5849232adbf3df8d35acea66168e83c13ebd7af",
+      "size": 8745915,
+      "dest": "artifacts/coco_seg/seg16_tern_probe_cont_last_bn.pth",
+      "group": "checkpoints",
+      "what": "16-class indoor segmenter on the deployed backbone (current)"
+    },
+    {
+      "name": "depth_tern_probe_cont_last_bn.pth",
+      "sha256": "ca12f0e03306f4d6775a4dfe838506eb01c4deac0290c2e5070cda678c677d8b",
+      "size": 8745915,
+      "dest": "artifacts/nyu_depth/depth_tern_probe_cont_last_bn.pth",
+      "group": "checkpoints",
+      "what": "monocular depth on the deployed backbone (current)"
+    },
+    {
+      "name": "pose_fallEnhancement_best.pth",
+      "sha256": "0ec41aa0f5025452824bbb16f918a882ce9c292fb6a0865696321b865b04bb72",
+      "size": 8744523,
+      "dest": "artifacts/pose_fallEnhancement/pose_fallEnhancement_best.pth",
+      "group": "checkpoints",
+      "what": "the pose model fine-tuned to also find people lying down"
+    }
+  ],
+  "regenerated_not_released": {
+    "_what": "files derived from MPII images or annotations; they are not distributed. Rebuild them from your own MPII download (README, 'Fixtures and dataset files') and compare with these hashes.",
+    "models/mbv2_pose/fixtures/fix_0.bin": "00ba35795fa6dcc87c6b4fed8f9473d7939c769d9dc97928edbd923155de43ed",
+    "models/mbv2_pose/fixtures/fix_1.bin": "cce0dc613522cd924a1c734c3ca8f750f47208a09cee44a0100d247bc5d217e7",
+    "models/mbv2_pose/fixtures/fix_2.bin": "56c627da6f83122138cacbf3848bdc7bd828759c4457e127d00aabe8f9f0fa28",
+    "models/mbv2_pose/fixtures/fix_3.bin": "2ef37ef2fc46b2747cac4ec1b988ff044f981e539ea0cbf17d2abe3b74dc11ac",
+    "train/mbv2_pose/data/mpii/annot/train.json": "5d28476312bdc6b075359dd9ce6552f413e20d3b6ecb6a216d7193087d74d16b",
+    "train/mbv2_pose/data/mpii/annot/valid.json": "20de57f70ea91ffc46814d243145df56c8e0012f4e65a7cb74709952da4fa83b",
+    "train/mbv2_pose/data/mpii/annot/meta.json": "0f49522d706001a1e71eabcfb4472268f91c23c868e029099d8bcff955bbf562"
+  }
+}

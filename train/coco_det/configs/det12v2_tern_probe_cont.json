@@ -1,0 +1,8 @@
+{
+  "_what": "continuation of det12v2_tern_probe (8 epochs, AP 9.54 after BatchNorm re-estimation) with a fresh cosine schedule; same data weighting",
+  "exp_id": "det12v2_tern_probe_cont",
+  "ternary": true, "init": "checkpoints/det12v2_tern_probe/best_bn.pth",
+  "epochs": 12, "batch": 64, "workers": 12,
+  "lr": 5e-4, "backbone_lr_mult": 0.5, "warmup_iters": 300,
+  "nonperson_weight": 3.0, "lying_weight": 3.0, "w_wh": 1.0, "w_off": 1.0, "eval_every": 2, "seed": 46
+}

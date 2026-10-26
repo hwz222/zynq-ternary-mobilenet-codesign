@@ -1,0 +1,8 @@
+{
+  "_what": "continuation of seg16_tern_probe (6 epochs, mIoU 33.08 after BatchNorm re-estimation) with a fresh cosine schedule; same data weighting",
+  "exp_id": "seg16_tern_probe_cont",
+  "ternary": true, "init": "checkpoints/seg16_tern_probe/last_bn.pth",
+  "epochs": 6, "batch": 64, "workers": 12,
+  "lr": 5e-4, "backbone_lr_mult": 0.5, "warmup_iters": 300,
+  "lying_weight": 3.0, "eval_every": 2, "seed": 46
+}

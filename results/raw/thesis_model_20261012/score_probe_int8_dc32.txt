@@ -1,0 +1,8 @@
+start 2026-10-12T21:22:00.6262349+08:00 ckpt <earlier-repo>\experiments\probe_int8_dc32\best.pth
+ckpt_sha256 1dab06f7037c9f3aa9702b6eaf4994c07f943d515a3df709ef780c9d338650af
+loaded      374 tensors; model keys the checkpoint lacks: 0, checkpoint keys unused: 0
+checkpoint  <earlier-repo>/experiments/probe_int8_dc32/best.pth
+ruler       MPII val, 2289 instances, PCKh@0.5, 14 joints, input 256, cuda
+mean        87.878
+groups      Head 97.78  Shoulder 94.60  Elbow 87.64  Wrist 82.04  Hip 87.47  Knee 83.48  Ankle 78.60
+exit 0 end 2026-10-12T21:22:37.3305454+08:00

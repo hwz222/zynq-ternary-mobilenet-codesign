@@ -1,0 +1,12 @@
+cam app sha16 47f9006f5b57673b
+[selftest golden/fix_0.bin] final max|diff|=0 | kpts 14/14 -> BOARD BIT-EXACT vs golden
+[selftest golden/fix_1.bin] final max|diff|=0 | kpts 14/14 -> BOARD BIT-EXACT vs golden
+[selftest golden/fix_2.bin] final max|diff|=0 | kpts 14/14 -> BOARD BIT-EXACT vs golden
+[selftest golden/fix_3.bin] final max|diff|=0 | kpts 14/14 -> BOARD BIT-EXACT vs golden
+a8ae156468434244  data/fuse_weights.bin
+accd59743da29a6e  data/model_mbv2.bin
+67728c886e2a4618  data/model_mbv2_packed.bin
+00ba35795fa6dcc8  golden/fix_0.bin
+cce0dc613522cd92  golden/fix_1.bin
+56c627da6f831221  golden/fix_2.bin
+2ef37ef2fc46b274  golden/fix_3.bin

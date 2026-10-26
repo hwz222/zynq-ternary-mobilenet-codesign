@@ -1,0 +1,17 @@
+[init] all tensors from checkpoints/det12v2_tern_probe/best_bn.pth
+[data] 36063 images with a non-person class sampled x3.0
+[data] 2165 images with a person lying down sampled x3.0
+[data] 83503 train images, 1304 iters/epoch, 12 epochs
+epoch   0 | loss 3.0481 (hm 1.9304 wh 0.6313 off 0.4865) | lr 4.95e-04 | 373s
+epoch   1 | loss 3.0254 (hm 1.9140 wh 0.6252 off 0.4862) | lr 4.73e-04 | 332s | AP 7.37 AP50 14.64 | best 7.37
+epoch   2 | loss 2.9846 (hm 1.8912 wh 0.6081 off 0.4853) | lr 4.35e-04 | 335s
+epoch   3 | loss 2.9482 (hm 1.8670 wh 0.5958 off 0.4854) | lr 3.84e-04 | 332s | AP 7.30 AP50 14.09 | best 7.37
+epoch   4 | loss 2.9173 (hm 1.8475 wh 0.5852 off 0.4847) | lr 3.23e-04 | 333s
+epoch   5 | loss 2.8910 (hm 1.8289 wh 0.5781 off 0.4840) | lr 2.58e-04 | 338s | AP 8.67 AP50 16.68 | best 8.67
+epoch   6 | loss 2.8579 (hm 1.8075 wh 0.5674 off 0.4830) | lr 1.92e-04 | 332s
+epoch   7 | loss 2.8293 (hm 1.7881 wh 0.5582 off 0.4831) | lr 1.30e-04 | 333s | AP 8.57 AP50 16.76 | best 8.67
+epoch   8 | loss 2.8054 (hm 1.7733 wh 0.5497 off 0.4824) | lr 7.60e-05 | 333s
+epoch   9 | loss 2.7738 (hm 1.7569 wh 0.5363 off 0.4806) | lr 3.48e-05 | 333s | AP 11.29 AP50 20.50 | best 11.29
+epoch  10 | loss 2.7530 (hm 1.7409 wh 0.5318 off 0.4803) | lr 8.87e-06 | 332s | AP 11.46 AP50 21.00 | best 11.46
+epoch  11 | loss 2.7451 (hm 1.7371 wh 0.5271 off 0.4809) | lr 5.00e-06 | 332s | AP 11.62 AP50 21.89 | best 11.62
+[done] best AP 11.62; ternary check 34/34

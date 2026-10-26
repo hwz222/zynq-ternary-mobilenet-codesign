@@ -1,0 +1,9 @@
+# Applied by linux/build_linux.sh on top of the config that petalinux-config generates from the
+# XSA (the hardware part of that file is rewritten at every XSA import, so it is not shipped).
+# One KEY=value (or "# KEY is not set") per line, replacing the generated line.
+CONFIG_SUBSYSTEM_EXTRA_BOOTARGS="uio_pdrv_genirq.of_id=generic-uio"
+# root file system as ext4 on /dev/mmcblk0p2 (the project's selection; the boot set that is
+# actually used loads rootfs.cpio.gz.u-boot as an initramfs, see linux/boot.cmd)
+# CONFIG_SUBSYSTEM_ROOTFS_INITRD is not set
+CONFIG_SUBSYSTEM_ROOTFS_EXT4=y
+CONFIG_SUBSYSTEM_SDROOT_DEV="/dev/mmcblk0p2"

@@ -1,0 +1,3 @@
+{"_what": "comparison arm: 2 epochs on a fixed 30,000-image subset", "exp_id": "diag_d2_tern_imnet", "ternary": true, "init": "imagenet",
+ "epochs": 2, "batch": 64, "workers": 12, "lr": 1e-3, "backbone_lr_mult": 0.3, "warmup_iters": 300,
+ "max_train": 30000, "eval_every": 1, "seed": 42}

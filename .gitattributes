@@ -1,0 +1,19 @@
+# Scripts that run under WSL or on the board must keep LF; Windows scripts keep CRLF.
+*.sh        text eol=lf
+Makefile*   text eol=lf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+# Weights, fixtures, boot components and bitstreams are binary.
+*.bin       binary
+*.BIN       binary
+*.bit       binary
+*.xsa       binary
+*.elf       binary
+*.dtb       binary
+*.scr       binary
+*.u-boot    binary
+Image       binary
+
+# Everything under linux/ is read by Linux tools: LF (listed last so it wins over *.cmd)
+linux/boot.cmd text eol=lf
+linux/project-spec/** text eol=lf

@@ -1,0 +1,11 @@
+[init] pose backbone: 306/306 tensors from <repo>\artifacts\mbv2_pose\room_mix_w3_head32_best.pth
+[data] 47584 train frames, 743 iters/epoch, 8 epochs
+epoch   0 | loss 2.6670 silog 2.647 | lr 9.95e-04 | 324s
+epoch   1 | loss 1.8628 silog 1.849 | lr 9.21e-04 | 208s | d1 0.6759 absrel 0.2010 rmse 0.686 | best d1 0.6759
+epoch   2 | loss 1.6543 silog 1.642 | lr 7.71e-04 | 210s
+epoch   3 | loss 1.5369 silog 1.526 | lr 5.72e-04 | 211s | d1 0.6746 absrel 0.1865 rmse 0.689 | best d1 0.6759
+epoch   4 | loss 1.4524 silog 1.442 | lr 3.60e-04 | 207s
+epoch   5 | loss 1.3801 silog 1.370 | lr 1.73e-04 | 208s | d1 0.6313 absrel 0.2431 rmse 0.745 | best d1 0.6759
+epoch   6 | loss 1.3319 silog 1.323 | lr 4.54e-05 | 208s | d1 0.7197 absrel 0.1778 rmse 0.624 | best d1 0.7197
+epoch   7 | loss 1.2942 silog 1.285 | lr 1.00e-05 | 212s | d1 0.7023 absrel 0.2019 rmse 0.651 | best d1 0.7197
+[done] best d1 0.7197; ternary check 34/34

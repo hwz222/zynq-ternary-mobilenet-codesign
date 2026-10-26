@@ -1,0 +1,8 @@
+{
+  "_what": "continuation of det12_tern_pose (9 epochs, AP 4.44) with a fresh cosine schedule and images containing a non-person class sampled 3x",
+  "exp_id": "det12_tern_cont",
+  "ternary": true, "init": "checkpoints/det12_tern_pose/last.pth",
+  "epochs": 16, "batch": 64, "workers": 12,
+  "lr": 1e-3, "backbone_lr_mult": 0.3, "warmup_iters": 300,
+  "nonperson_weight": 3.0, "w_wh": 1.0, "w_off": 1.0, "eval_every": 2, "seed": 43
+}

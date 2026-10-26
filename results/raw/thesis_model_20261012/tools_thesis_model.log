@@ -1,0 +1,42 @@
+  block 6 : wtp tail x2, 32 words appended
+  block 14: wte tail x4, 240 words appended
+  block 15: wte tail x4, 240 words appended
+  block 16: wte tail x4, 240 words appended
+fuse_weights.bin  740992 bytes (723.6 KB)
+  tern    543360 bytes  16980 words  worst block 16, 4720 words
+  dw       71360 bytes    892 words  worst block 14, 120 words
+  rqa      69120 bytes   2160 words  worst block 16, 320 words
+  rqd      57088 bytes    892 words  worst block 14, 120 words
+  on-chip placement (blocks b and b+1 resident; cap should EQUAL worst pair):
+    tern  cap  8160 words   worst block  4720   worst pair  8160   2x worst  9440  at the floor
+    dw    cap   240 words   worst block   120   worst pair   240   2x worst   240  at the floor
+    rqa   cap   600 words   worst block   320   worst pair   600   2x worst   640  at the floor
+    rqd   cap   240 words   worst block   120   worst pair   240   2x worst   240  at the floor
+  -> twn_wmem depths: TERN 8160  DW 240  RQA 600  RQD 240
+17 descriptors, 16 words each
+  block  c_in c_mid c_out  h    w   s pk_e pk_p in out  row_in row_out
+    0       3    32    16  256  256  0   4    4    -   0     768   2048
+    1      16    96    24  128  128  1   4    1    0   1    2048   1536
+    2      24   144    24   64   64  0   4    1    1   0    1536   1536
+    3      24   144    32   64   64  1   4    1    0   1    1536   1024
+    4      32   192    32   32   32  0   4    1    1   0    1024   1024
+    5      32   192    32   32   32  0   4    1    0   1    1024   1024
+    6      32   192    64   32   32  1   4    1    1   0    1024   1024
+    7      64   384    64   16   16  0   2    1    0   1    1024   1024
+    8      64   384    64   16   16  0   2    1    1   0    1024   1024
+    9      64   384    64   16   16  0   2    1    0   1    1024   1024
+   10      64   384    96   16   16  0   2    1    1   0    1024   1536
+   11      96   576    96   16   16  0   4    1    0   1    1536   1536
+   12      96   576    96   16   16  0   4    1    1   0    1536   1536
+   13      96   576   160   16   16  1   4    1    0   1    1536   1280
+   14     160   960   160    8    8  0   1    1    1   0    1280   1280
+   15     160   960   160    8    8  0   1    1    0   1    1280   1280
+   16     160   960   320    8    8  0   1    1    1   0    1280   2560
+gen_fuse_ddr -> <repo>\build\wt_thesis_model\rtl\fuse\tb
+  ddr_w.hex           46312 beats  (740992 bytes)
+  ddr_in_b??.hex      57728 beats over 17 blocks
+  gold_out.hex        46720 beats  (747520 bytes)
+  arena  0060000000   W 0060000000   ACT 0060100000   IN 0060180000
+  windows: weight 46312 words, activation 45056 words (slots 32768 + block 0 input 12288)
+  2412262 values checked, 0 errors
+=== gen_fuse_ddr verify: ALL PASS ===

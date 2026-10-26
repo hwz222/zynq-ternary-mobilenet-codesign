@@ -1,0 +1,19 @@
+===== FUSE_HEAD_PL=1 =====
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.49 ms  head 5.16 ms  frame 9.65 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.28 ms  head 4.55 ms  frame 8.83 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.30 ms  head 4.66 ms  frame 8.96 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.38 ms  head 4.57 ms  frame 8.95 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+===== FUSE_HEAD_PL=0 =====
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.57 ms  head 11.79 ms  frame 16.36 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.51 ms  head 10.05 ms  frame 14.56 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.50 ms  head 10.09 ms  frame 14.59 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.56 ms  head 9.96 ms  frame 14.51 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+data
+golden
+mbv2_fuse_pipe
+mbv2_fuse_test
+690d87cc5f4b6897
+eab59f3a-7d77-41f1-9f4d-f9f7882ccea2
+0x00000000

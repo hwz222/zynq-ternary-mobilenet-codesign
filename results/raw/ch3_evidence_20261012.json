@@ -1,0 +1,2978 @@
+{
+ "_env": {
+  "torch": "2.11.0+cu128",
+  "brevitas": "0.12.1",
+  "device": "cuda",
+  "old_repo": "<earlier-repo>"
+ },
+ "fp32_baseline": {
+  "family": "r18_float",
+  "options": {},
+  "checkpoint": "experiments/fp32_baseline/best.pth",
+  "checkpoint_sha256_16": "17db0f83ddd4e864",
+  "n_val": 2289,
+  "pckh_mean": 88.72,
+  "groups": {
+   "Head": 97.75,
+   "Shoulder": 94.95,
+   "Elbow": 88.74,
+   "Wrist": 83.59,
+   "Hip": 88.07,
+   "Knee": 84.04,
+   "Ankle": 80.66
+  },
+  "per_joint": [
+   96.87,
+   98.63,
+   95.09,
+   94.82,
+   89.3,
+   88.17,
+   84.07,
+   83.1,
+   87.81,
+   88.34,
+   84.67,
+   83.4,
+   81.23,
+   80.1
+  ],
+  "orchestrator_figure": null,
+  "training_loop_best": 88.71649258019809,
+  "relay_from": null,
+  "twn_keys": null,
+  "loaded_tensors": 140,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 37632.0,
+    "macs": 154140672,
+    "bits": [
+     32.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 43941888.0,
+    "macs": 2189426688,
+    "bits": [
+     32.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 688128.0,
+    "macs": 25165824,
+    "bits": [
+     32.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 16777216.0,
+    "macs": 1476395008,
+    "bits": [
+     32.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 14336.0,
+    "macs": 14680064,
+    "bits": [
+     32.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 61459200.0,
+   "macs": 3859808256,
+   "ternary_weights": 0,
+   "ternary_macs": 0
+  },
+  "eval_seconds": 32.0
+ },
+ "int8_baseline": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/int8_baseline/best.pth",
+  "checkpoint_sha256_16": "b9614ea2aa2342de",
+  "n_val": 2289,
+  "pckh_mean": 88.706,
+  "groups": {
+   "Head": 97.67,
+   "Shoulder": 95.35,
+   "Elbow": 88.72,
+   "Wrist": 83.08,
+   "Hip": 87.96,
+   "Knee": 84.38,
+   "Ankle": 80.6
+  },
+  "per_joint": [
+   96.7,
+   98.63,
+   95.61,
+   95.08,
+   89.52,
+   87.91,
+   84.43,
+   81.73,
+   87.94,
+   87.98,
+   84.73,
+   84.04,
+   80.92,
+   80.29
+  ],
+  "orchestrator_figure": 88.67254842308083,
+  "training_loop_best": 88.67254842308083,
+  "relay_from": "<earlier-repo>\\experiments\\fp32_baseline\\best.pth",
+  "twn_keys": [],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 10985472.0,
+    "macs": 2189426688,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 172032.0,
+    "macs": 25165824,
+    "bits": [
+     8.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 15364800.0,
+   "macs": 3859808256,
+   "ternary_weights": 0,
+   "ternary_macs": 0
+  },
+  "eval_seconds": 38.1
+ },
+ "twn_s4b1": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_s4b1/best.pth",
+  "checkpoint_sha256_16": "3606c1ce7a87942f",
+  "n_val": 2289,
+  "pckh_mean": 88.625,
+  "groups": {
+   "Head": 97.89,
+   "Shoulder": 95.13,
+   "Elbow": 88.54,
+   "Wrist": 83.7,
+   "Hip": 87.58,
+   "Knee": 84.06,
+   "Ankle": 80.13
+  },
+  "per_joint": [
+   97.05,
+   98.72,
+   95.48,
+   94.78,
+   89.57,
+   87.51,
+   84.07,
+   83.33,
+   87.36,
+   87.8,
+   84.78,
+   83.35,
+   80.73,
+   79.54
+  ],
+  "orchestrator_figure": 88.66578778352432,
+  "training_loop_best": 88.66578778352432,
+  "relay_from": "<earlier-repo>\\experiments\\int8_baseline\\best.pth",
+  "twn_keys": [
+   "layer4.1"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 7446528.0,
+    "macs": 2189426688,
+    "bits": [
+     8.0,
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 172032.0,
+    "macs": 25165824,
+    "bits": [
+     8.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 11825856.0,
+   "macs": 3859808256,
+   "ternary_weights": 4718592,
+   "ternary_macs": 301989888
+  },
+  "eval_seconds": 37.5
+ },
+ "twn_s4": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_s4/best.pth",
+  "checkpoint_sha256_16": "21d5019907f996a7",
+  "n_val": 2289,
+  "pckh_mean": 88.247,
+  "groups": {
+   "Head": 97.56,
+   "Shoulder": 94.65,
+   "Elbow": 88.34,
+   "Wrist": 83.06,
+   "Hip": 87.35,
+   "Knee": 83.93,
+   "Ankle": 79.44
+  },
+  "per_joint": [
+   96.56,
+   98.55,
+   94.69,
+   94.6,
+   88.69,
+   88.0,
+   83.01,
+   83.1,
+   87.13,
+   87.57,
+   84.94,
+   82.93,
+   79.85,
+   79.04
+  ],
+  "orchestrator_figure": 88.36155900348173,
+  "training_loop_best": 88.36155900348173,
+  "relay_from": "<earlier-repo>\\experiments\\twn_s4b1\\best.pth",
+  "twn_keys": [
+   "layer4"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 4792320.0,
+    "macs": 2189426688,
+    "bits": [
+     8.0,
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 73728.0,
+    "macs": 25165824,
+    "bits": [
+     8.0,
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 9073344.0,
+   "macs": 3859808256,
+   "ternary_weights": 8388608,
+   "ternary_macs": 536870912
+  },
+  "eval_seconds": 37.6
+ },
+ "twn_s34": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_s34/best.pth",
+  "checkpoint_sha256_16": "a291be422dae6c31",
+  "n_val": 2289,
+  "pckh_mean": 88.013,
+  "groups": {
+   "Head": 97.62,
+   "Shoulder": 94.8,
+   "Elbow": 87.95,
+   "Wrist": 82.79,
+   "Hip": 87.11,
+   "Knee": 83.22,
+   "Ankle": 79.1
+  },
+  "per_joint": [
+   96.87,
+   98.37,
+   94.91,
+   94.69,
+   88.29,
+   87.6,
+   83.63,
+   81.95,
+   87.09,
+   87.12,
+   82.88,
+   83.56,
+   79.6,
+   78.6
+  ],
+  "orchestrator_figure": 88.02690734543488,
+  "training_loop_best": 88.02690734543488,
+  "relay_from": "<earlier-repo>\\experiments\\twn_s4\\best.pth",
+  "twn_keys": [
+   "layer3",
+   "layer4"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 3244032.0,
+    "macs": 2189426688,
+    "bits": [
+     8.0,
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 49152.0,
+    "macs": 25165824,
+    "bits": [
+     8.0,
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 7500480.0,
+   "macs": 3859808256,
+   "ternary_weights": 10485760,
+   "ternary_macs": 1073741824
+  },
+  "eval_seconds": 38.1
+ },
+ "twn_s234": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_s234/best.pth",
+  "checkpoint_sha256_16": "45c326b34f590593",
+  "n_val": 2289,
+  "pckh_mean": 87.905,
+  "groups": {
+   "Head": 97.53,
+   "Shoulder": 94.52,
+   "Elbow": 87.2,
+   "Wrist": 82.81,
+   "Hip": 87.33,
+   "Knee": 82.98,
+   "Ankle": 79.63
+  },
+  "per_joint": [
+   96.61,
+   98.46,
+   94.61,
+   94.42,
+   87.5,
+   86.89,
+   82.96,
+   82.66,
+   87.18,
+   87.48,
+   83.19,
+   82.77,
+   80.29,
+   78.98
+  ],
+  "orchestrator_figure": 87.8950748740831,
+  "training_loop_best": 87.8950748740831,
+  "relay_from": "<earlier-repo>\\experiments\\twn_s34\\best.pth",
+  "twn_keys": [
+   "layer2",
+   "layer3",
+   "layer4"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2856960.0,
+    "macs": 2189426688,
+    "bits": [
+     8.0,
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 7107264.0,
+   "macs": 3859808256,
+   "ternary_weights": 11010048,
+   "ternary_macs": 1610612736
+  },
+  "eval_seconds": 37.0
+ },
+ "twn_s1234": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_s1234/best.pth",
+  "checkpoint_sha256_16": "552a5892bb5bd6f6",
+  "n_val": 2289,
+  "pckh_mean": 87.564,
+  "groups": {
+   "Head": 97.49,
+   "Shoulder": 94.73,
+   "Elbow": 87.15,
+   "Wrist": 81.95,
+   "Hip": 86.28,
+   "Knee": 82.43,
+   "Ankle": 79.63
+  },
+  "per_joint": [
+   96.26,
+   98.72,
+   94.61,
+   94.86,
+   87.63,
+   86.67,
+   82.96,
+   80.93,
+   86.59,
+   85.96,
+   82.45,
+   82.4,
+   79.72,
+   79.54
+  ],
+  "orchestrator_figure": 87.57394449514923,
+  "training_loop_best": 87.57394449514923,
+  "relay_from": "<earlier-repo>\\experiments\\twn_s234\\best.pth",
+  "twn_keys": [
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 6996672.0,
+   "macs": 3859808256,
+   "ternary_weights": 11157504,
+   "ternary_macs": 2214592512
+  },
+  "eval_seconds": 39.0
+ },
+ "twn_bk_stem": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_bk_stem/best.pth",
+  "checkpoint_sha256_16": "8c261f86cdea7f33",
+  "n_val": 2289,
+  "pckh_mean": 87.642,
+  "groups": {
+   "Head": 97.33,
+   "Shoulder": 94.87,
+   "Elbow": 87.04,
+   "Wrist": 81.75,
+   "Hip": 86.99,
+   "Knee": 83.01,
+   "Ankle": 79.13
+  },
+  "per_joint": [
+   96.17,
+   98.5,
+   94.74,
+   95.0,
+   87.54,
+   86.54,
+   81.9,
+   81.6,
+   87.22,
+   86.77,
+   82.61,
+   83.4,
+   79.1,
+   79.16
+  ],
+  "orchestrator_figure": 87.67197376871853,
+  "training_loop_best": 87.67197376871853,
+  "relay_from": "<earlier-repo>\\experiments\\twn_s1234\\best.pth",
+  "twn_keys": [
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4",
+   "stem"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 6989616.0,
+   "macs": 3859808256,
+   "ternary_weights": 11166912,
+   "ternary_macs": 2368733184
+  },
+  "eval_seconds": 44.8
+ },
+ "twn_bk_deconv": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_bk_deconv/best.pth",
+  "checkpoint_sha256_16": "565ebb0460192b91",
+  "n_val": 2289,
+  "pckh_mean": 87.692,
+  "groups": {
+   "Head": 97.51,
+   "Shoulder": 94.47,
+   "Elbow": 87.51,
+   "Wrist": 82.1,
+   "Hip": 86.77,
+   "Knee": 83.17,
+   "Ankle": 78.88
+  },
+  "per_joint": [
+   96.56,
+   98.46,
+   94.43,
+   94.51,
+   88.12,
+   86.89,
+   82.52,
+   81.69,
+   86.86,
+   86.68,
+   82.98,
+   83.35,
+   79.28,
+   78.48
+  ],
+  "orchestrator_figure": 87.72605888517053,
+  "training_loop_best": 87.72605888517053,
+  "relay_from": "<earlier-repo>\\experiments\\twn_s1234\\best.pth",
+  "twn_keys": [
+   "deconv",
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 1048576.0,
+    "macs": 1476395008,
+    "bits": [
+     2.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 3850944.0,
+   "macs": 3859808256,
+   "ternary_weights": 15351808,
+   "ternary_macs": 3690987520
+  },
+  "eval_seconds": 39.7
+ },
+ "twn_no_final": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_no_final/best.pth",
+  "checkpoint_sha256_16": "6828400c3b0d3fe1",
+  "n_val": 2289,
+  "pckh_mean": 87.378,
+  "groups": {
+   "Head": 97.29,
+   "Shoulder": 94.34,
+   "Elbow": 87.26,
+   "Wrist": 81.64,
+   "Hip": 86.77,
+   "Knee": 82.3,
+   "Ankle": 78.5
+  },
+  "per_joint": [
+   96.21,
+   98.37,
+   94.17,
+   94.51,
+   87.19,
+   87.33,
+   81.99,
+   81.29,
+   86.41,
+   87.12,
+   82.51,
+   82.09,
+   79.1,
+   77.92
+  ],
+  "orchestrator_figure": 87.4252104249062,
+  "training_loop_best": 87.4252104249062,
+  "relay_from": "<earlier-repo>\\experiments\\twn_bk_deconv\\best.pth",
+  "twn_keys": [
+   "deconv",
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4",
+   "stem"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 1048576.0,
+    "macs": 1476395008,
+    "bits": [
+     2.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 3843888.0,
+   "macs": 3859808256,
+   "ternary_weights": 15361216,
+   "ternary_macs": 3845128192
+  },
+  "eval_seconds": 34.9
+ },
+ "twn_bk_final": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_bk_final/best.pth",
+  "checkpoint_sha256_16": "76a15864662ecb02",
+  "n_val": 2289,
+  "pckh_mean": 86.036,
+  "groups": {
+   "Head": 97.36,
+   "Shoulder": 94.23,
+   "Elbow": 85.65,
+   "Wrist": 80.31,
+   "Hip": 83.09,
+   "Knee": 80.95,
+   "Ankle": 77.03
+  },
+  "per_joint": [
+   96.21,
+   98.5,
+   94.3,
+   94.16,
+   86.22,
+   85.08,
+   80.79,
+   79.82,
+   83.13,
+   83.04,
+   81.13,
+   80.77,
+   77.4,
+   76.67
+  ],
+  "orchestrator_figure": 86.0663218740493,
+  "training_loop_best": 86.0663218740493,
+  "relay_from": "<earlier-repo>\\experiments\\twn_s1234\\best.pth",
+  "twn_keys": [
+   "final",
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 896.0,
+    "macs": 14680064,
+    "bits": [
+     2.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 6993984.0,
+   "macs": 3859808256,
+   "ternary_weights": 11161088,
+   "ternary_macs": 2229272576
+  },
+  "eval_seconds": 28.7
+ },
+ "twn_all": {
+  "family": "r18_quant",
+  "options": {},
+  "checkpoint": "experiments/twn_all/best.pth",
+  "checkpoint_sha256_16": "ba43036243694033",
+  "n_val": 2289,
+  "pckh_mean": 85.407,
+  "groups": {
+   "Head": 97.14,
+   "Shoulder": 93.62,
+   "Elbow": 86.01,
+   "Wrist": 79.75,
+   "Hip": 82.35,
+   "Knee": 79.63,
+   "Ankle": 75.28
+  },
+  "per_joint": [
+   95.68,
+   98.59,
+   93.25,
+   93.99,
+   86.93,
+   85.08,
+   80.35,
+   79.16,
+   82.23,
+   82.46,
+   79.23,
+   80.03,
+   75.2,
+   75.36
+  ],
+  "orchestrator_figure": 85.42068079640333,
+  "training_loop_best": 85.42068079640333,
+  "relay_from": "<earlier-repo>\\experiments\\twn_bk_final\\best.pth",
+  "twn_keys": [
+   "deconv",
+   "final",
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4",
+   "stem"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 1048576.0,
+    "macs": 1476395008,
+    "bits": [
+     2.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 896.0,
+    "macs": 14680064,
+    "bits": [
+     2.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 15364800,
+   "weight_bytes": 3841200.0,
+   "macs": 3859808256,
+   "ternary_weights": 15364800,
+   "ternary_macs": 3859808256
+  },
+  "eval_seconds": 36.3
+ },
+ "mbv2_fp": {
+  "family": "mbv2_float",
+  "options": {
+   "dc": 256
+  },
+  "checkpoint": "experiments/mbv2_fp/best.pth",
+  "checkpoint_sha256_16": "93be2198b7203624",
+  "n_val": 2289,
+  "pckh_mean": 87.516,
+  "groups": {
+   "Head": 97.11,
+   "Shoulder": 94.65,
+   "Elbow": 87.79,
+   "Wrist": 81.37,
+   "Hip": 87.89,
+   "Knee": 82.45,
+   "Ankle": 77.47
+  },
+  "per_joint": [
+   95.81,
+   98.41,
+   94.78,
+   94.51,
+   88.29,
+   87.29,
+   82.34,
+   80.4,
+   87.81,
+   87.98,
+   81.92,
+   82.98,
+   77.78,
+   77.17
+  ],
+  "orchestrator_figure": 87.50971841936247,
+  "training_loop_best": 87.50971841936247,
+  "relay_from": null,
+  "twn_keys": [],
+  "loaded_tensors": 326,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 864,
+    "weight_bytes": 3456.0,
+    "macs": 14155776,
+    "bits": [
+     32.0
+    ]
+   },
+   "depthwise": {
+    "layers": 17,
+    "weights": 64224,
+    "weight_bytes": 256896.0,
+    "macs": 27058176,
+    "bits": [
+     32.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 33,
+    "weights": 1715072,
+    "weight_bytes": 6860288.0,
+    "macs": 323747840,
+    "bits": [
+     32.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 3407872,
+    "weight_bytes": 13631488.0,
+    "macs": 1426063360,
+    "bits": [
+     32.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 14336.0,
+    "macs": 14680064,
+    "bits": [
+     32.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 55,
+   "weights": 5191616,
+   "weight_bytes": 20766464.0,
+   "macs": 1805705216,
+   "ternary_weights": 0,
+   "ternary_macs": 0
+  },
+  "eval_seconds": 28.0
+ },
+ "mbv2_dc32_fp": {
+  "family": "mbv2_float",
+  "options": {
+   "dc": 32
+  },
+  "checkpoint": "experiments/mbv2_dc32_fp/best.pth",
+  "checkpoint_sha256_16": "0867388481c725da",
+  "n_val": 2289,
+  "pckh_mean": 86.739,
+  "groups": {
+   "Head": 97.49,
+   "Shoulder": 93.75,
+   "Elbow": 86.38,
+   "Wrist": 80.59,
+   "Hip": 86.97,
+   "Knee": 81.37,
+   "Ankle": 76.69
+  },
+  "per_joint": [
+   96.39,
+   98.59,
+   93.86,
+   93.63,
+   86.75,
+   86.01,
+   81.19,
+   80.0,
+   87.13,
+   86.81,
+   81.61,
+   81.14,
+   77.28,
+   76.11
+  ],
+  "orchestrator_figure": 86.74238582969949,
+  "training_loop_best": 86.74238582969949,
+  "relay_from": "<earlier-repo>\\experiments\\mbv2_fp\\best.pth",
+  "twn_keys": [],
+  "loaded_tensors": 326,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 864,
+    "weight_bytes": 3456.0,
+    "macs": 14155776,
+    "bits": [
+     32.0
+    ]
+   },
+   "depthwise": {
+    "layers": 17,
+    "weights": 64224,
+    "weight_bytes": 256896.0,
+    "macs": 27058176,
+    "bits": [
+     32.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 33,
+    "weights": 1715072,
+    "weight_bytes": 6860288.0,
+    "macs": 323747840,
+    "bits": [
+     32.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 196608,
+    "weight_bytes": 786432.0,
+    "macs": 31457280,
+    "bits": [
+     32.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 1792.0,
+    "macs": 1835008,
+    "bits": [
+     32.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 55,
+   "weights": 1977216,
+   "weight_bytes": 7908864.0,
+   "macs": 398254080,
+   "ternary_weights": 0,
+   "ternary_macs": 0
+  },
+  "eval_seconds": 27.8
+ },
+ "mbv2_dc32_pwstem": {
+  "family": "mbv2_quant",
+  "options": {
+   "dc": 32,
+   "region": "pw_stem"
+  },
+  "checkpoint": "experiments/mbv2_dc32_pwstem/best.pth",
+  "checkpoint_sha256_16": "8e0290474e1fe4ac",
+  "n_val": 2289,
+  "pckh_mean": 83.731,
+  "groups": {
+   "Head": 96.72,
+   "Shoulder": 92.65,
+   "Elbow": 83.16,
+   "Wrist": 76.03,
+   "Hip": 84.23,
+   "Knee": 75.94,
+   "Ankle": 72.78
+  },
+  "per_joint": [
+   96.04,
+   97.4,
+   93.2,
+   92.1,
+   84.11,
+   82.22,
+   77.42,
+   74.63,
+   84.89,
+   83.58,
+   76.16,
+   75.71,
+   73.01,
+   72.55
+  ],
+  "orchestrator_figure": 83.75756346550384,
+  "training_loop_best": 83.75756346550384,
+  "relay_from": "<earlier-repo>\\experiments\\mbv2_dc32_fp\\best.pth",
+  "twn_keys": [
+   "features.0.0",
+   "features.1.conv.1",
+   "features.10.conv.0.0",
+   "features.10.conv.2",
+   "features.11.conv.0.0",
+   "features.11.conv.2",
+   "features.12.conv.0.0",
+   "features.12.conv.2",
+   "features.13.conv.0.0",
+   "features.13.conv.2",
+   "features.14.conv.0.0",
+   "features.14.conv.2",
+   "features.15.conv.0.0",
+   "features.15.conv.2",
+   "features.16.conv.0.0",
+   "features.16.conv.2",
+   "features.17.conv.0.0",
+   "features.17.conv.2",
+   "features.2.conv.0.0",
+   "features.2.conv.2",
+   "features.3.conv.0.0",
+   "features.3.conv.2",
+   "features.4.conv.0.0",
+   "features.4.conv.2",
+   "features.5.conv.0.0",
+   "features.5.conv.2",
+   "features.6.conv.0.0",
+   "features.6.conv.2",
+   "features.7.conv.0.0",
+   "features.7.conv.2",
+   "features.8.conv.0.0",
+   "features.8.conv.2",
+   "features.9.conv.0.0",
+   "features.9.conv.2"
+  ],
+  "loaded_tensors": 374,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 864,
+    "weight_bytes": 216.0,
+    "macs": 14155776,
+    "bits": [
+     2.0
+    ]
+   },
+   "depthwise": {
+    "layers": 17,
+    "weights": 64224,
+    "weight_bytes": 64224.0,
+    "macs": 27058176,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 33,
+    "weights": 1715072,
+    "weight_bytes": 428768.0,
+    "macs": 323747840,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 196608,
+    "weight_bytes": 196608.0,
+    "macs": 31457280,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 448.0,
+    "macs": 1835008,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 55,
+   "weights": 1977216,
+   "weight_bytes": 690264.0,
+   "macs": 398254080,
+   "ternary_weights": 1715936,
+   "ternary_macs": 337903616
+  },
+  "eval_seconds": 39.8
+ },
+ "mbv2_dc32_bbpc": {
+  "family": "mbv2_quant",
+  "options": {
+   "dc": 32,
+   "region": "backbone_pcdw"
+  },
+  "checkpoint": "experiments/mbv2_dc32_bbpc/best.pth",
+  "checkpoint_sha256_16": "42407b90f9af514d",
+  "n_val": 2289,
+  "pckh_mean": 74.759,
+  "groups": {
+   "Head": 92.91,
+   "Shoulder": 86.13,
+   "Elbow": 73.07,
+   "Wrist": 64.91,
+   "Hip": 74.82,
+   "Knee": 64.46,
+   "Ankle": 61.17
+  },
+  "per_joint": [
+   91.01,
+   94.8,
+   86.62,
+   85.65,
+   74.16,
+   71.98,
+   65.53,
+   64.3,
+   74.63,
+   75.01,
+   63.64,
+   65.28,
+   61.64,
+   60.7
+  ],
+  "orchestrator_figure": 74.76253253557786,
+  "training_loop_best": 74.76253253557786,
+  "relay_from": "<earlier-repo>\\experiments\\mbv2_dc32_fp\\best.pth",
+  "twn_keys": [
+   "features.0.0",
+   "features.1.conv.1",
+   "features.10.conv.0.0",
+   "features.10.conv.2",
+   "features.11.conv.0.0",
+   "features.11.conv.2",
+   "features.12.conv.0.0",
+   "features.12.conv.2",
+   "features.13.conv.0.0",
+   "features.13.conv.2",
+   "features.14.conv.0.0",
+   "features.14.conv.2",
+   "features.15.conv.0.0",
+   "features.15.conv.2",
+   "features.16.conv.0.0",
+   "features.16.conv.2",
+   "features.17.conv.0.0",
+   "features.17.conv.2",
+   "features.2.conv.0.0",
+   "features.2.conv.2",
+   "features.3.conv.0.0",
+   "features.3.conv.2",
+   "features.4.conv.0.0",
+   "features.4.conv.2",
+   "features.5.conv.0.0",
+   "features.5.conv.2",
+   "features.6.conv.0.0",
+   "features.6.conv.2",
+   "features.7.conv.0.0",
+   "features.7.conv.2",
+   "features.8.conv.0.0",
+   "features.8.conv.2",
+   "features.9.conv.0.0",
+   "features.9.conv.2"
+  ],
+  "loaded_tensors": 374,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 864,
+    "weight_bytes": 216.0,
+    "macs": 14155776,
+    "bits": [
+     2.0
+    ]
+   },
+   "depthwise": {
+    "layers": 17,
+    "weights": 64224,
+    "weight_bytes": 16056.0,
+    "macs": 27058176,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 33,
+    "weights": 1715072,
+    "weight_bytes": 428768.0,
+    "macs": 323747840,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 196608,
+    "weight_bytes": 196608.0,
+    "macs": 31457280,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 448.0,
+    "macs": 1835008,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 55,
+   "weights": 1977216,
+   "weight_bytes": 642096.0,
+   "macs": 398254080,
+   "ternary_weights": 1780160,
+   "ternary_macs": 364961792
+  },
+  "eval_seconds": 40.4
+ },
+ "probe_tern_dc128": {
+  "family": "mbv2_quant",
+  "options": {
+   "dc": 128,
+   "region": "pw_stem"
+  },
+  "checkpoint": "experiments/probe_tern_dc128/best.pth",
+  "checkpoint_sha256_16": "b1c7e647c5ac65d1",
+  "n_val": 2289,
+  "pckh_mean": 86.273,
+  "groups": {
+   "Head": 96.74,
+   "Shoulder": 93.75,
+   "Elbow": 85.52,
+   "Wrist": 79.75,
+   "Hip": 86.55,
+   "Knee": 81.13,
+   "Ankle": 76.72
+  },
+  "per_joint": [
+   95.64,
+   97.84,
+   94.25,
+   93.24,
+   85.83,
+   85.22,
+   80.12,
+   79.38,
+   87.04,
+   86.05,
+   81.34,
+   80.93,
+   77.34,
+   76.11
+  ],
+  "orchestrator_figure": null,
+  "training_loop_best": 86.35702937497888,
+  "relay_from": null,
+  "twn_keys": null,
+  "loaded_tensors": 374,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 864,
+    "weight_bytes": 216.0,
+    "macs": 14155776,
+    "bits": [
+     2.0
+    ]
+   },
+   "depthwise": {
+    "layers": 17,
+    "weights": 64224,
+    "weight_bytes": 64224.0,
+    "macs": 27058176,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 33,
+    "weights": 1715072,
+    "weight_bytes": 428768.0,
+    "macs": 323747840,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 1179648,
+    "weight_bytes": 1179648.0,
+    "macs": 377487360,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 1792,
+    "weight_bytes": 1792.0,
+    "macs": 7340032,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 55,
+   "weights": 2961600,
+   "weight_bytes": 1674648.0,
+   "macs": 749789184,
+   "ternary_weights": 1715936,
+   "ternary_macs": 337903616
+  },
+  "eval_seconds": 40.4
+ },
+ "probe_int8_dc128": {
+  "family": "mbv2_quant",
+  "options": {
+   "dc": 128,
+   "region": "int8"
+  },
+  "checkpoint": "experiments/probe_int8_dc128/best.pth",
+  "checkpoint_sha256_16": "08ecc95c0298e943",
+  "n_val": 2289,
+  "pckh_mean": 88.196,
+  "groups": {
+   "Head": 97.53,
+   "Shoulder": 94.71,
+   "Elbow": 87.92,
+   "Wrist": 82.39,
+   "Hip": 88.27,
+   "Knee": 83.85,
+   "Ankle": 79.26
+  },
+  "per_joint": [
+   96.48,
+   98.59,
+   94.87,
+   94.56,
+   88.38,
+   87.47,
+   82.96,
+   81.82,
+   88.71,
+   87.84,
+   83.62,
+   84.09,
+   79.66,
+   78.85
+  ],
+  "orchestrator_figure": null,
+  "training_loop_best": 88.2398674914647,
+  "relay_from": null,
+  "twn_keys": null,
+  "loaded_tensors": 374,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 864,
+    "weight_bytes": 864.0,
+    "macs": 14155776,
+    "bits": [
+     8.0
+    ]
+   },
+   "depthwise": {
+    "layers": 17,
+    "weights": 64224,
+    "weight_bytes": 64224.0,
+    "macs": 27058176,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 33,
+    "weights": 1715072,
+    "weight_bytes": 1715072.0,
+    "macs": 323747840,
+    "bits": [
+     8.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 1179648,
+    "weight_bytes": 1179648.0,
+    "macs": 377487360,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 1792,
+    "weight_bytes": 1792.0,
+    "macs": 7340032,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 55,
+   "weights": 2961600,
+   "weight_bytes": 2961600.0,
+   "macs": 749789184,
+   "ternary_weights": 0,
+   "ternary_macs": 0
+  },
+  "eval_seconds": 40.1
+ },
+ "probe_skip_dc32": {
+  "family": "mbv2_skip",
+  "options": {
+   "dc": 32,
+   "region": "pw_stem"
+  },
+  "checkpoint": "experiments/probe_skip_dc32/best.pth",
+  "checkpoint_sha256_16": "6a7fe28d838b3835",
+  "n_val": 2289,
+  "pckh_mean": 85.972,
+  "groups": {
+   "Head": 96.89,
+   "Shoulder": 93.37,
+   "Elbow": 85.15,
+   "Wrist": 79.53,
+   "Hip": 86.16,
+   "Knee": 80.71,
+   "Ankle": 76.13
+  },
+  "per_joint": [
+   95.86,
+   97.93,
+   93.51,
+   93.24,
+   85.56,
+   84.73,
+   80.08,
+   78.98,
+   86.55,
+   85.78,
+   81.13,
+   80.3,
+   76.71,
+   75.55
+  ],
+  "orchestrator_figure": null,
+  "training_loop_best": 86.07646283338404,
+  "relay_from": null,
+  "twn_keys": null,
+  "loaded_tensors": 380,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 864,
+    "weight_bytes": 216.0,
+    "macs": 14155776,
+    "bits": [
+     2.0
+    ]
+   },
+   "depthwise": {
+    "layers": 17,
+    "weights": 64224,
+    "weight_bytes": 64224.0,
+    "macs": 27058176,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 36,
+    "weights": 1719936,
+    "weight_bytes": 433632.0,
+    "macs": 328728576,
+    "bits": [
+     2.0,
+     8.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 196608,
+    "weight_bytes": 196608.0,
+    "macs": 31457280,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 448.0,
+    "macs": 1835008,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 58,
+   "weights": 1982080,
+   "weight_bytes": 695128.0,
+   "macs": 403234816,
+   "ternary_weights": 1715936,
+   "ternary_macs": 337903616
+  },
+  "eval_seconds": 40.8
+ },
+ "dsc_fp": {
+  "family": "dsc_float",
+  "options": {},
+  "checkpoint": "experiments/dsc_fp/best.pth",
+  "checkpoint_sha256_16": "930aad685db5becc",
+  "n_val": 2289,
+  "pckh_mean": 80.638,
+  "groups": {
+   "Head": 95.81,
+   "Shoulder": 89.89,
+   "Elbow": 80.28,
+   "Wrist": 71.83,
+   "Hip": 81.63,
+   "Knee": 71.77,
+   "Ankle": 67.96
+  },
+  "per_joint": [
+   94.76,
+   96.87,
+   90.13,
+   89.64,
+   80.81,
+   79.74,
+   73.47,
+   70.2,
+   81.56,
+   81.7,
+   71.35,
+   72.18,
+   67.48,
+   68.43
+  ],
+  "orchestrator_figure": 80.6544299090694,
+  "training_loop_best": 80.6544299090694,
+  "relay_from": null,
+  "twn_keys": [],
+  "loaded_tensors": 236,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 37632.0,
+    "macs": 154140672,
+    "bits": [
+     32.0
+    ]
+   },
+   "depthwise": {
+    "layers": 16,
+    "weights": 30528,
+    "weight_bytes": 122112.0,
+    "macs": 16662528,
+    "bits": [
+     32.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 19,
+    "weights": 1392640,
+    "weight_bytes": 5570560.0,
+    "macs": 268435456,
+    "bits": [
+     32.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 16777216.0,
+    "macs": 1476395008,
+    "bits": [
+     32.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 14336.0,
+    "macs": 14680064,
+    "bits": [
+     32.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 40,
+   "weights": 5630464,
+   "weight_bytes": 22521856.0,
+   "macs": 1930313728,
+   "ternary_weights": 0,
+   "ternary_macs": 0
+  },
+  "eval_seconds": 27.8
+ },
+ "dsc_pw": {
+  "family": "dsc_quant",
+  "options": {},
+  "checkpoint": "experiments/dsc_pw/best.pth",
+  "checkpoint_sha256_16": "88424bd61d22517d",
+  "n_val": 2289,
+  "pckh_mean": 80.137,
+  "groups": {
+   "Head": 95.51,
+   "Shoulder": 89.91,
+   "Elbow": 79.9,
+   "Wrist": 71.75,
+   "Hip": 80.3,
+   "Knee": 70.98,
+   "Ankle": 67.18
+  },
+  "per_joint": [
+   94.41,
+   96.61,
+   90.09,
+   89.73,
+   80.68,
+   79.13,
+   73.29,
+   70.2,
+   81.06,
+   79.54,
+   71.04,
+   70.92,
+   67.17,
+   67.19
+  ],
+  "orchestrator_figure": 80.16766386100124,
+  "training_loop_best": 80.16766386100124,
+  "relay_from": "<earlier-repo>\\experiments\\dsc_fp\\best.pth",
+  "twn_keys": [
+   "layer1.0.conv1.pw",
+   "layer1.0.conv2.pw",
+   "layer1.0.downsample.0",
+   "layer1.1.conv1.pw",
+   "layer1.1.conv2.pw",
+   "layer1.1.downsample.0",
+   "layer2.0.conv1.pw",
+   "layer2.0.conv2.pw",
+   "layer2.0.downsample.0",
+   "layer2.1.conv1.pw",
+   "layer2.1.conv2.pw",
+   "layer2.1.downsample.0",
+   "layer3.0.conv1.pw",
+   "layer3.0.conv2.pw",
+   "layer3.0.downsample.0",
+   "layer3.1.conv1.pw",
+   "layer3.1.conv2.pw",
+   "layer3.1.downsample.0",
+   "layer4.0.conv1.pw",
+   "layer4.0.conv2.pw",
+   "layer4.0.downsample.0",
+   "layer4.1.conv1.pw",
+   "layer4.1.conv2.pw",
+   "layer4.1.downsample.0"
+  ],
+  "loaded_tensors": 284,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "depthwise": {
+    "layers": 16,
+    "weights": 30528,
+    "weight_bytes": 30528.0,
+    "macs": 16662528,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 19,
+    "weights": 1392640,
+    "weight_bytes": 348160.0,
+    "macs": 268435456,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 40,
+   "weights": 5630464,
+   "weight_bytes": 4585984.0,
+   "macs": 1930313728,
+   "ternary_weights": 1392640,
+   "ternary_macs": 268435456
+  },
+  "eval_seconds": 32.5
+ },
+ "dsc_pwdw": {
+  "family": "dsc_quant",
+  "options": {},
+  "checkpoint": "experiments/dsc_pwdw/best.pth",
+  "checkpoint_sha256_16": "c9c3b3ca3c17c42b",
+  "n_val": 2289,
+  "pckh_mean": 78.248,
+  "groups": {
+   "Head": 94.87,
+   "Shoulder": 88.37,
+   "Elbow": 77.06,
+   "Wrist": 69.77,
+   "Hip": 78.39,
+   "Knee": 69.71,
+   "Ankle": 63.77
+  },
+  "per_joint": [
+   93.61,
+   96.12,
+   88.77,
+   87.97,
+   77.68,
+   76.43,
+   71.03,
+   68.51,
+   78.18,
+   78.6,
+   70.14,
+   69.28,
+   63.9,
+   63.63
+  ],
+  "orchestrator_figure": 78.28144542473719,
+  "training_loop_best": 78.28144542473719,
+  "relay_from": "<earlier-repo>\\experiments\\dsc_fp\\best.pth",
+  "twn_keys": [
+   "layer1.0.conv1.dw",
+   "layer1.0.conv1.pw",
+   "layer1.0.conv2.dw",
+   "layer1.0.conv2.pw",
+   "layer1.0.downsample.0",
+   "layer1.1.conv1.dw",
+   "layer1.1.conv1.pw",
+   "layer1.1.conv2.dw",
+   "layer1.1.conv2.pw",
+   "layer1.1.downsample.0",
+   "layer2.0.conv1.dw",
+   "layer2.0.conv1.pw",
+   "layer2.0.conv2.dw",
+   "layer2.0.conv2.pw",
+   "layer2.0.downsample.0",
+   "layer2.1.conv1.dw",
+   "layer2.1.conv1.pw",
+   "layer2.1.conv2.dw",
+   "layer2.1.conv2.pw",
+   "layer2.1.downsample.0",
+   "layer3.0.conv1.dw",
+   "layer3.0.conv1.pw",
+   "layer3.0.conv2.dw",
+   "layer3.0.conv2.pw",
+   "layer3.0.downsample.0",
+   "layer3.1.conv1.dw",
+   "layer3.1.conv1.pw",
+   "layer3.1.conv2.dw",
+   "layer3.1.conv2.pw",
+   "layer3.1.downsample.0",
+   "layer4.0.conv1.dw",
+   "layer4.0.conv1.pw",
+   "layer4.0.conv2.dw",
+   "layer4.0.conv2.pw",
+   "layer4.0.downsample.0",
+   "layer4.1.conv1.dw",
+   "layer4.1.conv1.pw",
+   "layer4.1.conv2.dw",
+   "layer4.1.conv2.pw",
+   "layer4.1.downsample.0"
+  ],
+  "loaded_tensors": 284,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 9408.0,
+    "macs": 154140672,
+    "bits": [
+     8.0
+    ]
+   },
+   "depthwise": {
+    "layers": 16,
+    "weights": 30528,
+    "weight_bytes": 7632.0,
+    "macs": 16662528,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 19,
+    "weights": 1392640,
+    "weight_bytes": 348160.0,
+    "macs": 268435456,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 4194304,
+    "weight_bytes": 4194304.0,
+    "macs": 1476395008,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 3584,
+    "weight_bytes": 3584.0,
+    "macs": 14680064,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 40,
+   "weights": 5630464,
+   "weight_bytes": 4563088.0,
+   "macs": 1930313728,
+   "ternary_weights": 1423168,
+   "ternary_macs": 285097984
+  },
+  "eval_seconds": 30.4
+ },
+ "c_dc64": {
+  "family": "comp_quant",
+  "options": {},
+  "checkpoint": "experiments/c_dc64/best.pth",
+  "checkpoint_sha256_16": "f766ea7d561bf692",
+  "n_val": 2289,
+  "pckh_mean": 85.711,
+  "groups": {
+   "Head": 96.56,
+   "Shoulder": 93.35,
+   "Elbow": 85.79,
+   "Wrist": 79.8,
+   "Hip": 85.22,
+   "Knee": 79.89,
+   "Ankle": 75.22
+  },
+  "per_joint": [
+   95.2,
+   97.93,
+   93.55,
+   93.15,
+   87.19,
+   84.38,
+   80.7,
+   78.89,
+   84.98,
+   85.46,
+   80.71,
+   79.08,
+   75.52,
+   74.92
+  ],
+  "orchestrator_figure": 85.71138829733293,
+  "training_loop_best": 85.71138829733293,
+  "relay_from": "<earlier-repo>\\experiments\\c_dc64_fp\\best.pth",
+  "twn_keys": [
+   "deconv",
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4",
+   "stem"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 655360,
+    "weight_bytes": 163840.0,
+    "macs": 117440512,
+    "bits": [
+     2.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 896,
+    "weight_bytes": 896.0,
+    "macs": 3670016,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 11823168,
+   "weight_bytes": 2956464.0,
+   "macs": 2489843712,
+   "ternary_weights": 11822272,
+   "ternary_macs": 2486173696
+  },
+  "eval_seconds": 28.7
+ },
+ "h_dc64_i8": {
+  "family": "comp_quant",
+  "options": {},
+  "checkpoint": "experiments/h_dc64_i8/best.pth",
+  "checkpoint_sha256_16": "c9999702a9c9492d",
+  "n_val": 2289,
+  "pckh_mean": 87.371,
+  "groups": {
+   "Head": 97.36,
+   "Shoulder": 94.69,
+   "Elbow": 87.11,
+   "Wrist": 81.28,
+   "Hip": 87.56,
+   "Knee": 82.27,
+   "Ankle": 77.5
+  },
+  "per_joint": [
+   96.34,
+   98.37,
+   94.91,
+   94.47,
+   87.9,
+   86.32,
+   82.03,
+   80.53,
+   87.27,
+   87.84,
+   81.98,
+   82.56,
+   78.03,
+   76.98
+  ],
+  "orchestrator_figure": 87.36436466889768,
+  "training_loop_best": 87.36436466889768,
+  "relay_from": "<earlier-repo>\\experiments\\c_dc64_fp\\best.pth",
+  "twn_keys": [
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4",
+   "stem"
+  ],
+  "loaded_tensors": 172,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 16,
+    "weights": 10985472,
+    "weight_bytes": 2746368.0,
+    "macs": 2189426688,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 172032,
+    "weight_bytes": 43008.0,
+    "macs": 25165824,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 655360,
+    "weight_bytes": 655360.0,
+    "macs": 117440512,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 896,
+    "weight_bytes": 896.0,
+    "macs": 3670016,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 24,
+   "weights": 11823168,
+   "weight_bytes": 3447984.0,
+   "macs": 2489843712,
+   "ternary_weights": 11166912,
+   "ternary_macs": 2368733184
+  },
+  "eval_seconds": 34.6
+ },
+ "h_b2221_s4w256_dc32_i8": {
+  "family": "comp_quant",
+  "options": {},
+  "checkpoint": "experiments/h_b2221_s4w256_dc32_i8/best.pth",
+  "checkpoint_sha256_16": "30bbf08db1c34b48",
+  "n_val": 2289,
+  "pckh_mean": 86.08,
+  "groups": {
+   "Head": 97.07,
+   "Shoulder": 93.88,
+   "Elbow": 85.48,
+   "Wrist": 80.37,
+   "Hip": 86.7,
+   "Knee": 79.53,
+   "Ankle": 75.16
+  },
+  "per_joint": [
+   95.77,
+   98.37,
+   94.12,
+   93.63,
+   86.09,
+   84.86,
+   81.19,
+   79.56,
+   86.68,
+   86.72,
+   79.02,
+   80.03,
+   76.08,
+   74.24
+  ],
+  "orchestrator_figure": 86.05956123449279,
+  "training_loop_best": 86.05956123449279,
+  "relay_from": "<earlier-repo>\\experiments\\h_b2221_s4w256_dc32_i8_fp\\best.pth",
+  "twn_keys": [
+   "layer1",
+   "layer2",
+   "layer3",
+   "layer4",
+   "stem"
+  ],
+  "loaded_tensors": 157,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv_kxk": {
+    "layers": 14,
+    "weights": 3907584,
+    "weight_bytes": 976896.0,
+    "macs": 1736441856,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 3,
+    "weights": 106496,
+    "weight_bytes": 26624.0,
+    "macs": 20971520,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 163840,
+    "weight_bytes": 163840.0,
+    "macs": 29360128,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 448.0,
+    "macs": 1835008,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 22,
+   "weights": 4187776,
+   "weight_bytes": 1170160.0,
+   "macs": 1942749184,
+   "ternary_weights": 4023488,
+   "ternary_macs": 1911554048
+  },
+  "eval_seconds": 34.6
+ },
+ "dsc_dc32_fp": {
+  "family": "dsc_float",
+  "options": {},
+  "checkpoint": "experiments/dsc_dc32_fp/best.pth",
+  "checkpoint_sha256_16": "a33c34cb330d3961",
+  "n_val": 2289,
+  "pckh_mean": 80.79,
+  "groups": {
+   "Head": 96.04,
+   "Shoulder": 90.19,
+   "Elbow": 79.93,
+   "Wrist": 72.83,
+   "Hip": 81.9,
+   "Knee": 71.79,
+   "Ankle": 67.3
+  },
+  "per_joint": [
+   94.76,
+   97.31,
+   90.44,
+   89.95,
+   81.21,
+   78.64,
+   73.74,
+   71.93,
+   82.05,
+   81.74,
+   72.57,
+   71.02,
+   66.6,
+   68.0
+  ],
+  "orchestrator_figure": 80.78626238042119,
+  "training_loop_best": 80.78626238042119,
+  "relay_from": "<earlier-repo>\\experiments\\dsc_fp\\best.pth",
+  "twn_keys": [],
+  "loaded_tensors": 236,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 37632.0,
+    "macs": 154140672,
+    "bits": [
+     32.0
+    ]
+   },
+   "depthwise": {
+    "layers": 16,
+    "weights": 30528,
+    "weight_bytes": 122112.0,
+    "macs": 16662528,
+    "bits": [
+     32.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 19,
+    "weights": 1392640,
+    "weight_bytes": 5570560.0,
+    "macs": 268435456,
+    "bits": [
+     32.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 294912,
+    "weight_bytes": 1179648.0,
+    "macs": 37748736,
+    "bits": [
+     32.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 1792.0,
+    "macs": 1835008,
+    "bits": [
+     32.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 40,
+   "weights": 1727936,
+   "weight_bytes": 6911744.0,
+   "macs": 478822400,
+   "ternary_weights": 0,
+   "ternary_macs": 0
+  },
+  "eval_seconds": 27.9
+ },
+ "dsc_dc32_pwstem": {
+  "family": "dsc_quant",
+  "options": {},
+  "checkpoint": "experiments/dsc_dc32_pwstem/best.pth",
+  "checkpoint_sha256_16": "37077259c629c8c8",
+  "n_val": 2289,
+  "pckh_mean": 79.502,
+  "groups": {
+   "Head": 95.51,
+   "Shoulder": 89.25,
+   "Elbow": 78.54,
+   "Wrist": 70.86,
+   "Hip": 80.93,
+   "Knee": 70.24,
+   "Ankle": 65.43
+  },
+  "per_joint": [
+   94.41,
+   96.61,
+   89.82,
+   88.67,
+   78.96,
+   78.11,
+   72.09,
+   69.62,
+   80.57,
+   81.29,
+   70.14,
+   70.34,
+   64.85,
+   66.0
+  ],
+  "orchestrator_figure": 79.48821958557279,
+  "training_loop_best": 79.48821958557279,
+  "relay_from": "<earlier-repo>\\experiments\\dsc_dc32_fp\\best.pth",
+  "twn_keys": [
+   "layer1.0.conv1.pw",
+   "layer1.0.conv2.pw",
+   "layer1.0.downsample.0",
+   "layer1.1.conv1.pw",
+   "layer1.1.conv2.pw",
+   "layer1.1.downsample.0",
+   "layer2.0.conv1.pw",
+   "layer2.0.conv2.pw",
+   "layer2.0.downsample.0",
+   "layer2.1.conv1.pw",
+   "layer2.1.conv2.pw",
+   "layer2.1.downsample.0",
+   "layer3.0.conv1.pw",
+   "layer3.0.conv2.pw",
+   "layer3.0.downsample.0",
+   "layer3.1.conv1.pw",
+   "layer3.1.conv2.pw",
+   "layer3.1.downsample.0",
+   "layer4.0.conv1.pw",
+   "layer4.0.conv2.pw",
+   "layer4.0.downsample.0",
+   "layer4.1.conv1.pw",
+   "layer4.1.conv2.pw",
+   "layer4.1.downsample.0",
+   "stem"
+  ],
+  "loaded_tensors": 284,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "depthwise": {
+    "layers": 16,
+    "weights": 30528,
+    "weight_bytes": 30528.0,
+    "macs": 16662528,
+    "bits": [
+     8.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 19,
+    "weights": 1392640,
+    "weight_bytes": 348160.0,
+    "macs": 268435456,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 294912,
+    "weight_bytes": 294912.0,
+    "macs": 37748736,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 448.0,
+    "macs": 1835008,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 40,
+   "weights": 1727936,
+   "weight_bytes": 676400.0,
+   "macs": 478822400,
+   "ternary_weights": 1402048,
+   "ternary_macs": 422576128
+  },
+  "eval_seconds": 38.8
+ },
+ "dsc_dc32_bbpc": {
+  "family": "dsc_quant",
+  "options": {},
+  "checkpoint": "experiments/dsc_dc32_bbpc/best.pth",
+  "checkpoint_sha256_16": "92cc002fcded1c4b",
+  "n_val": 2289,
+  "pckh_mean": 77.443,
+  "groups": {
+   "Head": 95.07,
+   "Shoulder": 88.24,
+   "Elbow": 76.33,
+   "Wrist": 68.49,
+   "Hip": 79.02,
+   "Knee": 67.1,
+   "Ankle": 61.3
+  },
+  "per_joint": [
+   93.92,
+   96.21,
+   88.6,
+   87.88,
+   77.02,
+   75.64,
+   69.3,
+   67.67,
+   78.99,
+   79.05,
+   67.02,
+   67.18,
+   60.83,
+   61.76
+  ],
+  "orchestrator_figure": 77.42622452083967,
+  "training_loop_best": 77.42622452083967,
+  "relay_from": "<earlier-repo>\\experiments\\dsc_dc32_fp\\best.pth",
+  "twn_keys": [
+   "layer1.0.conv1.pw",
+   "layer1.0.conv2.pw",
+   "layer1.0.downsample.0",
+   "layer1.1.conv1.pw",
+   "layer1.1.conv2.pw",
+   "layer1.1.downsample.0",
+   "layer2.0.conv1.pw",
+   "layer2.0.conv2.pw",
+   "layer2.0.downsample.0",
+   "layer2.1.conv1.pw",
+   "layer2.1.conv2.pw",
+   "layer2.1.downsample.0",
+   "layer3.0.conv1.pw",
+   "layer3.0.conv2.pw",
+   "layer3.0.downsample.0",
+   "layer3.1.conv1.pw",
+   "layer3.1.conv2.pw",
+   "layer3.1.downsample.0",
+   "layer4.0.conv1.pw",
+   "layer4.0.conv2.pw",
+   "layer4.0.downsample.0",
+   "layer4.1.conv1.pw",
+   "layer4.1.conv2.pw",
+   "layer4.1.downsample.0",
+   "stem"
+  ],
+  "loaded_tensors": 284,
+  "model_keys_missing": 0,
+  "checkpoint_keys_unused": 0,
+  "by_kind": {
+   "stem": {
+    "layers": 1,
+    "weights": 9408,
+    "weight_bytes": 2352.0,
+    "macs": 154140672,
+    "bits": [
+     2.0
+    ]
+   },
+   "depthwise": {
+    "layers": 16,
+    "weights": 30528,
+    "weight_bytes": 7632.0,
+    "macs": 16662528,
+    "bits": [
+     2.0
+    ]
+   },
+   "conv1x1": {
+    "layers": 19,
+    "weights": 1392640,
+    "weight_bytes": 348160.0,
+    "macs": 268435456,
+    "bits": [
+     2.0
+    ]
+   },
+   "deconv": {
+    "layers": 3,
+    "weights": 294912,
+    "weight_bytes": 294912.0,
+    "macs": 37748736,
+    "bits": [
+     8.0
+    ]
+   },
+   "output_1x1": {
+    "layers": 1,
+    "weights": 448,
+    "weight_bytes": 448.0,
+    "macs": 1835008,
+    "bits": [
+     8.0
+    ]
+   }
+  },
+  "total": {
+   "layers": 40,
+   "weights": 1727936,
+   "weight_bytes": 653504.0,
+   "macs": 478822400,
+   "ternary_weights": 1432576,
+   "ternary_macs": 439238656
+  },
+  "eval_seconds": 38.5
+ }
+}

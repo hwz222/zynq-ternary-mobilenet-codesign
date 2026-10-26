@@ -1,0 +1,31 @@
+/include/ "system-conf.dtsi"
+/ {
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+        pl_arena: pl_arena@60000000 {
+            no-map;
+            reg = <0x0 0x60000000 0x0 0x10000000>;   /* 256 MB @ 0x6000_0000, uncached */
+        };
+    };
+};
+
+/* Expose the accelerator's AXI-Lite control window to userspace: the board apps mmap /dev/uioN.
+ * fuse_0 is the instance name of twn:user:twn_fuse in the block design (vivado/build_bd_fuse.tcl),
+ * so the generated node is fuse_0@a0000000. The kernel command line carries
+ * uio_pdrv_genirq.of_id=generic-uio (CONFIG_SUBSYSTEM_EXTRA_BOOTARGS in configs/config.user). */
+&fuse_0 {
+    compatible = "generic-uio";
+    status = "okay";
+};
+
+/* The AXU2CGB microSD slot has no write-protect switch (microSD cards have none), but the
+ * controller's WP input floats and reads as protected, so every write to the FAT boot partition
+ * fails. disable-wp tells sdhci to ignore the pin. */
+&sdhci1 {
+    disable-wp;
+};
+&sdhci0 {
+    disable-wp;
+};

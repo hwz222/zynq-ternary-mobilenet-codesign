@@ -1,0 +1,429 @@
+{
+  "_README": "Host-side accuracy of the task models trained for the board's fixed network (same MobileNetV2 backbone, ternary pointwise + stem convs, INT8 depthwise and head, 16-channel output). Measured with Brevitas fake quantisation on the host, NOT on the board: the models are not yet exported to the board's integer format. Append-only; set current=false on a superseded entry. sha = first 16 hex digits of SHA-256.",
+  "coco_det_det12_tern_cont_20261012": {
+    "current": false,
+    "date": "2026-10-12",
+    "task": "object detection, 12 indoor COCO classes, CenterNet-style decoding of the 16 output channels",
+    "ruler": "COCO box AP@[0.5:0.95] (pycocotools COCOeval), all 5,000 val2017 images, restricted to the 12 category ids, boxes in original image coordinates; train/coco_det/src/evaluate.py",
+    "build": "artifacts/coco_det/det12_tern_cont_best_bn.pth sha 9124637f15fcee1c",
+    "lineage": "pose backbone (artifacts/mbv2_pose/room_mix_w3_head32_best.pth) -> det12_tern_pose (9 epochs; schedule changed 24->14 after epoch 6, stopped after epoch 9) -> det12_tern_cont (16 epochs, images with a non-person class sampled x3) -> best epoch 14 -> BatchNorm statistics re-estimated (200 batches of 64 un-augmented train images, weights unchanged)",
+    "source": "results/raw/multitask_20261012/eval_coco_det.json, log_coco_det_*.txt, metrics_coco_det_*.jsonl",
+    "measured_by": "cd train/coco_det && python -m src.evaluate ../../artifacts/coco_det/det12_tern_cont_best_bn.pth",
+    "AP": 13.16,
+    "AP50": 23.83,
+    "AP75": 12.6,
+    "AP_small": 0.37,
+    "AP_medium": 6.45,
+    "AP_large": 22.96,
+    "AP_per_class": {
+      "person": 18.45,
+      "bottle": 1.69,
+      "cup": 3.8,
+      "chair": 2.6,
+      "couch": 9.52,
+      "bed": 17.97,
+      "dining table": 12.61,
+      "toilet": 30.16,
+      "tv": 21.3,
+      "laptop": 16.31,
+      "sink": 8.37,
+      "refrigerator": 15.19
+    },
+    "AP_before_bn_reestimation": 11.26,
+    "ternary_check": "34 of 34 ternary layers in {-1,0,+1} with zeros present; mean zero fraction 0.525",
+    "comparison_arms": "2 epochs on a fixed 30,000-image subset, val AP: ternary from pose backbone 0.78, ternary from ImageNet 0.39, INT8 from ImageNet 0.66, ternary from ImageNet with full backbone rate 0.56 (logs in source). Neither the starting point nor ternarisation explained the slow learning.",
+    "superseded_by": "coco_det_det12v2_tern_probe_cont_20261013",
+    "superseded_why": "started from the backbone of the earlier deployed pose model room_mix_w3_head32 (superseded, not released); the delivered models start from the deployed pose model probe_tern_dc32"
+  },
+  "coco_seg_seg16_tern_pose_20261012": {
+    "current": false,
+    "date": "2026-10-12",
+    "task": "indoor scene segmentation, 16 classes merged from COCO-Stuff, per-pixel arg-max of the 16 output channels",
+    "ruler": "mean IoU over 16 classes on the 2,011 indoor COCO-Stuff val2017 images (>=20 % of labelled pixels indoor classes), original resolution, unlabelled ignored; train/coco_seg/src/evaluate.py",
+    "build": "artifacts/coco_seg/seg16_tern_pose_last_bn.pth sha 65889487b781bb54",
+    "lineage": "pose backbone -> seg16_tern_pose (12 epochs on 47,305 indoor train images) -> last epoch -> BatchNorm statistics re-estimated",
+    "source": "results/raw/multitask_20261012/eval_coco_seg.json, log_coco_seg_seg16_tern_pose.txt",
+    "measured_by": "cd train/coco_seg && python -m src.evaluate ../../artifacts/coco_seg/seg16_tern_pose_last_bn.pth",
+    "mIoU": 36.48,
+    "pixel_acc": 63.49,
+    "IoU_per_class": {
+      "other": 44.17,
+      "person": 68.48,
+      "floor": 43.04,
+      "wall": 55.0,
+      "ceiling": 54.47,
+      "window": 34.99,
+      "door": 9.4,
+      "bed": 42.73,
+      "chair": 8.94,
+      "couch": 26.4,
+      "table": 45.36,
+      "cabinet": 20.55,
+      "appliance": 46.94,
+      "toilet/sink": 50.35,
+      "plant": 32.87,
+      "stairs": 0.0
+    },
+    "mIoU_before_bn_reestimation": "33.79 (best epoch 10), 29.32 (last epoch)",
+    "ternary_check": "34 of 34 ternary layers ok",
+    "superseded_by": "coco_seg_seg16_tern_probe_cont_20261013",
+    "superseded_why": "started from the backbone of the earlier deployed pose model room_mix_w3_head32 (superseded, not released); the delivered models start from the deployed pose model probe_tern_dc32"
+  },
+  "nyu_depth_depth_tern_distill_20261012": {
+    "current": false,
+    "date": "2026-10-12",
+    "task": "monocular metric depth, channel 0 = log(metres)",
+    "ruler": "NYU Depth V2, 654 official test frames, 640x480, Eigen crop, ground truth in (0.001, 10] m, no scale alignment; train/nyu_depth/src/evaluate.py",
+    "build": "artifacts/nyu_depth/depth_tern_distill_best_bn.pth sha e2197fd6e5c8b13b",
+    "lineage": "pose backbone -> depth_tern_pose (8 epochs, NYU 47,584 frames; best epoch BatchNorm re-estimated: d1 0.748, AbsRel 0.169, RMSE 0.594) -> depth_tern_distill (6 epochs on NYU + 23,996 indoor COCO images labelled by Depth Anything V2 metric indoor Small) -> best epoch 5 -> BatchNorm re-estimated on the same mix",
+    "source": "results/raw/multitask_20261012/eval_nyu_depth.json, log_nyu_depth_*.txt",
+    "measured_by": "cd train/nyu_depth && python -m src.evaluate ../../artifacts/nyu_depth/depth_tern_distill_best_bn.pth",
+    "d1": 0.767,
+    "d2": 0.948,
+    "d3": 0.987,
+    "abs_rel": 0.162,
+    "sq_rel": 0.13,
+    "rmse_m": 0.562,
+    "rmse_log": 0.199,
+    "log10": 0.068,
+    "ternary_check": "34 of 34 ternary layers ok",
+    "note": "The teacher-labelled images were added because the NYU-only model gave blurred maps and placed a person at >6 m on non-NYU video (demo frames, not published).",
+    "superseded_by": "nyu_depth_depth_tern_probe_cont_20261013",
+    "superseded_why": "started from the backbone of the earlier deployed pose model room_mix_w3_head32 (superseded, not released); the delivered models start from the deployed pose model probe_tern_dc32"
+  },
+  "pose_fallEnhancement_20261013": {
+    "current": true,
+    "date": "2026-10-13",
+    "task": "single-person pose, 14 joints, fine-tuned to also handle people lying down (name given by the author)",
+    "ruler": "MPII val 2,289 people, PCKh@0.5, 14 joints, standalone (train/pose_fallEnhancement/src/score_ckpt.py); and COCO-lying val, 108 people lying down, a joint correct within 0.1 x the longer side of the person box, 12 joints (src/score_lying.py)",
+    "build": "artifacts/pose_fallEnhancement/pose_fallEnhancement_best.pth sha 0ec41aa0f5025452",
+    "lineage": "probe_tern_dc32 (all tensors) -> 8 epochs full fine-tune on MPII + Penn Action sports + 2,346 COCO lying people sampled x4, 15 % of crops turned by +-90 degrees, colour jitter 30 % -> last epoch; no BatchNorm re-estimation (it lowered both rulers for this model)",
+    "source": "results/raw/multitask_probe_20261013/log_pose_fallEnhancement.txt, metrics_pose_fallEnhancement.jsonl, stills/",
+    "measured_by": "cd train/pose_fallEnhancement && python -m src.score_ckpt ../../artifacts/pose_fallEnhancement/pose_fallEnhancement_best.pth; python -m src.score_lying <same>",
+    "mpii_pckh": 85.059,
+    "mpii_groups": {
+      "Head": 96.83,
+      "Shoulder": 93.09,
+      "Elbow": 84.22,
+      "Wrist": 78.11,
+      "Hip": 85.06,
+      "Knee": 78.94,
+      "Ankle": 75.13
+    },
+    "coco_lying_pck": 62.903,
+    "coco_lying_groups": {
+      "Shoulder": 69.5,
+      "Elbow": 63.2,
+      "Wrist": 64.9,
+      "Hip": 59.1,
+      "Knee": 59.2,
+      "Ankle": 60.9
+    },
+    "baseline_probe_tern_dc32": {
+      "mpii_pckh": 85.992,
+      "coco_lying_pck": 52.419,
+      "note": "MPII from results/board_results.json; COCO-lying measured 2026-10-13 with the same src/score_lying.py"
+    },
+    "ternary_check": "34 of 34 ternary layers ok",
+    "comparison_arm": "pose_fallEnhancement_gentle (BatchNorm frozen, learning rate /3): MPII 83.26 after its first epoch, stopped (log in source)",
+    "note": "On whole camera frames a fallen person is small and off-centre and both pose models fail; the demo runs the pose model on a crop around the person box from the detector (two-stage)."
+  },
+  "coco_det_det12v2_tern_probe_cont_20261013": {
+    "current": true,
+    "date": "2026-10-13",
+    "task": "object detection, 12 indoor COCO classes, class set v2: person, oven, potted plant, chair, couch, bed, dining table, toilet, tv, laptop, sink, refrigerator (oven and potted plant replace bottle and cup)",
+    "ruler": "COCO box AP@[0.5:0.95], all 5,000 val2017 images, the 12 v2 category ids; train/coco_det/src/evaluate.py (DET_CLASSSET=v2). Not directly comparable with the v1 entry: two classes differ",
+    "build": "artifacts/coco_det/det12v2_tern_probe_cont_best_bn.pth sha bb42fd0be70659fb",
+    "lineage": "backbone of probe_tern_dc32 + head of det12_tern_cont (rows of the two changed classes re-initialised) -> det12v2_tern_probe 8 epochs (AP 9.54 after BN re-estimation) -> det12v2_tern_probe_cont 12 epochs -> best epoch -> BatchNorm re-estimated; furniture images x3 and lying-person images x3 throughout",
+    "source": "results/raw/multitask_probe_20261013/eval_coco_det.json, log_det12v2_*.txt, det_lying_recall.json",
+    "measured_by": "cd train/coco_det && python -m src.evaluate ../../artifacts/coco_det/det12v2_tern_probe_cont_best_bn.pth",
+    "AP": 13.78,
+    "AP50": 25.17,
+    "AP_per_class": {
+      "person": 17.8,
+      "oven": 2.8,
+      "potted plant": 13.2,
+      "chair": 2.1,
+      "couch": 19.6,
+      "bed": 15.1,
+      "dining table": 29.0,
+      "toilet": 21.2,
+      "tv": 15.5,
+      "laptop": 4.7,
+      "sink": 7.5,
+      "refrigerator": 17.0
+    },
+    "lying_person_recall": "36 of 108 at score 0.3 (v1: 34), 58 of 108 at 0.15 (v1: 57): the lying oversampling barely changed it",
+    "ternary_check": "34 of 34 ternary layers ok, mean zero fraction 0.496"
+  },
+  "coco_seg_seg16_tern_probe_cont_20261013": {
+    "current": true,
+    "date": "2026-10-13",
+    "task": "indoor scene segmentation, 16 classes (unchanged)",
+    "ruler": "mean IoU, 16 classes, 2,011 indoor COCO-Stuff val2017 images, original resolution; train/coco_seg/src/evaluate.py",
+    "build": "artifacts/coco_seg/seg16_tern_probe_cont_last_bn.pth sha 6d95b139c83977f9",
+    "lineage": "backbone of probe_tern_dc32 + head of seg16_tern_pose -> seg16_tern_probe 6 epochs (33.08 after BN re-estimation) -> seg16_tern_probe_cont 6 epochs -> last epoch -> BatchNorm re-estimated; lying-person images x3",
+    "source": "results/raw/multitask_probe_20261013/eval_coco_seg.json, log_seg16_*.txt",
+    "measured_by": "cd train/coco_seg && python -m src.evaluate ../../artifacts/coco_seg/seg16_tern_probe_cont_last_bn.pth",
+    "mIoU": 35.76,
+    "pixel_acc": 62.97,
+    "ternary_check": "34 of 34 ternary layers ok"
+  },
+  "nyu_depth_depth_tern_probe_cont_20261013": {
+    "current": true,
+    "date": "2026-10-13",
+    "task": "monocular metric depth (unchanged)",
+    "ruler": "NYU Depth V2 654 official test frames, Eigen crop, (0.001, 10] m, no scale alignment; train/nyu_depth/src/evaluate.py",
+    "build": "artifacts/nyu_depth/depth_tern_probe_cont_last_bn.pth sha ca12f0e03306f4d6",
+    "lineage": "backbone of probe_tern_dc32 + head of depth_tern_distill -> depth_tern_probe 4 epochs (0.733 after BN re-estimation) -> depth_tern_probe_cont 4 epochs -> last epoch -> BatchNorm re-estimated; NYU + 23,996 teacher-labelled indoor COCO images",
+    "source": "results/raw/multitask_probe_20261013/eval_nyu_depth.json, log_depth_*.txt",
+    "measured_by": "cd train/nyu_depth && python -m src.evaluate ../../artifacts/nyu_depth/depth_tern_probe_cont_last_bn.pth",
+    "d1": 0.747,
+    "abs_rel": 0.17,
+    "rmse_m": 0.592,
+    "ternary_check": "34 of 34 ternary layers ok"
+  },
+  "fall_detect_urfd_20261013": {
+    "current": true,
+    "date": "2026-10-13",
+    "task": "fall alarm from video: person tracks from the detector, joints from the pose model, a rule on the processor side (host prototype, fake-quantised models; not the board)",
+    "ruler": "UR Fall Detection Dataset (URFD) cam0 RGB, 30 fall + 40 ADL sequences, 640x480 at 30 fps, per-frame labels from urfall-cam0-falls.csv (sha 4ed29af7040098ba) and urfall-cam0-adls.csv (sha e19b2d8379538c16). Fall sequence hit = first alarm at or after (first 'falling' frame - 0.5 s); an earlier alarm counts as a false alarm. ADL sequence false alarm = any alarm. Parameters chosen on the odd-numbered sequences (15 falls, 20 ADL), reported on the even-numbered ones (15 falls, 20 ADL); 'all_70' includes the tuning half and is optimistic. Delay columns: seconds from the first 'falling' frame, and from the first 'lying' frame (negative = before the person is on the floor), medians over hits.",
+    "build": "detector artifacts/coco_det/det12v2_tern_probe_cont_best_bn.pth sha bb42fd0be70659fb; pose artifacts/pose_fallEnhancement/pose_fallEnhancement_best.pth sha 0ec41aa0f5025452; code train/coco_det/src/video_boxes.py, train/pose_fallEnhancement/src/fall_features.py, fall_rules.py, fall_tune.py",
+    "source": "results/raw/fall_urfd_20261013/ (one JSON per variant: grid, chosen parameters, tune/test/all summaries, per-sequence rows)",
+    "measured_by": "cd train/coco_det && python -m src.video_boxes --ckpt ../../artifacts/coco_det/det12v2_tern_probe_cont_best_bn.pth --inputs <urfd>/*-cam0-rgb.zip --out-dir runs/urfd_boxes; cd ../pose_fallEnhancement && python -m src.fall_features --boxes ../coco_det/runs/urfd_boxes --frames data/urfd --mode track --rot --out runs/fall/track_rot; python -m src.fall_tune runs/fall/track_rot --json <out>",
+    "data": "URFD downloaded 2026-10-13 from https://fenix.ur.edu.pl/~mkepski/ds/uf.html to <datasets>/urfd (70 *-cam0-rgb.zip, 4.2 GB)",
+    "delivered": "track_rot + box rule (defaults of src/fall_rules.py P)",
+    "variants": {
+      "best_box": {
+        "params": {
+          "DOWN_ASPECT": 1.0,
+          "DOWN_LOW": 0.0,
+          "WINDOW": 2.0,
+          "DEBOUNCE": 3,
+          "MIN_DROP": 0.0
+        },
+        "tune_odd": {
+          "hits": 9,
+          "falls": 15,
+          "adl_false_alarm": 0,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 1.2,
+          "latency_vs_lying_median_s": 0.2
+        },
+        "test_even": {
+          "hits": 11,
+          "falls": 15,
+          "adl_false_alarm": 1,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.67,
+          "latency_vs_lying_median_s": -0.33
+        },
+        "all_70": {
+          "hits": 20,
+          "falls": 30,
+          "adl_false_alarm": 1,
+          "adls": 40,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.73,
+          "latency_vs_lying_median_s": -0.27
+        },
+        "how": "best box >= 0.3 of each frame, no tracking; box rule"
+      },
+      "best_pose": {
+        "params": {
+          "DOWN_ASPECT": 1.0,
+          "DOWN_LOW": 0.0,
+          "DOWN_TILT": 55.0,
+          "DOWN_HEIGHT": 0.5,
+          "WINDOW": 2.0,
+          "DEBOUNCE": 3,
+          "MIN_DROP": 0.0
+        },
+        "tune_odd": {
+          "hits": 9,
+          "falls": 15,
+          "adl_false_alarm": 0,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 1.2,
+          "latency_vs_lying_median_s": 0.2
+        },
+        "test_even": {
+          "hits": 11,
+          "falls": 15,
+          "adl_false_alarm": 1,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.67,
+          "latency_vs_lying_median_s": -0.33
+        },
+        "all_70": {
+          "hits": 20,
+          "falls": 30,
+          "adl_false_alarm": 1,
+          "adls": 40,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.78,
+          "latency_vs_lying_median_s": -0.22000000000000003
+        },
+        "how": "as best_box, rule may also use torso tilt"
+      },
+      "track_box": {
+        "params": {
+          "DOWN_ASPECT": 1.2,
+          "DOWN_LOW": 0.0,
+          "WINDOW": 1.0,
+          "DEBOUNCE": 3,
+          "MIN_DROP": 1.0
+        },
+        "tune_odd": {
+          "hits": 15,
+          "falls": 15,
+          "adl_false_alarm": 4,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.97,
+          "latency_vs_lying_median_s": -0.03
+        },
+        "test_even": {
+          "hits": 11,
+          "falls": 15,
+          "adl_false_alarm": 0,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.7,
+          "latency_vs_lying_median_s": -0.3
+        },
+        "all_70": {
+          "hits": 26,
+          "falls": 30,
+          "adl_false_alarm": 4,
+          "adls": 40,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.885,
+          "latency_vs_lying_median_s": -0.115
+        },
+        "how": "up to 4 person tracks (box >= 0.1 next to a track, size change per frame within 0.5-2x, joint-following for 1.5 s without a box); box rule"
+      },
+      "track_pose": {
+        "params": {
+          "DOWN_ASPECT": 1.2,
+          "DOWN_LOW": 0.0,
+          "DOWN_TILT": 55.0,
+          "DOWN_HEIGHT": 0.5,
+          "WINDOW": 1.0,
+          "DEBOUNCE": 3,
+          "MIN_DROP": 1.0
+        },
+        "tune_odd": {
+          "hits": 15,
+          "falls": 15,
+          "adl_false_alarm": 3,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.93,
+          "latency_vs_lying_median_s": -0.07
+        },
+        "test_even": {
+          "hits": 11,
+          "falls": 15,
+          "adl_false_alarm": 0,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.77,
+          "latency_vs_lying_median_s": -0.23
+        },
+        "all_70": {
+          "hits": 26,
+          "falls": 30,
+          "adl_false_alarm": 3,
+          "adls": 40,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.885,
+          "latency_vs_lying_median_s": -0.115
+        },
+        "how": "as track_box, rule may also use torso tilt"
+      },
+      "track_rot_box": {
+        "params": {
+          "DOWN_ASPECT": 1.2,
+          "DOWN_LOW": 0.0,
+          "WINDOW": 1.0,
+          "DEBOUNCE": 3,
+          "MIN_DROP": 1.0
+        },
+        "tune_odd": {
+          "hits": 15,
+          "falls": 15,
+          "adl_false_alarm": 3,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.97,
+          "latency_vs_lying_median_s": -0.03
+        },
+        "test_even": {
+          "hits": 11,
+          "falls": 15,
+          "adl_false_alarm": 0,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.7,
+          "latency_vs_lying_median_s": -0.3
+        },
+        "all_70": {
+          "hits": 26,
+          "falls": 30,
+          "adl_false_alarm": 3,
+          "adls": 40,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.885,
+          "latency_vs_lying_median_s": -0.115
+        },
+        "how": "as track_box, pose crops also turned +-90 degrees when the person is wide or tilted (affects the joint-following box); box rule. Delivered."
+      },
+      "track_rot_pose": {
+        "params": {
+          "DOWN_ASPECT": 1.2,
+          "DOWN_LOW": 0.0,
+          "DOWN_TILT": 999.0,
+          "DOWN_HEIGHT": 0.5,
+          "WINDOW": 1.0,
+          "DEBOUNCE": 3,
+          "MIN_DROP": 1.0
+        },
+        "tune_odd": {
+          "hits": 15,
+          "falls": 15,
+          "adl_false_alarm": 2,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.97,
+          "latency_vs_lying_median_s": -0.03
+        },
+        "test_even": {
+          "hits": 10,
+          "falls": 15,
+          "adl_false_alarm": 0,
+          "adls": 20,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.735,
+          "latency_vs_lying_median_s": -0.265
+        },
+        "all_70": {
+          "hits": 25,
+          "falls": 30,
+          "adl_false_alarm": 2,
+          "adls": 40,
+          "fall_seq_false_alarm": 0,
+          "after_falling_onset_median_s": 0.9,
+          "latency_vs_lying_median_s": -0.1
+        },
+        "how": "as track_rot_box, rule may also use torso tilt (the tuning switched tilt off: DOWN_TILT 999)"
+      }
+    },
+    "findings": "Tracking is what matters: on the tuning half 9 -> 15 of 15 falls, overall 20 -> 26 of 30; on the test half the same 11 of 15 with ADL false alarms 1 -> 0. The torso tilt from the joints and the +-90 degree crops changed the result by at most one sequence either way. The alarm comes about 0.7 s after the fall starts, about 0.3 s before URFD marks the person as lying (test half medians). Remaining false alarms (all 70): adl-23, adl-33, adl-35, people lying down on purpose on a couch or the floor within 1 s of standing. Of the 13 ADL sequences with lying frames that raise no alarm, 6 (adl-22, 30, 36, 38, 39, 40) keep a track on 58 % or less of their lying frames (dark couch, person leaves the view): there the absence of an alarm comes from losing the person, not from the rule. Remaining misses (all 70): fall-08 is a slow fall (2.4 s bent over between the last upright frame and lying, the rule allows 1 s); fall-10 and fall-22 start with the person already bent over or falling (6 and 2 upright frames, the rule needs 10); in fall-20 the box never gets wider than 1.07 x its height (threshold 1.2).",
+    "note": "Host prototype. The fall rule runs per frame on numbers the board already produces (person boxes from the detector, joints from the pose model); it has not been ported to C or run on the board."
+  }
+}

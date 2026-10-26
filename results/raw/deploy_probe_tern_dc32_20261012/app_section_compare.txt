@@ -1,0 +1,22 @@
+app section sha16: main build/arm (deployed) vs build/wt_thesis_model/build/arm (fps run of thesis_model_probe_tern_dc32_board_20261012)
+mbv2_fuse_test .text main 8e0385dee0f428ba worktree 8e0385dee0f428ba SAME
+mbv2_fuse_test .rodata main 03b1f342544ed14e worktree 03b1f342544ed14e SAME
+mbv2_fuse_test .data main ee1212f79047b1d7 worktree ee1212f79047b1d7 SAME
+mbv2_fuse_pipe .text main 02e6f32dcd34a2a9 worktree 02e6f32dcd34a2a9 SAME
+mbv2_fuse_pipe .rodata main 0932d42e6d3e4a78 worktree 0932d42e6d3e4a78 SAME
+mbv2_fuse_pipe .data main bd8e6a9f537a995a worktree bd8e6a9f537a995a SAME
+mbv2_cam_fuse .text main 831dd94f7a323506 worktree 831dd94f7a323506 SAME
+mbv2_cam_fuse .rodata main 9cad332aaeaa6b47 worktree 9cad332aaeaa6b47 SAME
+mbv2_cam_fuse .data main 71f15fb3f4c1b419 worktree 71f15fb3f4c1b419 SAME
+mbv2_fuse_eval .text main 0efc37e38645ab48 worktree 0efc37e38645ab48 SAME
+mbv2_fuse_eval .rodata main 487d8577c785a213 worktree 487d8577c785a213 SAME
+mbv2_fuse_eval .data main ee1212f79047b1d7 worktree ee1212f79047b1d7 SAME
+whole files:
+47f9006f5b57673b  build/arm/mbv2_cam_fuse
+81ac071ac7fc8291  build/arm/mbv2_fuse_eval
+a89c6e6fef689e04  build/arm/mbv2_fuse_pipe
+d888019525640dc1  build/arm/mbv2_fuse_test
+ab1c9545044d8735  build/wt_thesis_model/build/arm/mbv2_cam_fuse
+4f819c205c03f1a2  build/wt_thesis_model/build/arm/mbv2_fuse_eval
+a49e5822c25f675b  build/wt_thesis_model/build/arm/mbv2_fuse_pipe
+90cd538fa3146b5b  build/wt_thesis_model/build/arm/mbv2_fuse_test

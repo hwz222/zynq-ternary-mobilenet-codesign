@@ -1,0 +1,5 @@
+[init] all tensors from <repo>\artifacts\mbv2_pose\probe_tern_dc32_best.pth
+[data] 2346 COCO lying people sampled x4.0
+[data] 24712 train records, 514 iters/epoch, rot90_aug 0.15
+[start] probe_tern_dc32: MPII PCKh 85.989 | COCO-lying PCK 52.151
+epoch  0 | loss 0.000701 | 395s | MPII PCKh 83.264 | COCO-lying PCK 53.584

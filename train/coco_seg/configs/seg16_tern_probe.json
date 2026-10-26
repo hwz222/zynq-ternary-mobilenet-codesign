@@ -1,0 +1,10 @@
+{
+  "_what": "16-class indoor segmenter on the deployed pose backbone: backbone from probe_tern_dc32, head from the trained seg16_tern_pose, full fine-tune; images with a person lying down oversampled",
+  "exp_id": "seg16_tern_probe",
+  "ternary": true, "init": "rebase",
+  "backbone_ckpt": "../../artifacts/mbv2_pose/probe_tern_dc32_best.pth",
+  "head_ckpt": "../../artifacts/coco_seg/seg16_tern_pose_last_bn.pth",
+  "epochs": 6, "batch": 64, "workers": 12,
+  "lr": 5e-4, "backbone_lr_mult": 0.5, "warmup_iters": 300,
+  "lying_weight": 3.0, "eval_every": 2, "seed": 45
+}

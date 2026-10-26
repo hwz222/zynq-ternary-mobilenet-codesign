@@ -1,0 +1,8 @@
+{
+  "_what": "metric depth (log-metres on channel 0), ternary pw_stem backbone relayed from the pose model, full fine-tune",
+  "exp_id": "depth_tern_pose",
+  "ternary": true, "init": "pose",
+  "epochs": 8, "batch": 64, "workers": 12,
+  "lr": 1e-3, "backbone_lr_mult": 0.3, "warmup_iters": 500,
+  "w_l1": 0.1, "eval_every": 2, "seed": 42
+}

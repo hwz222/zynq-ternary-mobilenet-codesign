@@ -1,0 +1,5 @@
+[init] ImageNet MobileNetV2: 306 tensors
+[data] 30000 train images, 468 iters/epoch, 2 epochs
+epoch   0 | loss 7.3910 (hm 5.1153 wh 1.6922 off 0.5835) | lr 8.39e-04 | 253s | AP 0.39 AP50 1.29 | best 0.39
+epoch   1 | loss 3.6214 (hm 2.2106 wh 0.9095 off 0.5014) | lr 1.00e-05 | 139s | AP 0.66 AP50 1.76 | best 0.66
+[done] best AP 0.66; ternary check 0/0

@@ -1,0 +1,12 @@
+zynq-ternary-mobilenet-codesign
+Copyright 2026 Wei-Jhe Huang
+
+This product includes software, hardware descriptions (Verilog RTL), build scripts, documentation
+and trained model weights developed by Wei-Jhe Huang at the MIAT Laboratory, Department of Computer
+Science and Information Engineering, National Central University, Taiwan.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The model weights were trained on third-party datasets (MPII Human Pose, Penn Action, COCO,
+COCO-Stuff, NYU Depth V2). The datasets themselves are not included and remain under their own
+terms; see the "Datasets" section of README.md.

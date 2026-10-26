@@ -1,0 +1,15 @@
+[init] pose backbone: 306/306 tensors from <repo>\artifacts\mbv2_pose\room_mix_w3_head32_best.pth
+[data] 47305 indoor train images, 739 iters/epoch, 12 epochs
+epoch   0 | loss 1.9404 | lr 9.98e-04 | 320s
+epoch   1 | loss 1.4104 | lr 9.67e-04 | 202s
+epoch   2 | loss 1.2961 | lr 9.00e-04 | 201s | mIoU 24.55 pixacc 54.5 | best 24.55
+epoch   3 | loss 1.2361 | lr 8.02e-04 | 206s
+epoch   4 | loss 1.1949 | lr 6.82e-04 | 203s
+epoch   5 | loss 1.1627 | lr 5.47e-04 | 203s | mIoU 24.84 pixacc 52.6 | best 24.84
+epoch   6 | loss 1.1369 | lr 4.09e-04 | 204s
+epoch   7 | loss 1.1105 | lr 2.78e-04 | 201s
+epoch   8 | loss 1.0878 | lr 1.64e-04 | 202s | mIoU 28.72 pixacc 55.8 | best 28.72
+epoch   9 | loss 1.0697 | lr 7.51e-05 | 205s | mIoU 33.78 pixacc 60.4 | best 33.78
+epoch  10 | loss 1.0525 | lr 1.92e-05 | 208s | mIoU 33.79 pixacc 61.5 | best 33.79
+epoch  11 | loss 1.0415 | lr 1.00e-05 | 204s | mIoU 29.32 pixacc 55.8 | best 33.79
+[done] best mIoU 33.79; ternary check 34/34

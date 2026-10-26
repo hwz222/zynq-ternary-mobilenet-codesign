@@ -1,0 +1,8 @@
+{
+  "_what": "16-class indoor segmenter, ternary pw_stem backbone relayed from the pose model, full fine-tune",
+  "exp_id": "seg16_tern_pose",
+  "ternary": true, "init": "pose",
+  "epochs": 12, "batch": 64, "workers": 12,
+  "lr": 1e-3, "backbone_lr_mult": 0.3, "warmup_iters": 500,
+  "eval_every": 3, "seed": 42
+}

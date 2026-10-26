@@ -1,0 +1,30 @@
+===== run 1 FUSE_BB2HD=1 =====
+[pipe_timing] producer split (last frame): write-in=0.14  stage-boundary=0.00  backbone PL=4.17  head PL=3.17 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 524.6 ms = 4.37 ms/frame = 228.73 fps ===
+correctness vs sequential: PASS (0 keypoint mismatches)
+correctness vs fixture 0 golden: PASS (0 keypoint mismatches)
+===== run 1 FUSE_BB2HD=0 =====
+[pipe_timing] producer split (last frame): write-in=0.14  stage-boundary=0.10  backbone PL=4.23  head PL=3.18 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 535.4 ms = 4.46 ms/frame = 224.11 fps ===
+correctness vs sequential: PASS (0 keypoint mismatches)
+correctness vs fixture 0 golden: PASS (0 keypoint mismatches)
+===== run 2 FUSE_BB2HD=1 =====
+[pipe_timing] producer split (last frame): write-in=0.14  stage-boundary=0.00  backbone PL=4.18  head PL=3.08 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 524.1 ms = 4.37 ms/frame = 228.98 fps ===
+correctness vs sequential: PASS (0 keypoint mismatches)
+correctness vs fixture 0 golden: PASS (0 keypoint mismatches)
+===== run 2 FUSE_BB2HD=0 =====
+[pipe_timing] producer split (last frame): write-in=0.14  stage-boundary=0.10  backbone PL=4.20  head PL=3.08 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 537.0 ms = 4.48 ms/frame = 223.46 fps ===
+correctness vs sequential: PASS (0 keypoint mismatches)
+correctness vs fixture 0 golden: PASS (0 keypoint mismatches)
+===== run 3 FUSE_BB2HD=1 =====
+[pipe_timing] producer split (last frame): write-in=0.15  stage-boundary=0.00  backbone PL=4.16  head PL=3.18 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 525.3 ms = 4.38 ms/frame = 228.42 fps ===
+correctness vs sequential: PASS (0 keypoint mismatches)
+correctness vs fixture 0 golden: PASS (0 keypoint mismatches)
+===== run 3 FUSE_BB2HD=0 =====
+[pipe_timing] producer split (last frame): write-in=0.15  stage-boundary=0.10  backbone PL=4.17  head PL=3.08 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 536.8 ms = 4.47 ms/frame = 223.55 fps ===
+correctness vs sequential: PASS (0 keypoint mismatches)
+correctness vs fixture 0 golden: PASS (0 keypoint mismatches)

@@ -1,0 +1,13 @@
+app sha16 local 4f819c205c03f1a2 board 4f819c205c03f1a2
+board data: a8ae156468434244 accd59743da29a6e 67728c886e2a4618 
+chunk 00: == wrote 300 of 300 records (229488 bytes each) in 2.8 s == rc=0   local 68846400 B
+chunk 01: == wrote 300 of 300 records (229488 bytes each) in 2.8 s == rc=0   local 68846400 B
+chunk 02: == wrote 300 of 300 records (229488 bytes each) in 2.8 s == rc=0   local 68846400 B
+chunk 03: == wrote 300 of 300 records (229488 bytes each) in 2.9 s == rc=0   local 68846400 B
+chunk 04: == wrote 300 of 300 records (229488 bytes each) in 2.9 s == rc=0   local 68846400 B
+chunk 05: == wrote 300 of 300 records (229488 bytes each) in 2.9 s == rc=0   local 68846400 B
+chunk 06: == wrote 300 of 300 records (229488 bytes each) in 2.8 s == rc=0   local 68846400 B
+chunk 07: == wrote 189 of 189 records (229488 bytes each) in 1.8 s == rc=0   local 43373232 B
+BOARD_EVAL_DONE 2026-10-12T21:42:45+08:00
+
+[exited with code 0]

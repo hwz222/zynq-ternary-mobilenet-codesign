@@ -1,0 +1,4 @@
+records     ../../build/thesis_model/eval/ref_*.bin, 2289 images
+ruler       MPII val, 2289 instances, PCKh@0.5, 14 joints (src/evaluate.py)
+mean        85.715
+groups      Head 96.76  Shoulder 93.48  Elbow 85.37  Wrist 78.82  Hip 85.76  Knee 80.29  Ankle 75.53

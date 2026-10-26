@@ -1,0 +1,1008 @@
+{
+  "_README": "Measured results of this design on the ALINX AXU2CGB board. Numbers quoted in the README and the documentation come from here; add entries, never edit old ones (set current=false on a superseded entry). sha = first 16 hex digits of SHA-256.",
+  "opt1_archived_20261008": {
+    "current": false,
+    "date": "2026-10-08",
+    "ruler": "mbv2_fuse_pipe, 120-frame runs, 4 fixtures of models/mbv2_pose, head in the fabric, board clock 240 MHz",
+    "build": "BOOT.BIN 05d7c39296de2b4a (bitstream 982dcc716319bc75), branch opt-001-bb-to-head of the TernPose repository",
+    "source": "artifacts/opt1/MANIFEST.json",
+    "fps_runs_bb2hd_on": [
+      228.1,
+      228.65,
+      228.69
+    ],
+    "fps_mean_bb2hd_on": 228.5,
+    "fps_bb2hd_off_same_bitstream": 223.8,
+    "bit_exact_fixtures": "4/4, max abs diff 0, 14/14 keypoints, head in PL and head on the processor",
+    "timing": {
+      "wns_ns": 0.0,
+      "whs_ns": 0.002,
+      "note": "first routing -0.030 ns, one post-route phys_opt_design (AggressiveExplore) brought it to 0.000"
+    },
+    "resources": {
+      "clb_lut": 44057,
+      "bram_tiles": 145,
+      "dsp": 217
+    }
+  },
+  "rebuilt_from_clone_20261011": {
+    "current": false,
+    "date": "2026-10-11",
+    "ruler": "mbv2_fuse_pipe, 120-frame runs, 3 alternating pairs on the same bitstream, 4 fixtures of models/mbv2_pose, board clock 240 MHz",
+    "build": "BOOT.BIN 4718da23abb6af20, built by vivado/build.cmd + board/make_boot.sh from a fresh clone, tag v1-opt1-rebuilt",
+    "source": "board run of `bash board/deploy.sh verify` and `speed` on 2026-10-11 (console output not archived)",
+    "measured_by": "bash board/deploy.sh verify; bash board/deploy.sh speed",
+    "fps_runs_bb2hd_on": [
+      228.57,
+      228.74,
+      229.31
+    ],
+    "fps_mean_bb2hd_on": 228.87,
+    "fps_runs_bb2hd_off": [
+      223.37,
+      223.92,
+      224.04
+    ],
+    "fps_mean_bb2hd_off": 223.78,
+    "bit_exact_fixtures": "4/4, max abs diff 0, head in PL and head on the processor",
+    "timing": {
+      "wns_ns": 0.0,
+      "whs_ns": 0.002,
+      "note": "first routing -0.030 ns, recovered in-session by vivado/build_bd_fuse.tcl"
+    },
+    "resources": {
+      "clb_lut": 44057,
+      "bram_tiles": 145,
+      "dsp": 217
+    }
+  },
+  "linux_rebuilt_20261012": {
+    "current": false,
+    "date": "2026-10-12",
+    "ruler": "mbv2_fuse_pipe, 120-frame runs, 3 alternating pairs on the same boot, 4 fixtures of models/mbv2_pose, board clock 240 MHz",
+    "build": "BOOT.BIN 690d87cc5f4b6897 = bitstream 52b400785924efe0 (file build/system_fuse_ternpose.bit of 2026-10-11, the one inside BOOT.BIN 4718da23abb6af20) + Linux set built by linux/build_linux.sh from the XSA on 2026-10-12 (kernel Image 8650b8be272df8ee, byte-identical to the earlier set)",
+    "source": "results/raw/speed_linux_rebuilt_20261012.log",
+    "measured_by": "bash board/deploy.sh verify; bash board/deploy.sh speed",
+    "fps_runs_bb2hd_on": [
+      228.39,
+      228.38,
+      228.78
+    ],
+    "fps_mean_bb2hd_on": 228.52,
+    "fps_runs_bb2hd_off": [
+      223.2,
+      223.51,
+      223.76
+    ],
+    "fps_mean_bb2hd_off": 223.49,
+    "bit_exact_fixtures": "4/4, max abs diff 0, 14/14 keypoints, FUSE_HEAD_PL=1 and 0",
+    "timing": {
+      "wns_ns": 0.0,
+      "whs_ns": 0.002,
+      "note": "timing of the 2026-10-11 build of that bitstream, see rebuilt_from_clone_20261011"
+    },
+    "note": "A first speed listing of the same boot, cut by the console tail, showed 228.66 and 228.52 (on), 223.51 and 223.60 (off) for runs 2 and 3; the set recorded here is the complete rerun."
+  },
+  "mbv2_pose_room_mix_w3_head32_20261012": {
+    "current": false,
+    "date": "2026-10-12",
+    "ruler": "host PCKh@0.5, MPII val 2289 instances, 14 joints, train/mbv2_pose/src/score_ckpt.py (checkpoint loaded standalone); not comparable with the training loop's own figure 85.806",
+    "build": "checkpoint room_mix_w3_head32 best.pth sha16 789dd3b3bfb71cfe (artifacts/mbv2_pose), exported to models/mbv2_pose (model_mbv2.bin 2d2456c0e2e3e212, model_mbv2_packed.bin e9672c3bc4cad155)",
+    "source": "artifacts/mbv2_pose/MANIFEST.json; earlier research repository docs/training/results/board_deploy.json entry room_mix_w3_head32_20260907",
+    "measured_by": "cd train/mbv2_pose && python -m src.score_ckpt room_mix_w3_head32 --expect 85.897; python export/export_board_model.py --ckpt checkpoints/room_mix_w3_head32/best.pth --out <dir>",
+    "pckh_mean": 85.897,
+    "pckh_ankle": 76.53,
+    "pckh_knee": 80.21,
+    "pckh_wrist": 79.53,
+    "ternary_check": "34 of 34 ternary layers in {-1,0,+1} with zeros present; 46.5% of 1,715,936 weights are zero",
+    "export_reproduction": "all 9 files of models/mbv2_pose byte-identical from the checkpoint (checked twice, 2026-10-12)"
+  },
+  "ch3_backbone_and_head_choice_20261012": {
+    "current": true,
+    "date": "2026-10-12",
+    "ruler": "host PCKh@0.5, MPII val 2,289 instances, 14 joints, src/evaluate.py, each checkpoint loaded on its own (standalone score, not the training loop's figure); the earlier, non-public research repository's valid.json, evaluate.py, dataset.py, transforms.py and heatmaps.py are byte-identical to train/mbv2_pose/src (config.py differs only in paths), so this is the same ruler as train/mbv2_pose/src/score_ckpt.py. Weights and MACs counted by forward hooks on every convolution for one 256x256 input; weight bytes = convolution weights only at the bit width each layer is built with (ternary 2 bit, INT8 8 bit, float 32 bit).",
+    "build": "checkpoints of the earlier, non-public research repository experiments/<name>/best.pth, SHA-256 first 16 hex per row",
+    "source": "results/raw/ch3_evidence_20261012.json (per checkpoint: standalone PCKh, groups, per joint, training-loop and orchestrator figures, weights/bytes/MACs by layer kind) and .log; recipes from the earlier, non-public research repository (<earlier-repo>) experiments/LINEAGE.md, docs/EXPERIMENTS.md, docs/reports/REPORT_30FPS_DELIVERABLE_zh.md, experiments/orchestrate.py, sep_orchestrate.py, compress_orchestrate.py, probe_head_capacity.py, probe_skip_head.py",
+    "measured_by": "python tools/score_old_ckpts.py --old-repo <earlier research repository root> --out <file>.json <names>   (conda env twn; about 2 minutes per checkpoint on a shared RTX 5080)",
+    "_what": "Evidence for the network choice: why a MobileNetV2 backbone with a SimpleBaseline-style transposed-convolution heatmap head, and why that head is 32 channels wide and INT8. No training was run; every PCKh is a standalone re-score.",
+    "backbone_rows": [
+      {
+        "experiment": "fp32_baseline",
+        "what": "ResNet-18 backbone + three 4x4 transposed convolutions of 256 channels + 1x1 output (SimpleBaseline)",
+        "precision": "float",
+        "recipe": "ImageNet ResNet-18, 120 epochs, ground-truth MSE, batch 64, lr 1e-3 (x0.1 at 80, 105)",
+        "checkpoint_sha256_16": "17db0f83ddd4e864",
+        "pckh_mean": 88.72,
+        "pckh_ankle": 80.66,
+        "pckh_knee": 84.04,
+        "pckh_wrist": 83.59,
+        "training_loop_figure": 88.716,
+        "standalone_minus_loop": 0.004,
+        "weights": 15364800,
+        "weight_bytes": 61459200,
+        "macs": 3859808256,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "int8_baseline",
+        "what": "the same network, every layer INT8",
+        "precision": "INT8",
+        "recipe": "relay from the float model above, 30 epochs (best at 28), ground-truth MSE, batch 96",
+        "checkpoint_sha256_16": "b9614ea2aa2342de",
+        "pckh_mean": 88.706,
+        "pckh_ankle": 80.6,
+        "pckh_knee": 84.38,
+        "pckh_wrist": 83.08,
+        "training_loop_figure": 88.673,
+        "standalone_minus_loop": 0.033,
+        "weights": 15364800,
+        "weight_bytes": 15364800,
+        "macs": 3859808256,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "h_b2221_s4w256_dc32_i8",
+        "what": "ResNet-18 compressed for the device: stage 4 one block of 256 channels, head 32 channels",
+        "precision": "backbone ternary, head and output INT8",
+        "recipe": "own float student 50 epochs then 30 quantized epochs, both distilled from the ResNet-18 float model",
+        "checkpoint_sha256_16": "30bbf08db1c34b48",
+        "pckh_mean": 86.08,
+        "pckh_ankle": 75.16,
+        "pckh_knee": 79.53,
+        "pckh_wrist": 80.37,
+        "training_loop_figure": 86.06,
+        "standalone_minus_loop": 0.02,
+        "weights": 4187776,
+        "weight_bytes": 1170160,
+        "macs": 1942749184,
+        "ternary_weights": 4023488,
+        "ternary_macs": 1911554048
+      },
+      {
+        "experiment": "dsc_fp",
+        "what": "ResNet-18 with every 3x3 split into depthwise + pointwise, head 256 channels",
+        "precision": "float",
+        "recipe": "random initialisation (no ImageNet weights fit the split layers), 55 epochs distilled from the ResNet-18 float model",
+        "checkpoint_sha256_16": "930aad685db5becc",
+        "pckh_mean": 80.638,
+        "pckh_ankle": 67.96,
+        "pckh_knee": 71.77,
+        "pckh_wrist": 71.83,
+        "training_loop_figure": 80.654,
+        "standalone_minus_loop": -0.016,
+        "weights": 5630464,
+        "weight_bytes": 22521856,
+        "macs": 1930313728,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "mbv2_fp",
+        "what": "MobileNetV2 (width 1.0, 18 feature stages) + head 256 channels",
+        "precision": "float",
+        "recipe": "ImageNet MobileNetV2, 55 epochs distilled from the ResNet-18 float model",
+        "checkpoint_sha256_16": "93be2198b7203624",
+        "pckh_mean": 87.516,
+        "pckh_ankle": 77.47,
+        "pckh_knee": 82.45,
+        "pckh_wrist": 81.37,
+        "training_loop_figure": 87.51,
+        "standalone_minus_loop": 0.006,
+        "weights": 5191616,
+        "weight_bytes": 20766464,
+        "macs": 1805705216,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "mbv2_dc32_fp",
+        "what": "MobileNetV2 + head 32 channels",
+        "precision": "float",
+        "recipe": "backbone relayed from the row above, head re-learned, 20 epochs distilled from the ResNet-18 float model",
+        "checkpoint_sha256_16": "0867388481c725da",
+        "pckh_mean": 86.739,
+        "pckh_ankle": 76.69,
+        "pckh_knee": 81.37,
+        "pckh_wrist": 80.59,
+        "training_loop_figure": 86.742,
+        "standalone_minus_loop": -0.003,
+        "weights": 1977216,
+        "weight_bytes": 7908864,
+        "macs": 398254080,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "dsc_dc32_fp",
+        "what": "depthwise-separable ResNet-18 + head 32 channels",
+        "precision": "float",
+        "recipe": "backbone relayed from the 256-channel depthwise-separable row, head re-learned, 20 epochs distilled",
+        "checkpoint_sha256_16": "a33c34cb330d3961",
+        "pckh_mean": 80.79,
+        "pckh_ankle": 67.3,
+        "pckh_knee": 71.79,
+        "pckh_wrist": 72.83,
+        "training_loop_figure": 80.786,
+        "standalone_minus_loop": 0.004,
+        "weights": 1727936,
+        "weight_bytes": 6911744,
+        "macs": 478822400,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "mbv2_dc32_pwstem",
+        "what": "MobileNetV2 + head 32 channels, pointwise and stem ternary",
+        "precision": "pointwise + stem ternary, depthwise, head and output INT8",
+        "recipe": "relay from the float 32-channel row, 10 epochs distilled from the ResNet-18 float model",
+        "checkpoint_sha256_16": "8e0290474e1fe4ac",
+        "pckh_mean": 83.731,
+        "pckh_ankle": 72.78,
+        "pckh_knee": 75.94,
+        "pckh_wrist": 76.03,
+        "training_loop_figure": 83.758,
+        "standalone_minus_loop": -0.027,
+        "weights": 1977216,
+        "weight_bytes": 690264,
+        "macs": 398254080,
+        "ternary_weights": 1715936,
+        "ternary_macs": 337903616
+      }
+    ],
+    "backbone_comparability": "NOT one recipe: initialisation (ImageNet or random), epochs and distillation differ between families, so the PCKh column ranks the families only loosely. The weight, byte and MAC columns are properties of the architectures and are exact. Pairs that share a recipe: ResNet-18 float vs INT8 (relay); MobileNetV2 vs depthwise-separable ResNet-18 at 256 and at 32 head channels (same 55 / 20 epoch distillation schedule, differing only in ImageNet initialisation, which the separable ResNet cannot load).",
+    "head_rows": [
+      {
+        "experiment": "probe_tern_dc128",
+        "what": "head 128 channels on the frozen ternary backbone",
+        "precision": "backbone pointwise + stem ternary, head INT8",
+        "recipe": "frozen backbone of the MPII + sports ternary model, head re-initialised, 18 epochs ground-truth MSE, MPII + sports",
+        "checkpoint_sha256_16": "b1c7e647c5ac65d1",
+        "pckh_mean": 86.273,
+        "pckh_ankle": 76.72,
+        "pckh_knee": 81.13,
+        "pckh_wrist": 79.75,
+        "training_loop_figure": 86.357,
+        "standalone_minus_loop": -0.084,
+        "weights": 2961600,
+        "weight_bytes": 1674648,
+        "macs": 749789184,
+        "ternary_weights": 1715936,
+        "ternary_macs": 337903616
+      },
+      {
+        "experiment": "probe_int8_dc128",
+        "what": "head 128 channels on the frozen INT8 backbone",
+        "precision": "INT8",
+        "recipe": "frozen backbone of the MPII + sports INT8 model, head re-initialised, 18 epochs ground-truth MSE, MPII + sports",
+        "checkpoint_sha256_16": "08ecc95c0298e943",
+        "pckh_mean": 88.196,
+        "pckh_ankle": 79.26,
+        "pckh_knee": 83.85,
+        "pckh_wrist": 82.39,
+        "training_loop_figure": 88.24,
+        "standalone_minus_loop": -0.044,
+        "weights": 2961600,
+        "weight_bytes": 2961600,
+        "macs": 749789184,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "probe_skip_dc32",
+        "what": "head 32 channels plus three 1x1 lateral connections from backbone stages 13, 6 and 3 (skip-connected head)",
+        "precision": "backbone pointwise + stem ternary, head and laterals INT8",
+        "recipe": "same protocol as the 32-channel ternary head probe (frozen backbone, 18 epochs, ground-truth MSE, MPII + sports)",
+        "checkpoint_sha256_16": "6a7fe28d838b3835",
+        "pckh_mean": 85.972,
+        "pckh_ankle": 76.13,
+        "pckh_knee": 80.71,
+        "pckh_wrist": 79.53,
+        "training_loop_figure": 86.076,
+        "standalone_minus_loop": -0.104,
+        "weights": 1982080,
+        "weight_bytes": 695128,
+        "macs": 403234816,
+        "ternary_weights": 1715936,
+        "ternary_macs": 337903616
+      },
+      {
+        "experiment": "c_dc64",
+        "what": "ResNet-18 ternary backbone + head 64 channels, head ternary",
+        "precision": "everything ternary except the output 1x1",
+        "recipe": "from the 64-channel float student, 25 quantized epochs distilled",
+        "checkpoint_sha256_16": "f766ea7d561bf692",
+        "pckh_mean": 85.711,
+        "pckh_ankle": 75.22,
+        "pckh_knee": 79.89,
+        "pckh_wrist": 79.8,
+        "training_loop_figure": 85.711,
+        "standalone_minus_loop": -0.0,
+        "weights": 11823168,
+        "weight_bytes": 2956464,
+        "macs": 2489843712,
+        "ternary_weights": 11822272,
+        "ternary_macs": 2486173696
+      },
+      {
+        "experiment": "h_dc64_i8",
+        "what": "ResNet-18 ternary backbone + head 64 channels, head INT8",
+        "precision": "backbone ternary, head and output INT8",
+        "recipe": "from the same 64-channel float student, 30 quantized epochs distilled",
+        "checkpoint_sha256_16": "c9999702a9c9492d",
+        "pckh_mean": 87.371,
+        "pckh_ankle": 77.5,
+        "pckh_knee": 82.27,
+        "pckh_wrist": 81.28,
+        "training_loop_figure": 87.364,
+        "standalone_minus_loop": 0.007,
+        "weights": 11823168,
+        "weight_bytes": 3447984,
+        "macs": 2489843712,
+        "ternary_weights": 11166912,
+        "ternary_macs": 2368733184
+      }
+    ],
+    "head_comparability": "128 vs 32 channels and skip vs plain head: one recipe (same frozen backbone, data, epochs, loss, fresh head). Their 32-channel control is the deployed model itself (probe_tern_dc32; for the INT8 pair probe_int8_dc32), whose standalone score is recorded in its own entry of this file and is deliberately not re-scored here. 256 vs 32 channels in float: relay, head re-learned with fewer epochs, so only near-same recipe. Ternary vs INT8 head on ResNet-18: same float student, 25 vs 30 quantized epochs.",
+    "not_scored": "The projection head (a ternary 1x1 from 320 to 64 channels before the transposed convolutions, earlier research repository experiments/mbv2_proj64_ftI30) was a continuation of an earlier model with no control trained for the same extra epochs, so it cannot be compared; it was not re-scored."
+  },
+  "ch3_resnet18_depth_replacement_20261012": {
+    "current": true,
+    "date": "2026-10-12",
+    "ruler": "host PCKh@0.5, MPII val 2,289 instances, 14 joints, src/evaluate.py, each checkpoint loaded on its own (standalone score, not the training loop's figure); the earlier, non-public research repository's valid.json, evaluate.py, dataset.py, transforms.py and heatmaps.py are byte-identical to train/mbv2_pose/src (config.py differs only in paths), so this is the same ruler as train/mbv2_pose/src/score_ckpt.py. Weights and MACs counted by forward hooks on every convolution for one 256x256 input; weight bytes = convolution weights only at the bit width each layer is built with (ternary 2 bit, INT8 8 bit, float 32 bit).",
+    "build": "checkpoints of the earlier, non-public research repository experiments/<name>/best.pth, SHA-256 first 16 hex per row",
+    "source": "results/raw/ch3_evidence_20261012.json (per checkpoint: standalone PCKh, groups, per joint, training-loop and orchestrator figures, weights/bytes/MACs by layer kind) and .log; recipes from the earlier, non-public research repository (<earlier-repo>) experiments/LINEAGE.md, docs/EXPERIMENTS.md, docs/reports/REPORT_30FPS_DELIVERABLE_zh.md, experiments/orchestrate.py, sep_orchestrate.py, compress_orchestrate.py, probe_head_capacity.py, probe_skip_head.py",
+    "measured_by": "python tools/score_old_ckpts.py --old-repo <earlier research repository root> --out <file>.json <names>   (conda env twn; about 2 minutes per checkpoint on a shared RTX 5080)",
+    "_what": "Evidence for the network choice: the first study, ResNet-18 SimpleBaseline ternarised stage by stage from the deepest stage toward the input, each step relayed from the previous one. Same per-step recipe: 28 epochs (lr 1e-3, x0.1 at 17 and 24), batch 96, ground-truth MSE, no distillation, seed 42; the last two rows have no surviving launcher, their epochs (28 and 30) are read back from the checkpoints.",
+    "rows": [
+      {
+        "experiment": "fp32_baseline",
+        "what": "float",
+        "precision": "float",
+        "recipe": "ImageNet ResNet-18, 120 epochs",
+        "checkpoint_sha256_16": "17db0f83ddd4e864",
+        "pckh_mean": 88.72,
+        "pckh_ankle": 80.66,
+        "pckh_knee": 84.04,
+        "pckh_wrist": 83.59,
+        "training_loop_figure": 88.716,
+        "standalone_minus_loop": 0.004,
+        "weights": 15364800,
+        "weight_bytes": 61459200,
+        "macs": 3859808256,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "int8_baseline",
+        "what": "all INT8 (reference of every step)",
+        "precision": "INT8",
+        "recipe": "relay from float, 30 epochs",
+        "checkpoint_sha256_16": "b9614ea2aa2342de",
+        "pckh_mean": 88.706,
+        "pckh_ankle": 80.6,
+        "pckh_knee": 84.38,
+        "pckh_wrist": 83.08,
+        "training_loop_figure": 88.673,
+        "standalone_minus_loop": 0.033,
+        "weights": 15364800,
+        "weight_bytes": 15364800,
+        "macs": 3859808256,
+        "ternary_weights": 0,
+        "ternary_macs": 0
+      },
+      {
+        "experiment": "twn_s4b1",
+        "what": "last block of stage 4 ternary",
+        "precision": "ternary + INT8",
+        "recipe": "relay from INT8",
+        "checkpoint_sha256_16": "3606c1ce7a87942f",
+        "pckh_mean": 88.625,
+        "pckh_ankle": 80.13,
+        "pckh_knee": 84.06,
+        "pckh_wrist": 83.7,
+        "training_loop_figure": 88.666,
+        "standalone_minus_loop": -0.041,
+        "weights": 15364800,
+        "weight_bytes": 11825856,
+        "macs": 3859808256,
+        "ternary_weights": 4718592,
+        "ternary_macs": 301989888
+      },
+      {
+        "experiment": "twn_s4",
+        "what": "stage 4 ternary",
+        "precision": "ternary + INT8",
+        "recipe": "relay from the row above",
+        "checkpoint_sha256_16": "21d5019907f996a7",
+        "pckh_mean": 88.247,
+        "pckh_ankle": 79.44,
+        "pckh_knee": 83.93,
+        "pckh_wrist": 83.06,
+        "training_loop_figure": 88.362,
+        "standalone_minus_loop": -0.115,
+        "weights": 15364800,
+        "weight_bytes": 9073344,
+        "macs": 3859808256,
+        "ternary_weights": 8388608,
+        "ternary_macs": 536870912
+      },
+      {
+        "experiment": "twn_s34",
+        "what": "stages 3-4 ternary",
+        "precision": "ternary + INT8",
+        "recipe": "relay from the row above",
+        "checkpoint_sha256_16": "a291be422dae6c31",
+        "pckh_mean": 88.013,
+        "pckh_ankle": 79.1,
+        "pckh_knee": 83.22,
+        "pckh_wrist": 82.79,
+        "training_loop_figure": 88.027,
+        "standalone_minus_loop": -0.014,
+        "weights": 15364800,
+        "weight_bytes": 7500480,
+        "macs": 3859808256,
+        "ternary_weights": 10485760,
+        "ternary_macs": 1073741824
+      },
+      {
+        "experiment": "twn_s234",
+        "what": "stages 2-4 ternary",
+        "precision": "ternary + INT8",
+        "recipe": "relay from the row above",
+        "checkpoint_sha256_16": "45c326b34f590593",
+        "pckh_mean": 87.905,
+        "pckh_ankle": 79.63,
+        "pckh_knee": 82.98,
+        "pckh_wrist": 82.81,
+        "training_loop_figure": 87.895,
+        "standalone_minus_loop": 0.01,
+        "weights": 15364800,
+        "weight_bytes": 7107264,
+        "macs": 3859808256,
+        "ternary_weights": 11010048,
+        "ternary_macs": 1610612736
+      },
+      {
+        "experiment": "twn_s1234",
+        "what": "all four stages ternary (backbone without stem)",
+        "precision": "ternary + INT8",
+        "recipe": "relay from the row above",
+        "checkpoint_sha256_16": "552a5892bb5bd6f6",
+        "pckh_mean": 87.564,
+        "pckh_ankle": 79.63,
+        "pckh_knee": 82.43,
+        "pckh_wrist": 81.95,
+        "training_loop_figure": 87.574,
+        "standalone_minus_loop": -0.01,
+        "weights": 15364800,
+        "weight_bytes": 6996672,
+        "macs": 3859808256,
+        "ternary_weights": 11157504,
+        "ternary_macs": 2214592512
+      },
+      {
+        "experiment": "twn_bk_stem",
+        "what": "four stages + stem ternary",
+        "precision": "ternary + INT8",
+        "recipe": "relay from all four stages",
+        "checkpoint_sha256_16": "8c261f86cdea7f33",
+        "pckh_mean": 87.642,
+        "pckh_ankle": 79.13,
+        "pckh_knee": 83.01,
+        "pckh_wrist": 81.75,
+        "training_loop_figure": 87.672,
+        "standalone_minus_loop": -0.03,
+        "weights": 15364800,
+        "weight_bytes": 6989616,
+        "macs": 3859808256,
+        "ternary_weights": 11166912,
+        "ternary_macs": 2368733184
+      },
+      {
+        "experiment": "twn_bk_deconv",
+        "what": "four stages + transposed-convolution head ternary",
+        "precision": "ternary + INT8",
+        "recipe": "relay from all four stages",
+        "checkpoint_sha256_16": "565ebb0460192b91",
+        "pckh_mean": 87.692,
+        "pckh_ankle": 78.88,
+        "pckh_knee": 83.17,
+        "pckh_wrist": 82.1,
+        "training_loop_figure": 87.726,
+        "standalone_minus_loop": -0.034,
+        "weights": 15364800,
+        "weight_bytes": 3850944,
+        "macs": 3859808256,
+        "ternary_weights": 15351808,
+        "ternary_macs": 3690987520
+      },
+      {
+        "experiment": "twn_no_final",
+        "what": "everything ternary except the 1x1 output layer",
+        "precision": "ternary + INT8 output",
+        "recipe": "relay from four stages + head",
+        "checkpoint_sha256_16": "6828400c3b0d3fe1",
+        "pckh_mean": 87.378,
+        "pckh_ankle": 78.5,
+        "pckh_knee": 82.3,
+        "pckh_wrist": 81.64,
+        "training_loop_figure": 87.425,
+        "standalone_minus_loop": -0.047,
+        "weights": 15364800,
+        "weight_bytes": 3843888,
+        "macs": 3859808256,
+        "ternary_weights": 15361216,
+        "ternary_macs": 3845128192
+      },
+      {
+        "experiment": "twn_bk_final",
+        "what": "four stages + 1x1 output ternary",
+        "precision": "ternary + INT8",
+        "recipe": "relay from all four stages",
+        "checkpoint_sha256_16": "76a15864662ecb02",
+        "pckh_mean": 86.036,
+        "pckh_ankle": 77.03,
+        "pckh_knee": 80.95,
+        "pckh_wrist": 80.31,
+        "training_loop_figure": 86.066,
+        "standalone_minus_loop": -0.03,
+        "weights": 15364800,
+        "weight_bytes": 6993984,
+        "macs": 3859808256,
+        "ternary_weights": 11161088,
+        "ternary_macs": 2229272576
+      },
+      {
+        "experiment": "twn_all",
+        "what": "every layer ternary",
+        "precision": "ternary",
+        "recipe": "relay from four stages + output",
+        "checkpoint_sha256_16": "ba43036243694033",
+        "pckh_mean": 85.407,
+        "pckh_ankle": 75.28,
+        "pckh_knee": 79.63,
+        "pckh_wrist": 79.75,
+        "training_loop_figure": 85.421,
+        "standalone_minus_loop": -0.014,
+        "weights": 15364800,
+        "weight_bytes": 3841200,
+        "macs": 3859808256,
+        "ternary_weights": 15364800,
+        "ternary_macs": 3859808256
+      }
+    ],
+    "comparability": "one recipe per step and one ruler; each step is relayed from the previous one, so rows form a chain, not independent runs."
+  },
+  "ch3_depthwise_ternary_ablation_20261012": {
+    "current": true,
+    "date": "2026-10-12",
+    "ruler": "host PCKh@0.5, MPII val 2,289 instances, 14 joints, src/evaluate.py, each checkpoint loaded on its own (standalone score, not the training loop's figure); the earlier, non-public research repository's valid.json, evaluate.py, dataset.py, transforms.py and heatmaps.py are byte-identical to train/mbv2_pose/src (config.py differs only in paths), so this is the same ruler as train/mbv2_pose/src/score_ckpt.py. Weights and MACs counted by forward hooks on every convolution for one 256x256 input; weight bytes = convolution weights only at the bit width each layer is built with (ternary 2 bit, INT8 8 bit, float 32 bit).",
+    "build": "checkpoints of the earlier, non-public research repository experiments/<name>/best.pth, SHA-256 first 16 hex per row",
+    "source": "results/raw/ch3_evidence_20261012.json (per checkpoint: standalone PCKh, groups, per joint, training-loop and orchestrator figures, weights/bytes/MACs by layer kind) and .log; recipes from the earlier, non-public research repository (<earlier-repo>) experiments/LINEAGE.md, docs/EXPERIMENTS.md, docs/reports/REPORT_30FPS_DELIVERABLE_zh.md, experiments/orchestrate.py, sep_orchestrate.py, compress_orchestrate.py, probe_head_capacity.py, probe_skip_head.py",
+    "measured_by": "python tools/score_old_ckpts.py --old-repo <earlier research repository root> --out <file>.json <names>   (conda env twn; about 2 minutes per checkpoint on a shared RTX 5080)",
+    "_what": "Evidence for the network choice: cost of also ternarising the depthwise convolutions, one recipe per pair. MobileNetV2 pair: both relayed from the same float MobileNetV2 with a 32-channel head, 10 epochs distilled from the ResNet-18 float model, MPII only; the depthwise layers get one scale per output channel (per-tensor cannot describe 9-weight channels). The INT8 row of this MPII-only recipe is not part of this entry. Supplementary pairs on the depthwise-separable ResNet-18 use the same schedules.",
+    "mobilenetv2_rows": [
+      {
+        "experiment": "mbv2_dc32_pwstem",
+        "what": "MobileNetV2, pointwise + stem ternary, depthwise INT8",
+        "precision": "pointwise + stem ternary",
+        "recipe": "relay from float 32-channel model, 10 epochs distilled",
+        "checkpoint_sha256_16": "8e0290474e1fe4ac",
+        "pckh_mean": 83.731,
+        "pckh_ankle": 72.78,
+        "pckh_knee": 75.94,
+        "pckh_wrist": 76.03,
+        "training_loop_figure": 83.758,
+        "standalone_minus_loop": -0.027,
+        "weights": 1977216,
+        "weight_bytes": 690264,
+        "macs": 398254080,
+        "ternary_weights": 1715936,
+        "ternary_macs": 337903616
+      },
+      {
+        "experiment": "mbv2_dc32_bbpc",
+        "what": "MobileNetV2, pointwise + stem ternary, depthwise ternary with a per-channel scale",
+        "precision": "pointwise + stem + depthwise ternary",
+        "recipe": "same",
+        "checkpoint_sha256_16": "42407b90f9af514d",
+        "pckh_mean": 74.759,
+        "pckh_ankle": 61.17,
+        "pckh_knee": 64.46,
+        "pckh_wrist": 64.91,
+        "training_loop_figure": 74.763,
+        "standalone_minus_loop": -0.004,
+        "weights": 1977216,
+        "weight_bytes": 642096,
+        "macs": 398254080,
+        "ternary_weights": 1780160,
+        "ternary_macs": 364961792
+      }
+    ],
+    "separable_resnet18_rows": [
+      {
+        "experiment": "dsc_dc32_pwstem",
+        "what": "separable ResNet-18 (head 32), pointwise + stem ternary",
+        "precision": "pointwise + stem ternary",
+        "recipe": "relay from its float 32-channel model, 20 epochs distilled",
+        "checkpoint_sha256_16": "37077259c629c8c8",
+        "pckh_mean": 79.502,
+        "pckh_ankle": 65.43,
+        "pckh_knee": 70.24,
+        "pckh_wrist": 70.86,
+        "training_loop_figure": 79.488,
+        "standalone_minus_loop": 0.014,
+        "weights": 1727936,
+        "weight_bytes": 676400,
+        "macs": 478822400,
+        "ternary_weights": 1402048,
+        "ternary_macs": 422576128
+      },
+      {
+        "experiment": "dsc_dc32_bbpc",
+        "what": "separable ResNet-18 (head 32), + depthwise ternary per-channel scale",
+        "precision": "+ depthwise ternary",
+        "recipe": "same",
+        "checkpoint_sha256_16": "92cc002fcded1c4b",
+        "pckh_mean": 77.443,
+        "pckh_ankle": 61.3,
+        "pckh_knee": 67.1,
+        "pckh_wrist": 68.49,
+        "training_loop_figure": 77.426,
+        "standalone_minus_loop": 0.017,
+        "weights": 1727936,
+        "weight_bytes": 653504,
+        "macs": 478822400,
+        "ternary_weights": 1432576,
+        "ternary_macs": 439238656
+      },
+      {
+        "experiment": "dsc_pw",
+        "what": "separable ResNet-18 (head 256), pointwise ternary",
+        "precision": "pointwise ternary",
+        "recipe": "relay from its float 256-channel model, 20 epochs distilled",
+        "checkpoint_sha256_16": "88424bd61d22517d",
+        "pckh_mean": 80.137,
+        "pckh_ankle": 67.18,
+        "pckh_knee": 70.98,
+        "pckh_wrist": 71.75,
+        "training_loop_figure": 80.168,
+        "standalone_minus_loop": -0.031,
+        "weights": 5630464,
+        "weight_bytes": 4585984,
+        "macs": 1930313728,
+        "ternary_weights": 1392640,
+        "ternary_macs": 268435456
+      },
+      {
+        "experiment": "dsc_pwdw",
+        "what": "separable ResNet-18 (head 256), pointwise + depthwise ternary, per-tensor scale",
+        "precision": "+ depthwise ternary",
+        "recipe": "same",
+        "checkpoint_sha256_16": "c9c3b3ca3c17c42b",
+        "pckh_mean": 78.248,
+        "pckh_ankle": 63.77,
+        "pckh_knee": 69.71,
+        "pckh_wrist": 69.77,
+        "training_loop_figure": 78.281,
+        "standalone_minus_loop": -0.033,
+        "weights": 5630464,
+        "weight_bytes": 4563088,
+        "macs": 1930313728,
+        "ternary_weights": 1423168,
+        "ternary_macs": 285097984
+      }
+    ],
+    "comparability": "each pair shares start point, epochs, teacher and data; pairs differ from each other."
+  },
+  "thesis_model_probe_tern_dc32_host_20261012": {
+    "current": true,
+    "date": "2026-10-12",
+    "ruler": "host PCKh@0.5, MPII val 2289 instances, 14 joints, train/mbv2_pose/src/score_ckpt.py (checkpoint loaded standalone) -- the ruler of mbv2_pose_room_mix_w3_head32_20261012, which this run reproduced (85.897, MATCH)",
+    "build": "deployed model: checkpoint probe_tern_dc32 best.pth sha16 c731da80a73704c9 (train/mbv2_pose/checkpoints/probe_tern_dc32; earlier research repository experiments/probe_tern_dc32). INT8 counterpart: probe_int8_dc32 best.pth sha16 1dab06f7037c9f3a (earlier research repository experiments/probe_int8_dc32, read only), scored with --int8",
+    "source": "results/raw/thesis_model_20261012/score_probe_tern_dc32.txt, score_probe_int8_dc32.txt, score_*.txt (candidates), ternary_count.txt, export_probe_tern_dc32.log",
+    "measured_by": "cd train/mbv2_pose && python -m src.score_ckpt checkpoints/probe_tern_dc32/best.pth; python -m src.score_ckpt <earlier-repo>/experiments/probe_int8_dc32/best.pth --int8",
+    "what": "The deployed ternary network, chosen by the author on 2026-10-12: MPII plus Penn Action sports fine-tuning of the ternary backbone, then the backbone frozen and only the 32-channel head re-trained. Its INT8 counterpart is the same recipe with an all-INT8 network (backbone from the all-INT8 sports fine-tuning, 32-channel head re-trained).",
+    "pckh_mean": 85.992,
+    "pckh_groups": {
+      "Head": 96.81,
+      "Shoulder": 93.51,
+      "Elbow": 85.37,
+      "Wrist": 79.2,
+      "Hip": 86.1,
+      "Knee": 80.98,
+      "Ankle": 76.19
+    },
+    "int8_counterpart_pckh_mean": 87.878,
+    "int8_counterpart_pckh_groups": {
+      "Head": 97.78,
+      "Shoulder": 94.6,
+      "Elbow": 87.64,
+      "Wrist": 82.04,
+      "Hip": 87.47,
+      "Knee": 83.48,
+      "Ankle": 78.6
+    },
+    "drop_vs_int8": {
+      "points": 1.886,
+      "relative_percent": 2.146,
+      "_what": "87.878 - 85.992, and that over 87.878; both on this ruler"
+    },
+    "ternary_check": "34 of 34 ternary layers (33 pointwise + stem) take only {-1,0,+1} with zeros present; 764,249 of 1,715,936 ternary weights are zero (44.54%). Counted from the checkpoint by the method that gives 46.45% for room_mix_w3_head32 (recorded there as 46.5%), so the two are comparable; the export's own gate prints 44.5%",
+    "candidates_same_architecture": {
+      "_what": "every checkpoint with the deployed architecture (MobileNetV2 width 1.0 features[:18], 32-channel deconvolution head, pointwise + stem ternary per tensor, rest INT8) found in the earlier research repository, scored on this ruler; none is above the deployed model",
+      "probe_tern_dc32": {
+        "sha16": "c731da80a73704c9",
+        "pckh_mean": 85.992
+      },
+      "room_mix_w3_head32": {
+        "sha16": "789dd3b3bfb71cfe",
+        "pckh_mean": 85.897
+      },
+      "room_ctrl_head32": {
+        "sha16": "ada0a97d6d57db43",
+        "pckh_mean": 85.806
+      },
+      "room_mix_w3": {
+        "sha16": "0e937b76ec2ba138",
+        "pckh_mean": 85.39
+      },
+      "room_ctrl": {
+        "sha16": "0f7481678a02e222",
+        "pckh_mean": 85.373
+      },
+      "sports_r2_w3": {
+        "sha16": "cfd666b058b96a1d",
+        "pckh_mean": 85.333
+      },
+      "sports_r1": {
+        "sha16": "587fceb52e63531e",
+        "pckh_mean": 85.073
+      },
+      "mbv2_dc32_pwstem_ftI30": {
+        "sha16": "bd48a9e78d0c8316",
+        "pckh_mean": 84.613
+      },
+      "sports_r4a": {
+        "sha16": "019779e8c5cef15b",
+        "pckh_mean": 84.576
+      },
+      "sports_r4b_h0.000716": {
+        "sha16": "4b520aec6d363d99",
+        "pckh_mean": 83.409
+      }
+    },
+    "note": "Host figures are of the quantisation-aware model (float arithmetic with simulated quantisation). The integer network that runs on the board scores lower; see thesis_model_probe_tern_dc32_board_20261012."
+  },
+  "thesis_model_probe_tern_dc32_board_20261012": {
+    "current": true,
+    "date": "2026-10-12",
+    "ruler": "correctness: mbv2_fuse_test, 4 fixtures exported from THIS checkpoint, FUSE_HEAD_PL=1 and 0 (deploy.sh verify). throughput: mbv2_fuse_pipe, 120-frame runs, 3 alternating pairs FUSE_BB2HD=1/0 on the same boot, launched and not polled, board clock 240 MHz (deploy.sh speed) -- the ruler of linux_rebuilt_20261012. accuracy on the board: the 2,289 MPII val instances, quantised as the exporter quantises its fixtures, run one image at a time through sw/app/mbv2_fuse_eval (head in the fabric); the raw final accumulators are scored on the host by train/mbv2_pose/src/score_board.py with src/evaluate.py (same dataset order and decoding as score_ckpt.py; its replay path gives 85.992 when fed the host model's own heatmaps)",
+    "build": "BOOT.BIN 690d87cc5f4b6897 (bitstream 52b400785924efe0), the boot of linux_rebuilt_20261012, not rebooted. Data and apps from branch thesis-model-probe-tern-dc32 commit d21153c (tools commit 9deba2f): model_mbv2.bin accd59743da29a6e, model_mbv2_packed.bin 67728c886e2a4618, fuse_weights.bin a8ae156468434244, fixtures 00ba35795fa6dcc8 cce0dc613522cd92 56c627da6f831221 2ef37ef2fc46b274; mbv2_fuse_test 90cd538fa3146b5b, mbv2_fuse_pipe a49e5822c25f675b, mbv2_fuse_eval 4f819c205c03f1a2 (board-side hashes equal, see deploy_data_thesis_model.log and board_eval_headpl1.log)",
+    "source": "results/raw/thesis_model_20261012/deploy_data_thesis_model.log, verify_thesis_model.log, speed_thesis_model.log, board_eval_headpl1.log, board_eval_chunk_*.txt, compare_board_cref.txt, score_board.txt, score_cref.txt, eval_chunks_sha256.txt, p1_gate_thesis_model.log, tools_thesis_model.log, restore_data.log, restore_verify.log",
+    "measured_by": "in a worktree of branch thesis-model-probe-tern-dc32: golden/p1_golden/run_p1.sh, tools/pack_fuse_weights.py, gen_desctab.py, gen_fuse_ddr.py, board/build_apps.sh, board/deploy.sh data|verify|speed; python -m src.score_board inputs|score|compare (train/mbv2_pose); golden/ref_batch on the same inputs",
+    "bit_exact_fixtures": "4/4, max abs diff 0, 14/14 keypoints, FUSE_HEAD_PL=1 and 0",
+    "fps_runs_bb2hd_on": [
+      228.73,
+      228.98,
+      228.42
+    ],
+    "fps_mean_bb2hd_on": 228.71,
+    "fps_runs_bb2hd_off": [
+      224.11,
+      223.46,
+      223.55
+    ],
+    "fps_mean_bb2hd_off": 223.71,
+    "board_pckh_mean": 85.715,
+    "board_pckh_groups": {
+      "Head": 96.76,
+      "Shoulder": 93.48,
+      "Elbow": 85.37,
+      "Wrist": 78.82,
+      "Hip": 85.76,
+      "Knee": 80.29,
+      "Ankle": 75.53
+    },
+    "c_reference_pckh_mean": 85.715,
+    "board_vs_c_reference": "2,289 of 2,289 images byte-identical (final accumulator 14x64x64 and keypoints); the C reference is golden/ref_batch over sw/net/mbv2_pose.c with this export",
+    "integer_vs_host_model": {
+      "points": -0.277,
+      "_what": "85.715 (integer network, board = C reference) - 85.992 (quantisation-aware model on the host, score_ckpt); the export already reports the gap: 2 of 16 validation images agree on all 14 argmax positions, max 17 px at 64x64"
+    },
+    "board_vs_int8_counterpart": {
+      "points": 2.163,
+      "relative_percent": 2.461,
+      "_what": "87.878 (INT8 counterpart, host quantisation-aware model) - 85.715 (board). Not the same kind of figure on both sides: the INT8 counterpart's integer network was not exported or measured"
+    },
+    "export_reproduction": "the export of this checkpoint is byte-identical to the files deployed with it on 2026-09-06 (earlier research repository docs/training/results/board_deploy.json probe_tern_dc32_20260906: model_mbv2.bin, model_mbv2_packed.bin, four fixtures, fuse_weights.bin, fuse_desctab.h); P1 gate PASS; gen_fuse_ddr verify ALL PASS",
+    "board_restored": "after the run, bash board/deploy.sh data from main put back the shipping room_mix_w3_head32 files (9 of 9 hashes match the tree), deploy.sh verify 4/4 bit-exact in both head modes, eval files removed; same boot_id eab59f3a-7d77-41f1-9f4d-f9f7882ccea2, BOOT.BIN 690d87cc5f4b6897",
+    "not_measured": "power (not re-measured on this bitstream; an earlier bitstream of the same design drew 7.66 W at the 12 V board input during continuous inference, a figure not recorded in this file); the board accuracy with the head on the processor (fixtures are bit-exact in that mode); the eval app's per-chunk time (2.8 s per 300 images, one image at a time with file I/O) is not a throughput figure"
+  },
+  "resources_bitstream_52b400785924efe0": {
+    "current": true,
+    "date": "2026-10-12",
+    "ruler": "Vivado 2023.2 report_utilization, flat and hierarchical (depth 5), of the routed design after post-route phys_opt (Design State: Physopt postRoute), device xczu2cg-sfvc784-1-e; written 2026-10-11 15:41 by vivado/build.cmd in the run that wrote the bitstream at 15:42",
+    "build": "bitstream build/system_fuse_ternpose.bit sha16 52b400785924efe0, the PL image of BOOT.BIN 690d87cc5f4b6897 now on the board (build/boot.bif names that .bit; build/BOOT.BIN has the board's SHA-256); same build as rebuilt_from_clone_20261011, whose resources field lacked FF and per-module figures",
+    "source": "results/raw/thesis_model_20261012/util_impl_fuse_ternpose.rpt, results/raw/thesis_model_20261012/util_hier_impl_fuse_ternpose.rpt (copies of build/)",
+    "measured_by": "vivado\\build.cmd (writes build/util_impl_*.rpt and build/util_hier_impl_*.rpt)",
+    "clb_lut": {
+      "used": 44057,
+      "available": 47232,
+      "percent": 93.28
+    },
+    "lut_as_logic": 41193,
+    "lut_as_memory": 2864,
+    "clb_registers": {
+      "used": 36339,
+      "available": 94464,
+      "percent": 38.47
+    },
+    "bram_tiles": {
+      "used": 145,
+      "available": 150,
+      "percent": 96.67,
+      "ramb36": 141,
+      "ramb18": 8
+    },
+    "dsp": {
+      "used": 217,
+      "available": 240,
+      "percent": 90.42
+    },
+    "per_module": {
+      "_what": "instances under twn_fuse_top; LUT, FF, RAMB36, RAMB18, DSP from the hierarchical report",
+      "ternary_array twn_fuse_array (ARR)": {
+        "lut": 15713,
+        "ff": 8832,
+        "ramb36": 6,
+        "ramb18": 2,
+        "dsp": 16
+      },
+      "weight_memory twn_wmem (WMEM)": {
+        "lut": 1904,
+        "ff": 0,
+        "ramb36": 77,
+        "ramb18": 4,
+        "dsp": 0
+      },
+      "depthwise twn_dw_array (DW)": {
+        "lut": 1515,
+        "ff": 709,
+        "ramb36": 0,
+        "ramb18": 0,
+        "dsp": 96
+      },
+      "depthwise_pack twn_dw_pack (DWP)": {
+        "lut": 1054,
+        "ff": 96,
+        "ramb36": 0,
+        "ramb18": 0,
+        "dsp": 1
+      },
+      "residual_add twn_res_add (RES)": {
+        "lut": 1875,
+        "ff": 722,
+        "ramb36": 0,
+        "ramb18": 0,
+        "dsp": 32
+      },
+      "head twn_hd_compute (HDP)": {
+        "lut": 8067,
+        "ff": 8365,
+        "ramb36": 10,
+        "ramb18": 0,
+        "dsp": 67
+      },
+      "head_sequencer twn_hd_seq (HSEQ)": {
+        "lut": 218,
+        "ff": 132,
+        "ramb36": 0,
+        "ramb18": 1,
+        "dsp": 0
+      },
+      "activation_gather twn_act_gather (GATH)": {
+        "lut": 3364,
+        "ff": 6302,
+        "ramb36": 0,
+        "ramb18": 0,
+        "dsp": 1
+      },
+      "activation_read twn_act_rd (ARD)": {
+        "lut": 1133,
+        "ff": 2241,
+        "ramb36": 0,
+        "ramb18": 0,
+        "dsp": 2
+      },
+      "activation_write twn_act_wr (AWR)": {
+        "lut": 194,
+        "ff": 309,
+        "ramb36": 0,
+        "ramb18": 0,
+        "dsp": 2
+      },
+      "descriptor_table twn_desctab (DT)": {
+        "lut": 3615,
+        "ff": 701,
+        "ramb36": 0,
+        "ramb18": 1,
+        "dsp": 0
+      },
+      "row_buffers RB_T1 + RB_OU (twn_rowbuf)": {
+        "ramb36": 20
+      },
+      "residual_buffer twn_res_buf (RESB)": {
+        "ramb36": 4
+      },
+      "activation_scatter twn_act_scatter (SCAT)": {
+        "lut": 1425,
+        "ff": 474,
+        "ramb36": 8,
+        "ramb18": 0,
+        "dsp": 0
+      },
+      "twn_fuse_top own logic": {
+        "lut": 334,
+        "ff": 77,
+        "ramb36": 16,
+        "ramb18": 0,
+        "dsp": 0
+      }
+    },
+    "dsp_by_engine": {
+      "ternary_array": 16,
+      "depthwise": 97,
+      "residual_add": 32,
+      "head": 67,
+      "activation_paths": 5,
+      "total": 217
+    }
+  },
+  "deploy_probe_tern_dc32_20261012": {
+    "current": true,
+    "date": "2026-10-12",
+    "ruler": "correctness: bash board/deploy.sh verify (mbv2_fuse_test, the 4 fixtures of models/mbv2_pose, FUSE_HEAD_PL=1 and 0). camera app: FUSE_HEAD_PL=1 ./mbv2_cam_fuse --selftest golden/fix_N.bin for the same 4 fixtures. Throughput, accuracy on the board and resources are not re-measured here; see measurements",
+    "build": "BOOT.BIN 690d87cc5f4b6897 (bitstream 52b400785924efe0) and the Linux set of linux_rebuilt_20261012, same boot as that entry (boot_id eab59f3a-7d77-41f1-9f4d-f9f7882ccea2, not rebooted). main commit f7f92ca (the model files; 9a99d67 explains why they are under that commit's message) and 9a99d67 (checkpoint archive, recipe, docs): models/mbv2_pose = probe_tern_dc32 (model_mbv2.bin accd59743da29a6e, model_mbv2_packed.bin 67728c886e2a4618, fixtures 00ba35795fa6dcc8 cce0dc613522cd92 56c627da6f831221 2ef37ef2fc46b274), fuse_weights.bin a8ae156468434244; apps built from it: mbv2_fuse_test d888019525640dc1, mbv2_fuse_pipe a89c6e6fef689e04, mbv2_cam_fuse 47f9006f5b57673b",
+    "source": "results/raw/deploy_probe_tern_dc32_20261012/deploy_data_main_probe.log, verify_main_probe.log, cam_selftest_main_probe.log, app_section_compare.txt, sd_sets_main_probe.txt, sd_rollback_room_set.txt, p1_gate_main.log, tools_main.log, engine_suite_main.log",
+    "measured_by": "bash board/deploy.sh data; bash board/deploy.sh verify; on the board FUSE_HEAD_PL=1 ./mbv2_cam_fuse --selftest golden/fix_N.bin",
+    "what": "From 2026-10-12, by the author's decision, the board and main run the model probe_tern_dc32 instead of the earlier deployed pose model room_mix_w3_head32 (superseded, not released).",
+    "bit_exact_fixtures": "4/4, max abs diff 0, 14/14 keypoints, FUSE_HEAD_PL=1 and 0",
+    "camera_app_selftest": "4/4 fixtures bit-exact through mbv2_cam_fuse, which reads data/fuse_weights.bin and data/model_mbv2_packed.bin of this set (hashes in cam_selftest_main_probe.log)",
+    "host_gates": "P1 GATE PASS (P0 re-run PASS); gen_fuse_ddr verify ALL PASS, 2,412,262 values, 0 errors; engine suite all 35 ok (engine_suite_main.log; P5 17/17 blocks bit-exact, whole frame 28 checks 0 errors FRAME PASS)",
+    "measurements": {
+      "throughput_and_board_accuracy": "thesis_model_probe_tern_dc32_board_20261012 (same boot, same bitstream, same weights; its apps have .text/.rodata/.data identical to these, only debug paths differ, app_section_compare.txt)",
+      "host_accuracy": "thesis_model_probe_tern_dc32_host_20261012",
+      "resources": "resources_bitstream_52b400785924efe0"
+    },
+    "supersedes": [
+      "linux_rebuilt_20261012 (the board run of the earlier deployed pose model on this boot)",
+      "mbv2_pose_room_mix_w3_head32_20261012 (the earlier deployed pose model as the content of models/mbv2_pose)"
+    ],
+    "rollback": "git tag model-room-mix-w3-head32 = main with models/mbv2_pose of the earlier deployed pose model: in a worktree of the tag run README rebuild steps 1, 6, then `deploy.sh data` and `verify`. On the SD card: /run/media/mmcblk0p1/rollback_room_mix_w3_head32/ (test, pipe and camera apps, data, fixtures, restore.sh) and demo_working/prev_room_mix_w3_head32_20261012/ (the demo folder's former contents)",
+    "after_a_reboot": "/home/root is an initramfs and comes up empty: run `bash board/deploy.sh data` from main, or on the board `sh /run/media/mmcblk0p1/deploy_probe_tern_dc32/restore.sh` (apps, camera app, data, fixtures); demo_working/restore_demo.sh now restores this same set under its old file names"
+  },
+  "timing_bitstream_52b400785924efe0": {
+    "current": true,
+    "date": "2026-10-26",
+    "ruler": "Vivado 2023.2 report_timing_summary of the routed design after post-route phys_opt (Design State: Physopt postRoute), device xczu2cg-sfvc784-1-e, written 2026-10-11 15:41 by vivado/build.cmd in the run that wrote the bitstream at 15:42",
+    "build": "bitstream system_fuse_ternpose.bit sha16 52b400785924efe0, the PL image of BOOT.BIN 690d87cc5f4b6897 (the release v1.0.0 bitstream and BOOT.BIN); the same run as resources_bitstream_52b400785924efe0",
+    "source": "results/raw/thesis_model_20261012/timing_impl_fuse_ternpose.rpt (copy of build/timing_impl_fuse_ternpose.rpt; host name and absolute path replaced by placeholders)",
+    "measured_by": "vivado\build.cmd (writes build/timing_impl_*.rpt)",
+    "what": "Added for the public release: the timing of the deployed bitstream, read from the report that backs rebuilt_from_clone_20261011's timing field (same bitstream). No new measurement.",
+    "clock": {
+      "name": "clk_pl_0",
+      "period_ns": 4.166,
+      "frequency_mhz": 240.038
+    },
+    "wns_ns": 0.0,
+    "tns_ns": 0.0,
+    "whs_ns": 0.002,
+    "ths_ns": 0.0,
+    "wpws_ns": 0.583,
+    "failing_endpoints": 0,
+    "note": "the first routing of the recipe ends about 30 ps below zero slack; the post-route recovery in vivado/build_bd_fuse.tcl brings it to 0.000 ns, so the design has no timing margin"
+  }
+}

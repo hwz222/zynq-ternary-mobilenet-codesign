@@ -1,0 +1,1 @@
+{"v1_det12_tern_cont": {"lying_people": 108, "found_thr0.3": 34, "found_thr0.15": 57}, "v2_det12v2_tern_probe_cont": {"lying_people": 108, "found_thr0.3": 36, "found_thr0.15": 58}, "rule": "COCO val2017 people with >=8 keypoints, a shoulder and a hip, torso >60 deg from upright; found = a person box with IoU >= 0.5; train/coco_det/src/lying_recall.py"}

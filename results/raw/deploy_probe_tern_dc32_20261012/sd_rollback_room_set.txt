@@ -1,0 +1,10 @@
+51f67e367e8c543c  mbv2_fuse_test
+049e1522f262a7e9  mbv2_fuse_pipe
+2b19f491c92aec6a  mbv2_cam_fuse
+bcdfbbc02b0975b7  data/fuse_weights.bin
+2d2456c0e2e3e212  data/model_mbv2.bin
+e9672c3bc4cad155  data/model_mbv2_packed.bin
+7e649f570e2ca710  golden/fix_0.bin
+95ff29f8fd741e28  golden/fix_1.bin
+a8d6400324f6d99e  golden/fix_2.bin
+bfb4d362b9e6ba5f  golden/fix_3.bin

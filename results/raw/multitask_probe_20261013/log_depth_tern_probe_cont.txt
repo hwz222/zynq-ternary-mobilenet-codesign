@@ -1,0 +1,8 @@
+[init] all tensors from checkpoints/depth_tern_probe/best_bn.pth
+[data] + 23996 indoor COCO images with teacher depth
+[data] 71580 train frames, 1118 iters/epoch, 4 epochs
+epoch   0 | loss 2.5729 silog 2.555 | lr 2.72e-04 | 310s | d1 0.7069 absrel 0.1833 rmse 0.652 | best d1 0.7069
+epoch   1 | loss 2.4906 silog 2.473 | lr 1.67e-04 | 299s | d1 0.6935 absrel 0.1867 rmse 0.651 | best d1 0.7069
+epoch   2 | loss 2.3784 silog 2.362 | lr 5.02e-05 | 300s | d1 0.6837 absrel 0.1908 rmse 0.653 | best d1 0.7069
+epoch   3 | loss 2.2829 silog 2.267 | lr 3.00e-06 | 298s | d1 0.7012 absrel 0.1795 rmse 0.650 | best d1 0.7069
+[done] best d1 0.7069; ternary check 34/34

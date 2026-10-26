@@ -1,0 +1,20 @@
+[init] all tensors from checkpoints/det12_tern_pose/last.pth
+[data] 37191 images with a non-person class sampled x3.0
+[data] 83709 train images, 1307 iters/epoch, 16 epochs
+epoch   0 | loss 3.1125 (hm 1.9695 wh 0.6556 off 0.4874) | lr 9.94e-04 | 433s
+epoch   1 | loss 3.1081 (hm 1.9653 wh 0.6550 off 0.4878) | lr 9.69e-04 | 410s | AP 5.75 AP50 12.09 | best 5.75
+epoch   2 | loss 3.0776 (hm 1.9475 wh 0.6428 off 0.4872) | lr 9.26e-04 | 427s
+epoch   3 | loss 3.0534 (hm 1.9295 wh 0.6370 off 0.4869) | lr 8.66e-04 | 560s | AP 4.55 AP50 9.59 | best 5.75
+epoch   4 | loss 3.0233 (hm 1.9112 wh 0.6255 off 0.4865) | lr 7.91e-04 | 401s
+epoch   5 | loss 2.9936 (hm 1.8935 wh 0.6153 off 0.4848) | lr 7.05e-04 | 402s | AP 6.60 AP50 13.14 | best 6.60
+epoch   6 | loss 2.9748 (hm 1.8847 wh 0.6052 off 0.4849) | lr 6.10e-04 | 412s
+epoch   7 | loss 2.9496 (hm 1.8661 wh 0.5991 off 0.4844) | lr 5.12e-04 | 376s | AP 9.46 AP50 18.57 | best 9.46
+epoch   8 | loss 2.9114 (hm 1.8446 wh 0.5832 off 0.4836) | lr 4.12e-04 | 368s
+epoch   9 | loss 2.8998 (hm 1.8356 wh 0.5807 off 0.4834) | lr 3.17e-04 | 348s | AP 7.64 AP50 15.33 | best 9.46
+epoch  10 | loss 2.8646 (hm 1.8153 wh 0.5675 off 0.4818) | lr 2.28e-04 | 349s
+epoch  11 | loss 2.8454 (hm 1.8006 wh 0.5628 off 0.4821) | lr 1.51e-04 | 370s | AP 10.45 AP50 20.15 | best 10.45
+epoch  12 | loss 2.8206 (hm 1.7878 wh 0.5523 off 0.4805) | lr 8.67e-05 | 353s
+epoch  13 | loss 2.8046 (hm 1.7770 wh 0.5468 off 0.4808) | lr 3.92e-05 | 360s | AP 11.11 AP50 20.79 | best 11.11
+epoch  14 | loss 2.7837 (hm 1.7641 wh 0.5395 off 0.4801) | lr 1.00e-05 | 341s | AP 11.26 AP50 20.48 | best 11.26
+epoch  15 | loss 2.7835 (hm 1.7647 wh 0.5387 off 0.4801) | lr 1.00e-05 | 340s | AP 7.44 AP50 14.27 | best 11.26
+[done] best AP 11.26; ternary check 34/34

@@ -1,0 +1,13 @@
+[init] backbone 306 tensors from ../../artifacts/mbv2_pose/probe_tern_dc32_best.pth, head 20 tensors from ../../artifacts/coco_det/det12_tern_cont_best_bn.pth
+[data] 36063 images with a non-person class sampled x3.0
+[data] 2165 images with a person lying down sampled x3.0
+[data] 83503 train images, 1304 iters/epoch, 8 epochs
+epoch   0 | loss 3.9328 (hm 2.5194 wh 0.9191 off 0.4943) | lr 4.88e-04 | 513s
+epoch   1 | loss 3.2883 (hm 2.0807 wh 0.7167 off 0.4908) | lr 4.39e-04 | 391s | AP 3.13 AP50 7.06 | best 3.13
+epoch   2 | loss 3.1713 (hm 2.0117 wh 0.6714 off 0.4881) | lr 3.59e-04 | 391s
+epoch   3 | loss 3.0908 (hm 1.9623 wh 0.6414 off 0.4871) | lr 2.62e-04 | 354s | AP 7.21 AP50 14.59 | best 7.21
+epoch   4 | loss 3.0336 (hm 1.9274 wh 0.6199 off 0.4863) | lr 1.63e-04 | 341s
+epoch   5 | loss 2.9891 (hm 1.9006 wh 0.6037 off 0.4848) | lr 7.74e-05 | 341s | AP 7.68 AP50 14.98 | best 7.68
+epoch   6 | loss 2.9478 (hm 1.8732 wh 0.5898 off 0.4848) | lr 2.02e-05 | 337s | AP 8.43 AP50 16.48 | best 8.43
+epoch   7 | loss 2.9220 (hm 1.8576 wh 0.5810 off 0.4834) | lr 5.00e-06 | 332s | AP 7.49 AP50 15.12 | best 8.43
+[done] best AP 8.43; ternary check 34/34

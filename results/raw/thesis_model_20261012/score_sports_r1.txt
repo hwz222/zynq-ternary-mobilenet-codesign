@@ -1,0 +1,8 @@
+start 2026-10-12T21:25:46.1133850+08:00 ckpt <earlier-repo>\experiments\sports_r1\best.pth
+ckpt_sha256 587fceb52e63531e3439020e137f65d2f4e1731b8159b6b4c5491e834788691d
+loaded      374 tensors; model keys the checkpoint lacks: 0, checkpoint keys unused: 0
+checkpoint  <earlier-repo>/experiments/sports_r1/best.pth
+ruler       MPII val, 2289 instances, PCKh@0.5, 14 joints, input 256, cuda
+mean        85.073
+groups      Head 96.54  Shoulder 92.50  Elbow 84.51  Wrist 78.15  Hip 85.65  Knee 79.08  Ankle 75.06
+exit 0 end 2026-10-12T21:26:34.6483143+08:00

@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "zynq-ternary-mobilenet-codesign: ternary-weight MobileNetV2 hardware/software co-design on Zynq UltraScale+"
+repository-code: "https://github.com/hwz222/zynq-ternary-mobilenet-codesign"
+type: software
+authors:
+  - family-names: Huang
+    given-names: Wei-Jhe
+    affiliation: "Department of Computer Science and Information Engineering, National Central University, Taiwan"
+version: 1.0.0
+date-released: "2026-10-26"
+license: Apache-2.0
+keywords:
+  - FPGA
+  - ternary weight networks
+  - human pose estimation
+  - hardware/software co-design
+  - MobileNetV2
+  - Zynq UltraScale+
+  - hardware accelerator
+abstract: >-
+  A hardware/software co-design of a ternary-weight MobileNetV2 on a Zynq UltraScale+ MPSoC (ALINX
+  AXU2CGB, XCZU2CG): a fused, row-streaming Verilog accelerator in the PL and Linux control software
+  on the ARM PS. Pose estimation is the reference task with board results; detection, segmentation
+  and depth models for the same fixed network are included with host results. The release contains
+  the RTL and testbenches, a bit-exact C reference, Vivado and PetaLinux build scripts, board
+  software, and the training, quantisation and export code.

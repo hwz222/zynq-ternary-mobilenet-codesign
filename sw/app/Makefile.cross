@@ -1,0 +1,40 @@
+# Cross-compile the board apps with the PetaLinux SDK (run through board/build_apps.sh,
+# which sources the SDK environment and sets DEF and OUT).
+#
+#   mbv2_fuse_test   the four fixtures through the fused backbone and the head, bit-exact check
+#   mbv2_fuse_pipe   cross-frame pipeline: throughput plus a check against the fixtures' keypoints
+#   mbv2_cam_fuse    live USB webcam -> display, on the fused backbone (needs libturbojpeg)
+#   mbv2_fuse_eval   a batch of pre-quantised images -> raw outputs, for accuracy on the board
+#
+# mbv2_ps.c and pl_hal_zynq.c are linked because the fused path calls mbv2_ps_head(); the
+# model description is models/mbv2_pose/model_meta.c, the one the fixtures were produced with.
+
+CC      ?= aarch64-xilinx-linux-gcc
+INC      = -I. -I../net -I../../models/mbv2_pose
+OPT     ?= -O3 -funroll-loops -ftree-vectorize
+PTHREAD ?= -pthread
+# -D switches decided by the build script (FUSE_CLK_MHZ, the PL clock used to convert cycle counts)
+DEF     ?=
+OUT     ?= ../build/arm
+
+COMMON = mbv2_fuse_ps.c pl_hal_fuse.c mbv2_ps.c pl_hal_zynq.c ../../models/mbv2_pose/model_meta.c ../net/mbv2_pose.c
+
+all: $(OUT)/mbv2_fuse_test $(OUT)/mbv2_fuse_pipe $(OUT)/mbv2_cam_fuse $(OUT)/mbv2_fuse_eval
+
+$(OUT):
+	mkdir -p $(OUT)
+
+$(OUT)/mbv2_fuse_test: mbv2_fuse_test.c $(COMMON) | $(OUT)
+	$(CC) $(CFLAGS) $(OPT) $(PTHREAD) $(INC) $(DEF) $^ -o $@ $(LDFLAGS) $(PTHREAD) -lm
+
+$(OUT)/mbv2_fuse_pipe: mbv2_fuse_pipe.c $(COMMON) | $(OUT)
+	$(CC) $(CFLAGS) $(OPT) $(PTHREAD) $(INC) $(DEF) $^ -o $@ $(LDFLAGS) $(PTHREAD) -lm
+
+$(OUT)/mbv2_fuse_eval: mbv2_fuse_eval.c $(COMMON) | $(OUT)
+	$(CC) $(CFLAGS) $(OPT) $(PTHREAD) $(INC) $(DEF) $^ -o $@ $(LDFLAGS) $(PTHREAD) -lm
+
+$(OUT)/mbv2_cam_fuse: main_cam.c $(COMMON) | $(OUT)
+	$(CC) $(CFLAGS) $(OPT) $(PTHREAD) $(INC) $(DEF) -DFUSE_BACKEND $^ -o $@ $(LDFLAGS) $(PTHREAD) -lturbojpeg -lm
+
+clean:
+	rm -f $(OUT)/mbv2_fuse_test $(OUT)/mbv2_fuse_pipe $(OUT)/mbv2_cam_fuse $(OUT)/mbv2_fuse_eval
