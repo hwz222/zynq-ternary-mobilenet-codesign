@@ -30,8 +30,9 @@ No toolchain, no MPII download. From the GitHub release **v1.1.0**:
 2. Log in as `root` with the published default password `twn-v1.1`, on the serial console
    (115200 baud) or with `ssh -t root@192.168.10.2`. The password is expired: the first login makes
    you set a new one, and until then ssh commands and `scp` are refused ("Password change required
-   but no TTY available"). The root file system is an initramfs: after a reboot the expired default
-   password is back, and the next login asks again.
+   but no TTY available"). If an ssh session shows nothing more after the change, close it (Enter,
+   then `~.`) and log in again with the new password. The root file system is an initramfs: after a
+   reboot the expired default password is back, and the next login asks again.
 3. Copy `twn_board_kit.tar.gz` to the board (`scp`, with the new password), then:
 
        tar xzf twn_board_kit.tar.gz && cd twn_board_kit

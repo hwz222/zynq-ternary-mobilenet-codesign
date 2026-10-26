@@ -59,7 +59,7 @@ sh v11_check.sh irqcount (E6)   sh v11_check.sh smmu (E8, H6)   sh v11_check.sh 
 sh v11_check.sh devmem (H8, last: one of its reads is outside System RAM)
 \end{cmdline}
 
-E2m 與 H4m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是第一版 rootfs 在序列埠（115200 baud）上的互動登入：在第一個 \code{New password:} 提示按 Ctrl-C，再輸入空的新密碼與不同的確認密碼，最後設定新密碼。H1、H2 是用與上面兩個腳本相同的步驟產生的；S7 是 \code{python tools/scan_release_paths.py}（發佈檔裡的建置路徑）（兩個腳本是事後從當時的暫存腳本整理進 repo 的，紀錄第 1 行的說明文字略有不同）。
+E2m 與 H4m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是第一版 rootfs 在序列埠（115200 baud）上的互動登入：在第一個 \code{New password:} 提示按 Ctrl-C，再輸入空的新密碼與不同的確認密碼，最後設定新密碼。H1、H2 是用與上面兩個腳本相同的步驟產生的（兩個腳本是事後從當時的暫存腳本整理進 repo 的，紀錄第 1 行的說明文字略有不同）。S7 是在發佈檔的資料夾執行 \code{python tools/scan_release_paths.py}（找發佈檔裡的建置路徑）。
 
 \textbf{6. 開機組 F（找 stream ID，F0--F1）}
 

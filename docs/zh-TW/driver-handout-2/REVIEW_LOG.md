@@ -632,3 +632,94 @@ N1、N2 改好、重建 PDF 確認後即可交付，不需要再送一輪完整�
 | N6 | 第 10 節加一段 `petalinux` 帳號：空的過期密碼、`sudo`、`nullok_secure`，由設定推得（沒有在板上測）能接序列埠的人可以經它取得 root；寫明為什麼這次只記錄、怎麼鎖（`usermod -L petalinux`）。發佈說明同步。 |
 | N7 | F0 第 22 行的 context fault 改成「是哪一個存取造成的沒有查」；H7 的 head 等待標成推測；「建置路徑」改引新的 `S7_release_path_scan.log`（`tools/scan_release_paths.py` 掃發佈檔、打開 cpio／tar／zip，0 處；對 strip 前的 app 8 處作為對照）；H1 的框改成 `1-25`（含第 14 行）；第 2 節的 29.2--40.0 µs 標明是輪詢；S6 改對發佈映像那一顆 kernel 的建置樹重跑（紀錄第 3--5 行是它的設定），講義的範圍與說明同步；7.4 速查補上 bbappend 的檔名；`expect`、`sftp` 第一次出現時補解釋。 |
 | N8 | driver README 的模式清單補 `irqfps`、`devmem`；RESULTS、README、CHANGELOG、發佈說明的吞吐量改成發佈檔的 232.3 fps（H4：232.22、232.39、232.21），232.6 fps 標明是同一組開機檔、發佈前一版的 rootfs；QUICKSTART 的 `ssh -t` 第一次登入現在有紀錄：重開機後在開機組 H 補做 `H9_ssh_first_login.log`（`pw_expired_ssh.sh` 加了「給新密碼就用 ssh 改掉」的選項）：互動的 ssh 改掉密碼後，用新密碼直接執行指令成功。 |
+
+## 第 3 輪（2026-10-27）
+
+**審查範圍**（只看 commit `619f3f3` 改的部分）：`git diff bd9e0a3 619f3f3` 的全部 25 個檔案；`build/handout.pdf`（05:27:51
+建置；審稿人用 `latexmk -g` 重建一次，73 頁、沒有 Overfull、沒有紅字或「待補／待寫」，73 頁全部轉成圖看過分頁）。新紀錄
+`H9_ssh_first_login.log`、`S6_static_checks.log`（重跑版）、`S7_release_path_scan.log`；`tools/scan_release_paths.py`、
+`test/pw_expired_ssh.sh`、第一冊共用的 `extract.py`（用第一冊的 `snippets.txt` 另外跑一次到暫存目錄，126 個輸出、沒有錯誤，
+第一冊不受影響）。對照的發佈檔：`artifacts/boot/BOOT.BIN`（`5d226057efc8760b`）、`artifacts/hw/` 的 bitstream 與 XSA
+（`11b4d88f583b8e23`、`253ca13d2e977247`）、`build/linux_v11h/sd/` 的 Image、system.dtb、boot.scr、rootfs
+（`96b9e56733ad36a9`）與 `build/twn_board_kit.tar.gz`（`3a4eb0997028ba0e`），雜湊都與發佈值相同。WSL 內唯讀讀了
+`~/twn_kbuild_v11/.config` 與 PetaLinux 專案 `kernel-build-artifacts/.config`，以及 rootfs 的 `etc/securetty`、
+`lib/security/pam_unix.so` 與 Yocto 的 `recipes-extended/pam/`。依指示沒有碰板子、沒有用網路、沒有安裝任何東西，只改了這個檔案。
+
+**已查證正確、不列為問題的部分**：
+
+- N1：`C-reproduce.tex:66` 改成「`18a066f87cfbad8d`，與 E 帶著同一顆 bitstream、另一次打包」，與 F0／F1 第 1 行、導讀、證據
+  README 一致。
+- N2：`03-irq.tex:128` 寫明固定順序不能抵銷漂移、指向第 1 節的反序設計，並以輪詢只差 0.14 fps 對 1.87 fps 說明結論不受影響；
+  head 的那一份改標「推測」。
+- N3：`07-devmem.tex:85, 92` 不再說發佈映像從 CMA 配。
+- N5：PDF 裡已沒有重複的開機組標籤；導讀第 37 行對 E0、E7、H1、H2、H9 第 1 行的描述與檔案相符。
+- N7：F0 第 22 行改成「是哪一個存取造成的沒有查」；H1 框改為 `1-25`；第 2 節第 68 行標明是輪詢；7.4 速查有了 bbappend 的
+  檔名；`expect`、`sftp` 在第一次出現處有中文解釋。
+- S6 重跑：`~/twn_kbuild_v11/.config` 與發佈 kernel 的 `.config` 去掉註解行後逐行相同（0 個差異），所以「對著發佈映像那一顆
+  kernel 的建置樹」屬實；第 3–5 行的三個選項、第 18–19 行的 W=1 證據、第 24、30 行的 0／0／0 都對；講義的範圍
+  `1-6,10-13,16-20,22,24,28,30` 避開了含建置目錄的第 7–9、14–15 行；兩個原始檔的雜湊仍等於 HEAD。
+- S7：12 個發佈檔、rootfs 2,513 個成員、工具包 16 個成員的計數與第 10 節第 72 行一致；對照組 8 處。審稿人另外用更寬的樣式
+  （小寫磁碟代號、`/c/Users`、`wsl.localhost`、`wsl$`、建置機器的家目錄與帳號名稱、UTF-16 的 `X:\`）重掃同樣的 8 個發佈檔
+  （不含權重檔），只找到 3 個假陽性（`libmount`、`pam_motd` 裡冒號分隔的系統路徑），結論成立。
+- H9：第 3–23 行與 H1 相同；第 24–35 行互動的 ssh 打完兩次新密碼後 30 秒沒有輸出；第 36–38 行用新密碼的 ssh 指令成功、
+  `root:20752`。所以「密碼確實在 ssh 上改掉了」有證據；新密碼在紀錄裡已換成 `<new password>`。
+- 英文文件：README、`docs/RESULTS.md`、CHANGELOG 的 232.3 fps = H4 的平均 232.27，232.6 fps 標明是發佈前一版的 rootfs；
+  `board_results.json` 新增的 `fps_mean_release_image` 232.27、`default_password`（H9）、`static_checks`（S6、S7）與紀錄一致；
+  driver README 的模式清單補齊。
+- 版面：第 2–10 節不再強制換頁後，每一節的標題都和一句話框在同一頁；第 1 輪與第 2 輪點名的分頁問題（p.8 的兩行程式、四處
+  標題或引言與黑框分開）都解決了；`\boardfile` 前的 `\nopagebreak` 讓引言最後幾行跟著黑框走。速查表都讀得清楚。
+
+### 發現
+
+**M1（建議）`petalinux` 段落裡「`nullok_secure` 只限 `/etc/securetty` 的終端機」在這個映像上不成立**
+- 位置：`10-release.tex:59`（PDF p.64）。
+- 查證：`nullok_secure` 是 Debian 加給 `pam_unix` 的選項。這個映像的 `libpam` 1.5.2（`poky/meta/recipes-extended/pam/libpam/`）
+  沒有對應的 patch，`lib/security/pam_unix.so` 裡也沒有 `nullok_secure` 或 `securetty` 字串。上游的 `pam_unix` 以前綴比對選項
+  （這一點是審稿人依上游原始碼的記憶，這裡沒有原始碼可查），`nullok_secure` 會被當成一般的 `nullok`：任何走
+  `common-auth` 的登入都接受空密碼，不只限 securetty。ssh 仍然進不來，但原因是 sshd 自己的 `PermitEmptyPasswords no`（預設，
+  映像沒有改），段落第二句已經這樣寫；結論「只影響序列埠」不變。
+- 改法：括號改成「（`common-auth` 寫的是 `nullok_secure`，但這版 PAM 沒有實作它，等同 `nullok`）」，或直接刪掉 securetty 的
+  說明，只留「ssh 不接受空密碼（sshd 的預設），所以只影響序列埠」。
+
+**M2（建議）ssh 上的第一次登入：改完之後連線沒有任何輸出，講義與 QUICKSTART 都沒告訴讀者**
+- 位置：`10-release.tex:47`（「改完之後腳本沒有等到它認得的 shell 提示」）；`docs/QUICKSTART.md:30–31`。
+- 查證：H9 第 33–34 行是一個空行與「no shell and no close after 30 s」，30 秒內沒有任何輸出，不只是沒有「認得的」提示；
+  `pw_expired_ssh.sh` 的 expect 會把收到的每一個字元都印出來。使用者照 QUICKSTART 用 `ssh -t` 改密碼，會停在一個沒有反應的
+  畫面。
+- 改法：講義寫成「改完之後 30 秒內沒有任何輸出，也沒有 shell；密碼已經改掉（第 37–38 行）」；QUICKSTART 補一句「改完之後
+  連線可能沒有回應，關掉它（`~.`）再用新密碼登入」。證據 README 的 H9 描述同步。
+
+**M3（建議）附錄 C 第 5 步的說明句插錯位置**
+- 位置：`C-reproduce.tex:62`（PDF p.73）。新加的「S7 是 `python tools/scan_release_paths.py`（發佈檔裡的建置路徑）」插在
+  「H1、H2 是用與上面兩個腳本相同的步驟產生的」和它的括號說明之間，括號裡的「兩個腳本是事後……整理進 repo 的」現在像是在
+  說 S7。另外 S7 的指令要帶哪些檔案，看 `S7_release_path_scan.log` 第 2 行才知道。
+- 改法：把 S7 那一句移到括號之後，或放進第 2 步的指令框（`python tools/scan_release_paths.py BOOT.BIN …`）。
+
+**M4（建議）版面的小殘留**
+- 框裡的程式不做分頁估計（`handout.tex` 的 `\ifinner`）：p.32 頂端是第 5 節原本框裡 `v10_hal_stubs` 的第 96–97 行，正文
+  正好在講這兩行。
+- 跨頁後只剩幾行：p.57 頂端 `binding_check.py` 第 53–55 行（後面兩行是空行，算進了 5 行）、p.65 頂端
+  `make_synthetic_fixtures.py` 第 52–55 行（4 行，沒有被「少於 5 行先換頁」擋下；第 52、55 行折成兩行，可能是估計的誤差）。
+- 框的最後一兩行跨到下一頁：p.48、p.54、p.55、p.71。
+- 都不影響閱讀，可交付後再調。
+
+**M5（建議）其他小事**
+- `tools/scan_release_paths.py` 的樣式沒有涵蓋小寫磁碟代號（`d:/…`）、Git Bash 的 `/c/Users/…`、`wsl.localhost` 與 UTF-16
+  字串；這次用更寬的樣式重掃也是 0（見上方已查證），但工具本身補上這些樣式，下次才擋得住。
+- `expect`、`sftp` 有了就地解釋，但沒有收進附錄 A。
+- `numbers.tex:32` 的註解仍寫「開機組 E：v1.1 發佈映像」（只影響原始檔）。
+
+### 結論
+
+第 2 輪的兩項必改（N1、N2）都已正確修好，N3–N8 的處理也逐項對過紀錄與原始檔：H9 證明 ssh 上的第一次登入確實能改密碼，
+S6 現在真的是對發佈 kernel 的設定跑的，S7 的「沒有建置路徑」經審稿人用更寬的樣式重掃也成立，分頁問題大致解決。這一輪
+**沒有必改**，只有 5 項建議（M1–M5），其中 M1（PAM 選項的說法）與 M2（ssh 改完密碼後沒有回應）各一兩句，建議交付前順手改掉。
+結論：**可以交付**。
+
+### 第 3 輪的處理（2026-10-27，作者）
+
+M1：`petalinux` 那段改成「這個映像的 `pam_unix` 沒有只限 `/etc/securetty` 的修補，等同 `nullok`」，「只影響序列埠」的理由改成
+sshd 預設的 `PermitEmptyPasswords no`。M2：講義、QUICKSTART 與發佈說明都補上「改完若畫面停住，按 Enter 再輸入 `~.` 關掉，
+用新密碼重新登入」，H9 的描述改成「30 秒內沒有再輸出任何東西」。M3：附錄 C 的 S7 句子移到 H1／H2 那句的括號後面。M5：附錄 A
+加上 `expect`、`sftp`；`numbers.tex` 的開機組 E 註解改正。M4（框尾一兩行跨頁）與 M5 的掃描樣式擴充留待之後，不影響內容。
+重建後 73 頁，沒有 Overfull、紀錄待補或待寫。依第 3 輪的判定交付。

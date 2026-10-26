@@ -44,7 +44,7 @@ v1.0.0 沒有附 root file system（rootfs，開機後掛成根目錄的整個�
 
 \boardfile[：前面四種情形與上面相同，這裡只印最後兩段]{H9_ssh_first_login.log}{1,24-39}
 
-改完之後腳本沒有等到它認得的 shell 提示（第 34 行），但第 37--38 行用新密碼直接執行的指令成功了，root 的「上次修改日」也變成當天，表示密碼確實在 ssh 上改掉了。
+改完之後這個 ssh 連線 30 秒內沒有再輸出任何東西（第 33--34 行），但第 37--38 行用新密碼直接執行的指令成功了，root 的「上次修改日」也變成當天，表示密碼確實在 ssh 上改掉了。實際使用時，改完若畫面停住，就關掉這個連線（先按 Enter，再輸入 \code{~.}），用新密碼重新登入。
 
 \textbf{板上：序列埠上的第一次登入（開機組 H）。}第 2 行列出實際按的鍵（板子不回顯密碼）。第一次登入在第一個 \code{New password:} 按 Ctrl-C；第二次先給空的新密碼，再給兩個不同的密碼：
 
@@ -56,7 +56,7 @@ Ctrl-C 讓 \code{login} 整個結束，回到登入提示（第 9 行是重新�
 
 改完之後 root 的「上次修改日」變成 20752（1970 年起的天數，也就是 2026-10-26）；\code{petalinux} 仍是 0，它的第一次登入同樣要先設密碼。
 
-\textbf{PetaLinux 自己的 \code{petalinux} 帳號。}映像保留了 PetaLinux 預設建立的這個帳號：密碼是空的、而且已經過期，可以用 \code{sudo} 執行任何指令，登入的 PAM 設定允許空密碼（\code{nullok_secure}，只限序列埠這類列在 \code{/etc/securetty} 的終端機）。由設定推得（沒有在板上測）：能接上序列埠的人可以用空密碼登入 \code{petalinux}、被要求設一個新密碼，再用 \code{sudo} 取得 root，不需要 root 的密碼。ssh 不接受空密碼，所以這只影響序列埠。能接序列埠通常也能直接換 SD 卡，所以這次只在發佈說明與這裡寫明，沒有鎖掉這個帳號；要鎖，可以在 \code{EXTRA_USERS_PARAMS} 加 \code{usermod -L petalinux;}。
+\textbf{PetaLinux 自己的 \code{petalinux} 帳號。}映像保留了 PetaLinux 預設建立的這個帳號：密碼是空的、而且已經過期，可以用 \code{sudo} 執行任何指令，登入的 PAM 設定允許空密碼（\code{common-auth} 的 \code{nullok_secure}；這個映像的 \code{pam_unix} 沒有 Debian 那個只限 \code{/etc/securetty} 終端機的修補，等同 \code{nullok}）。由設定推得（沒有在板上測）：能接上序列埠的人可以用空密碼登入 \code{petalinux}、被要求設一個新密碼，再用 \code{sudo} 取得 root，不需要 root 的密碼。sshd 預設 \code{PermitEmptyPasswords no}，不接受空密碼，所以這只影響序列埠。能接序列埠通常也能直接換 SD 卡，所以這次只在發佈說明與這裡寫明，沒有鎖掉這個帳號；要鎖，可以在 \code{EXTRA_USERS_PARAMS} 加 \code{usermod -L petalinux;}。
 
 \textbf{合成 fixture。}四張圖完全由公式產生：
 

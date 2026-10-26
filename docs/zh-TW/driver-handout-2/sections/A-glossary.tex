@@ -31,6 +31,7 @@ dt-schema & 用 JSON Schema 寫 device tree binding 的格式與檢查工具 & 9
 ECO & engineering change order，在已經 route 好的設計上只改一小部分，不重跑整個流程 & 4 \\
 EOI & end of interrupt，ISR 結束時通知中斷控制器 & 3 \\
 \code{-EPROBE_DEFER} & probe 的回傳值，表示依賴的東西還沒準備好，kernel 稍後會再呼叫一次 probe & 3 \\
+expect & 照腳本對互動程式打字的工具，H1、H9 用它模擬互動的 ssh 登入 & 10 \\
 GIC & Generic Interrupt Controller，ARM 的中斷控制器 & 3 \\
 hrtimer & kernel 的高精度計時器，\code{usleep_range} 靠它叫醒 & 2 \\
 initramfs & 開機時整個載入記憶體的 root file system，重開機就回到原樣 & 10 \\
@@ -64,6 +65,7 @@ recipe & Yocto 的建置描述檔（\code{.bb}），說明一個套件怎麼取�
 retiming & 把暫存器搬過組合邏輯，讓前後兩段路徑的延遲比較平均 & 4 \\
 rootfs & root file system，開機後掛成根目錄的整個檔案系統 & 導 \\
 Secure／Non-secure & ARM TrustZone 的兩個世界；Linux 跑在 Non-secure & 8 \\
+sftp & 以 ssh 為底的檔案傳輸 & 10 \\
 slack & 一條路徑還剩多少時間餘裕；負的表示來不及 & 4 \\
 SMMU & System MMU，ARM 的 IOMMU；ZynqMP 用的是 MMU-500 & 8 \\
 sparse & kernel 專用的靜態分析工具，用 \code{make C=1} 執行 & 9 \\
