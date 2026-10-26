@@ -42,8 +42,29 @@ linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_debugfs_init          
 linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_fault_set                      | drv_fault_set
 sw/app/pl_hal_fuse_drv.c                         | fn:dbg_reg                            | hal_dbg_reg
 sw/app/pl_hal_fuse_drv.c                         | fn:fuse_set_nblk                      | hal_set_nblk
-git:7615324:sw/app/pl_hal_fuse_drv.c             | fn:fuse_set_nblk                      | v10_hal_set_nblk
+git:7615324:sw/app/pl_hal_fuse_drv.c             | at:int fuse_set_nblk(uint32_t n) {    | v10_hal_stubs
+sw/app/pl_hal_fuse.c                             | fn:fuse_set_nblk                      | uio_set_nblk
+sw/app/pl_hal_fuse_drv.c                         | fn:fuse_read_arr_cap                  | hal_arr_cap
 
 # ---- 4. timing closure ----
 vivado/build.cmd                                 | at9:set "FUSE_HD_PROBE=1"             | build_recipe
 vivado/build_bd_fuse.tcl                         | at15:# The implementation strategy can end | postroute
+
+# ---- 9. binding ----
+linux/driver/twn_fuse/wjhuang,twn-fuse.yaml      | at30:properties:                      | yaml_props
+linux/driver/twn_fuse/wjhuang,twn-fuse.yaml      | at19:required:                        | yaml_rules
+linux/driver/twn_fuse/wjhuang,twn-fuse.yaml      | at13:examples:                        | yaml_example
+linux/driver/twn_fuse/test/binding_check.py      | at21:def check_dtb                    | bcheck_dtb
+
+# ---- 6. autoload ----
+linux/project-spec/meta-user/recipes-modules/twn-fuse/twn-fuse.bb | at18:SUMMARY =     | recipe_bb
+linux/project-spec/meta-user/recipes-modules/twn-fuse/files/Makefile | at9:obj-m      | recipe_make
+linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:/* v1.1: the accelerator | dtsi_v11
+git:7615324:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:&fuse_0 { | v10_dtsi_uio
+linux/project-spec/meta-user/conf/petalinuxbsp.conf | at:# v1.1: the accelerator's kernel driver | bsp_install
+linux/build_linux.sh                             | at:# the kernel driver's recipe builds | build_copy_src
+
+# ---- 7. /dev/mem ----
+linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx/twn-v11.cfg | at11:# v1.1 kernel options | kcfg
+linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx_%.bbappend | at5:FILESEXTRAPATHS | kbbappend
+git:7615324:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at10:    reserved-memory { | v10_dtsi_reserved

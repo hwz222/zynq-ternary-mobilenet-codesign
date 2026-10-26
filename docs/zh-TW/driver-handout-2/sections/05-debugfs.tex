@@ -1,4 +1,97 @@
 \clearpage
 \section{debugfs：除錯功能搬進 driver}
 \label{sec:debugfs}
-\todo{debugfs：除錯功能搬進 driver}
+
+\begin{oneline}
+UIO 版本有三個除錯工具：只跑前 n 個 block 的「短幀」、像素相位的觀察位元、陣列的第一個輸出。driver v1.0 沒有提供，app 一呼叫就失敗。v1.1 把它們放進 debugfs（只給開發者用的 kernel 檔案系統）：\code{/sys/kernel/debug/twn_fuse/} 底下的 \code{regs}、\code{nblk}，加上新的 \code{irq_count} 和 \code{dma_fault}。
+\end{oneline}
+
+\begin{before}
+UIO 版本的 app 可以直接寫任何暫存器，所以「只跑前 n 個 block」就是寫一次 NBLK：
+\snip{uio_set_nblk}
+driver v1.0 不讓 app 碰暫存器，這三個函式只能回傳失敗或 0：
+\snip{v10_hal_stubs}
+結果是：換成 driver 之後，除錯一個壞掉的 block 時，原本的工具都不能用了。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item \textbf{debugfs}：kernel 給開發者的檔案系統，掛在 \code{/sys/kernel/debug}，只有 root 能讀寫，格式不保證穩定（第一冊第 8 節說過：正式的狀態放 sysfs，除錯用的放 debugfs）。
+\item \code{debugfs_create_regset32()}：給一張「名字、offset」的表，讀檔時一次印出所有暫存器。
+\item \code{DEFINE_DEBUGFS_ATTRIBUTE()} 加 \code{debugfs_create_file_unsafe()}：一個數字的讀寫檔，寫入時呼叫 driver 的函式，driver 可以檢查範圍、拿鎖。
+\item \code{debugfs_create_u32()}：直接把一個變數開成唯讀檔（中斷計數）。
+\item \code{debugfs_remove_recursive()}：卸載時整個目錄一起移除。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item 短幀回來了：app 照舊設 \code{FUSE_NBLK=5}，driver 版本也能只跑前 5 個 block。
+\item 比 UIO 安全：寫 \code{nblk} 會檢查 1 到 17 的範圍（寫 99 被拒絕），而且會拿 backbone 的鎖，不會在一幀進行到一半時改掉 NBLK。
+\item 多了兩個 v1.1 才需要的工具：\code{irq_count}（ISR 處理了幾次，第 3 節用它驗證沒有多出來的中斷）和 \code{dma_fault}（SMMU 的測試，第 8 節）。
+\end{itemize}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{建立目錄與檔案。}probe 的最後一步呼叫 \code{twn_debugfs_init()}：
+
+\snip{drv_debugfs_init}
+
+\textbf{一次印出所有除錯用的暫存器。}\code{regs} 檔案背後是一張表，kernel 讀檔時逐一讀這些 offset，印成「名字 = 值」：
+
+\snip{drv_dbg_regs}
+
+\textbf{可以寫的 \code{nblk}。}寫入時檢查範圍、拿 backbone 的鎖：
+
+\snip{drv_nblk_set}
+
+\textbf{app 這一側。}HAL 讀 \code{regs} 檔，找出某個名字的那一行：
+
+\snip{hal_dbg_reg}
+
+設定短幀就是寫 \code{nblk}，再讀回確認；讀陣列的第一個輸出就是讀四個 CAP 暫存器：
+
+\snip{hal_set_nblk}
+\snip{hal_arr_cap}
+
+\textbf{板上（開機組 E）。}
+
+\boardfile{E4_debugfs.log}{4-25}
+
+第 19 行 \code{IRQ = 0x00000003}：兩個中斷致能都打開了（第 3 節）。接著用短幀跑一次，再試一個不合法的值：
+
+\boardfile{E4_debugfs.log}{26-36}
+
+\code{PIX_NZ} 和 \code{CAP0} 到 \code{CAP3} 都是 0，因為這兩組觀察邏輯只在 RTL 用 \code{FUSE_OBS} 編譯時才會建出來（\code{rtl/fuse/twn_csr.v} 第 100--105 行的說明），出貨的 bitstream 沒有，暫存器固定讀到 0。debugfs 只是讓它們讀得到；要真的看到值，要用 \code{FUSE_OBS} 重建 bitstream。
+
+\subsection{原理}
+
+\textbf{為什麼放 debugfs，不放 sysfs 或 ioctl。}sysfs 的檔案是給使用者和腳本的穩定介面，一個檔案一個值，改了格式就是改了 ABI（給使用者的介面約定）。ioctl 是 app 的正式介面，要編號、要結構、要相容。這三個工具只給開發者在除錯時用，不希望 app 依賴它們；debugfs 正是為這種用途設計的：kernel 文件說它「不打算當成給 user space 的穩定 ABI」（\code{Documentation/filesystems/debugfs.rst} 第 13--17 行），同時也提醒，實務上最好還是當成要長期維護的介面來設計。
+
+\textbf{為什麼用 \code{_unsafe} 版本。}\code{debugfs_create_file()} 會在每次讀寫時多包一層保護，防止檔案被移除後還被呼叫。\code{DEFINE_DEBUGFS_ATTRIBUTE()} 產生的 file operations 自己已經處理了這件事，所以可以搭配 \code{debugfs_create_file_unsafe()}，避免重複保護（\code{fs/debugfs/inode.c} 第 507--519 行的註解）。
+
+\textbf{為什麼寫 \code{nblk} 要拿鎖。}NBLK 決定 PL 這一幀要跑幾個 block。若在一幀進行中被改，PL 的 sequencer 可能在中途看到不同的值。\code{bb_lock} 是 backbone 的 mutex，\code{TWN_IOC_BB_RUN} 從頭到尾都拿著它，所以拿到鎖就表示沒有幀在跑。
+
+\subsection{面試會問}
+
+\begin{qa}{driver 要怎麼提供除錯用的功能？}
+我放在 debugfs，不放 sysfs 或 ioctl，因為它們只給開發者用，不該變成 app 依賴的介面。暫存器用 \code{debugfs_create_regset32()}，給一張名字和 offset 的表，\code{cat regs} 就一次印出來。可以寫的值用 \code{DEFINE_DEBUGFS_ATTRIBUTE()}，寫入時在 driver 裡檢查範圍、拿 backbone 的 mutex，所以比 UIO 時代直接寫暫存器安全：寫 99 會回 \code{EINVAL}，也不會在一幀跑到一半時改掉 NBLK。app 的 HAL 改成讀寫這些檔案，原本的短幀除錯功能就回來了。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{twn_debugfs_init()} & \code{twn_fuse.c}:\lineof{drv_debugfs_init} & 建目錄與四個檔案 \\
+\code{twn_dbg_regs[]} & \code{twn_fuse.c}:\lineof{drv_dbg_regs} & \code{regs} 印哪些暫存器 \\
+\code{twn_nblk_set()} & \code{twn_fuse.c}:\lineof{drv_nblk_set} & 範圍檢查、拿鎖、寫 NBLK \\
+\code{dbg_reg()} & \code{sw/app/pl_hal_fuse_drv.c}:\lineof{hal_dbg_reg} & app 從 \code{regs} 讀一個暫存器 \\
+\code{fuse_set_nblk()} & \code{sw/app/pl_hal_fuse_drv.c}:\lineof{hal_set_nblk} & app 設定短幀 \\
+\bottomrule
+\end{tabularx}
+\end{center}

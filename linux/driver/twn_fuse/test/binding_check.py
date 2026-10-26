@@ -91,7 +91,7 @@ def main():
                 check(r in props, 'example %d: has required property %s' % (i, r))
             if '"wjhuang,twn-fuse-1.1"' in node:
                 check('interrupts' in props, 'example %d: version 1.1 has an interrupt' % i)
-            for p in props:
+            for p in sorted(props):
                 check(p in doc['properties'], 'example %d: property %s is described' % (i, p))
 
     if len(sys.argv) > 2:

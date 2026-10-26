@@ -85,7 +85,8 @@ def main():
         # \snip{label} in handout.tex reads this to number the lines and title the box
         with open(os.path.join(OUT, label + '.tex'), 'w', encoding='utf-8', newline='\n') as f:
             f.write('\\def\\snipfirst{%d}\\def\\sniplast{%d}\\def\\snippath{%s}\n'
-                    % (first, first + len(body) - 1, shown(path).replace('_', '\\_')))
+                    % (first, first + len(body) - 1,
+                       shown(path).replace('_', '\\_').replace('%', '\\%')))
         print('%-44s %-34s %s line %d, %d lines' % (path, sel, label, first, len(body)))
 
 

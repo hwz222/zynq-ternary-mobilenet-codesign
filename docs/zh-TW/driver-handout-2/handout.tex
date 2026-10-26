@@ -89,11 +89,13 @@
   rulecolor=\color{black!82}}
 \newcommand{\logdir}{../../../results/raw/linux_driver_v11_20261027}
 % 每個框都不超過 25 行，放進 minipage 讓它不會跨頁斷開
+% 紀錄檔不存在時印出紅字「紀錄待補」，交付前不可以有
 \newcommand{\boardfile}[3][]{%
+  \IfFileExists{\logdir/#2}{%
   \par\noindent\begin{minipage}{\linewidth}%
   \lstinputlisting[style=board,linerange={#3},
     title={\scriptsize\ttfamily results/raw/linux\_driver\_v11\_20261027/\detokenize{#2}\ :\ #3\normalfont #1}]{\logdir/#2}%
-  \end{minipage}\par}
+  \end{minipage}\par}{\par\noindent\textcolor{red}{（紀錄待補：\detokenize{#2} #3）}\par}}
 \lstnewenvironment{cmdline}{\lstset{language=bash,numbers=none,xleftmargin=0pt,
   basicstyle=\ttfamily\footnotesize}}{}
 

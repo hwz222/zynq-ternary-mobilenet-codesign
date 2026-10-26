@@ -80,7 +80,7 @@ block design 把它接到 PS：
 
 PetaLinux 從 XSA 產生的節點（開機組 E 的 \code{system.dtb}，用 \code{dtc} 反組譯）：
 
-\boardfile[：PC 上的檢查，第 22--31 行是節點原文]{S3_binding_check.log}{22-31}
+\boardfile[：PC 上的檢查，節點原文]{S3_binding_check.log}{24-33}
 
 \code{interrupts = <0x00 0x59 0x04>} 的三個數字：0 表示 SPI（Shared Peripheral Interrupt，所有 CPU 共用的外部中斷），\code{0x59} = 89 是 SPI 編號，4 是 \code{IRQ_TYPE_LEVEL_HIGH}。GIC 內部的編號是 SPI 編號加 32，所以 \code{/proc/interrupts} 會顯示 121。
 
