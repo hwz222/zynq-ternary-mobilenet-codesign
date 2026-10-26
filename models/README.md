@@ -17,7 +17,7 @@ apps) consumes. Training code lives in `train/<task>/`; nothing here is edited b
 
     python tools/fetch_release.py --group model          # the two weight files, hash-checked
 
-and the fixtures with the exporter, from your own MPII copy (root [`README.md`](../README.md),
+and the fixtures with the exporter, from your own MPII copy ([`docs/QUICKSTART.md`](../docs/QUICKSTART.md),
 "Fixtures and dataset files"). The exporter writes all nine files at once
 (`train/mbv2_pose/export/export_board_model.py --install`); the two weight files it writes are
 byte-identical to the release assets, and the expected hashes of the fixtures are in

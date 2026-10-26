@@ -8,7 +8,8 @@ UltraScale+ boards, new task models for the same hardware, and documentation fix
 - Read the [`README.md`](README.md) and the `README.md` of the directory you are changing; each one
   says what belongs there and how its files are produced.
 - Get the release assets (`python tools/fetch_release.py`) and regenerate the fixtures from your own
-  MPII copy (README, "Fixtures and dataset files"); every gate below needs them.
+  MPII copy ([`docs/QUICKSTART.md`](docs/QUICKSTART.md), "Fixtures and dataset files"); every gate below
+  needs them.
 
 ## Building and testing
 

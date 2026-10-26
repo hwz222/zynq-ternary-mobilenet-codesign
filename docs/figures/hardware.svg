@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="600" viewBox="0 0 1060 600" font-family="Helvetica, Arial, sans-serif" font-size="14">
+  <title>zynq-ternary-mobilenet-codesign hardware</title>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#37474f"/>
+    </marker>
+    <marker id="ahO" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e65100"/>
+    </marker>
+    <marker id="ahB" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1565c0"/>
+    </marker>
+    <marker id="ahV" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4527a0"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1060" height="600" fill="#ffffff"/>
+
+  <!-- board -->
+  <rect x="160" y="16" width="884" height="568" rx="14" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+  <text x="180" y="44" font-size="17" font-weight="bold" fill="#1b5e20">ALINX AXU2CGB board</text>
+
+  <!-- SoC -->
+  <rect x="180" y="60" width="844" height="380" rx="10" fill="#fafafa" stroke="#424242" stroke-width="2.5"/>
+  <text x="602" y="84" text-anchor="middle" font-size="16" font-weight="bold" fill="#212121">XCZU2CG: Zynq UltraScale+ MPSoC (one chip)</text>
+
+  <!-- PS -->
+  <rect x="198" y="98" width="304" height="326" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+  <text x="350" y="122" text-anchor="middle" font-size="15" font-weight="bold" fill="#0d47a1">Processing system (PS)</text>
+  <rect x="214" y="136" width="272" height="76" rx="6" fill="#ffffff" stroke="#1565c0"/>
+  <text x="350" y="160" text-anchor="middle" font-weight="bold">2x Arm Cortex-A53, Linux</text>
+  <text x="350" y="180" text-anchor="middle" font-size="12.5">board apps: input quantisation,</text>
+  <text x="350" y="198" text-anchor="middle" font-size="12.5">frame control, read-out of the output</text>
+  <rect x="214" y="224" width="272" height="44" rx="6" fill="#ffffff" stroke="#1565c0"/>
+  <text x="350" y="251" text-anchor="middle" font-size="13">USB, Gigabit Ethernet, SD controllers</text>
+  <text x="350" y="296" text-anchor="middle" font-size="12" fill="#37474f">the PS drives the accelerator through</text>
+  <text x="350" y="313" text-anchor="middle" font-size="12" fill="#37474f">AXI4-Lite registers; the accelerator</text>
+  <text x="350" y="330" text-anchor="middle" font-size="12" fill="#37474f">reads and writes DDR itself through</text>
+  <text x="350" y="347" text-anchor="middle" font-size="12" fill="#37474f">four high-performance (HP) ports</text>
+  <rect x="214" y="364" width="272" height="44" rx="6" fill="#bbdefb" stroke="#1565c0"/>
+  <text x="350" y="391" text-anchor="middle" font-weight="bold" font-size="13.5">DDR controller</text>
+
+  <!-- PL -->
+  <rect x="552" y="98" width="456" height="326" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+  <text x="780" y="122" text-anchor="middle" font-size="15" font-weight="bold" fill="#bf360c">Programmable logic (PL), 240 MHz: the accelerator</text>
+  <rect x="568" y="136" width="424" height="36" rx="6" fill="#ffffff" stroke="#e65100"/>
+  <text x="780" y="159" text-anchor="middle" font-size="13">registers, block descriptor table, head tables</text>
+  <rect x="568" y="184" width="424" height="142" rx="6" fill="#ffffff" stroke="#e65100"/>
+  <text x="780" y="205" text-anchor="middle" font-size="13.5" font-weight="bold">backbone: 17 fused MobileNetV2 blocks, row-streamed</text>
+  <rect x="580" y="218" width="128" height="96" rx="5" fill="#ffe0b2" stroke="#ef6c00"/>
+  <text x="644" y="243" text-anchor="middle" font-weight="bold" font-size="13.5">ternary 1x1</text>
+  <text x="644" y="262" text-anchor="middle" font-size="12">weights {-1, 0, +1}:</text>
+  <text x="644" y="279" text-anchor="middle" font-size="12">adder trees,</text>
+  <text x="644" y="296" text-anchor="middle" font-size="12">no multipliers</text>
+  <rect x="716" y="218" width="128" height="96" rx="5" fill="#ffecb3" stroke="#ef6c00"/>
+  <text x="780" y="243" text-anchor="middle" font-weight="bold" font-size="13.5">depthwise 3x3</text>
+  <text x="780" y="262" text-anchor="middle" font-size="12">INT8,</text>
+  <text x="780" y="279" text-anchor="middle" font-size="12">DSP lanes</text>
+  <rect x="852" y="218" width="128" height="96" rx="5" fill="#ffe0b2" stroke="#ef6c00"/>
+  <text x="916" y="243" text-anchor="middle" font-weight="bold" font-size="13.5">ternary 1x1</text>
+  <text x="916" y="262" text-anchor="middle" font-size="12">project,</text>
+  <text x="916" y="279" text-anchor="middle" font-size="12">residual add</text>
+  <line x1="708" y1="266" x2="716" y2="266" stroke="#37474f" stroke-width="1.5"/>
+  <line x1="844" y1="266" x2="852" y2="266" stroke="#37474f" stroke-width="1.5"/>
+  <rect x="568" y="338" width="424" height="74" rx="6" fill="#ffccbc" stroke="#e65100"/>
+  <text x="780" y="360" text-anchor="middle" font-size="13.5" font-weight="bold">output head, INT8</text>
+  <text x="780" y="379" text-anchor="middle" font-size="12">three 4x4 stride-2 transposed convolutions, 1x1 to 16 channels</text>
+  <text x="780" y="397" text-anchor="middle" font-size="12">pose: 14 joint heatmaps; other tasks: boxes, classes, depth</text>
+
+  <!-- PS <-> PL -->
+  <line x1="486" y1="160" x2="566" y2="154" stroke="#1565c0" stroke-width="2.2" marker-end="url(#ahB)"/>
+  <text x="527" y="146" text-anchor="middle" font-size="11.5" fill="#1565c0">AXI4-Lite</text>
+  <line x1="488" y1="386" x2="550" y2="386" stroke="#e65100" stroke-width="4" marker-start="url(#ahO)" marker-end="url(#ahO)"/>
+  <text x="527" y="375" text-anchor="middle" font-size="12" font-weight="bold" fill="#e65100">4x HP</text>
+
+  <!-- off-chip -->
+  <rect x="300" y="472" width="380" height="90" rx="8" fill="#ede7f6" stroke="#4527a0" stroke-width="2"/>
+  <text x="490" y="497" text-anchor="middle" font-size="15" font-weight="bold" fill="#311b92">DDR4, 2 GB (off-chip, on the board)</text>
+  <text x="490" y="519" text-anchor="middle" font-size="12.5">256 MB reserved region: weights, input image,</text>
+  <text x="490" y="537" text-anchor="middle" font-size="12.5">activation rows, head input, outputs</text>
+  <line x1="350" y1="410" x2="350" y2="470" stroke="#4527a0" stroke-width="4" marker-start="url(#ahV)" marker-end="url(#ahV)"/>
+  <rect x="704" y="472" width="170" height="90" rx="8" fill="#f5f5f5" stroke="#616161" stroke-width="1.5"/>
+  <text x="789" y="501" text-anchor="middle" font-size="14" font-weight="bold">microSD (boot)</text>
+  <text x="789" y="522" text-anchor="middle" font-size="12">BOOT.BIN with bitstream,</text>
+  <text x="789" y="539" text-anchor="middle" font-size="12">kernel, initramfs</text>
+
+  <!-- outside the board -->
+  <rect x="14" y="140" width="128" height="78" rx="10" fill="#fce4ec" stroke="#ad1457" stroke-width="1.8"/>
+  <text x="78" y="170" text-anchor="middle" font-weight="bold" fill="#880e4f">USB camera</text>
+  <text x="78" y="190" text-anchor="middle" font-size="12">images in</text>
+  <text x="78" y="206" text-anchor="middle" font-size="12">(V4L2)</text>
+  <path d="M 142 180 L 180 180 L 180 236 L 212 236" fill="none" stroke="#ad1457" stroke-width="2.2" marker-end="url(#ah)"/>
+  <rect x="14" y="268" width="128" height="92" rx="10" fill="#e0f7fa" stroke="#00838f" stroke-width="1.8"/>
+  <text x="78" y="294" text-anchor="middle" font-weight="bold" fill="#006064">Host PC</text>
+  <text x="78" y="313" text-anchor="middle" font-size="12">deploy, ssh;</text>
+  <text x="78" y="330" text-anchor="middle" font-size="12">keypoints and</text>
+  <text x="78" y="346" text-anchor="middle" font-size="12">results out</text>
+  <path d="M 142 312 L 190 312 L 190 256 L 212 256" fill="none" stroke="#00838f" stroke-width="2.2" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <text x="146" y="305" font-size="11" fill="#006064">Ethernet</text>
+</svg>

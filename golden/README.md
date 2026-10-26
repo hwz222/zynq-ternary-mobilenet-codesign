@@ -22,7 +22,7 @@ for the testbench syntax check. `PYTHON` selects the interpreter.
 
 `models/mbv2_pose/` (`model_mbv2.bin`, `model_meta.c`, `fixtures/fix_0..3.bin`) and `sw/net/`. The
 weight file comes from the release and the fixtures are regenerated from MPII; see the root
-[`README.md`](../README.md), sections "Release assets" and "Fixtures and dataset files".
+[`docs/QUICKSTART.md`](../docs/QUICKSTART.md), sections "Release assets" and "Fixtures and dataset files".
 
 ## Rules
 

@@ -13,7 +13,7 @@ repository root unless a step says otherwise. Outputs go to `build/` (ignored by
 | Python 3 with numpy (`PYTHON` overrides the interpreter of the runners) | steps 1, 2, 3 |
 | Ubuntu 22.04 (WSL2 works) with PetaLinux 2023.2 installed under `$PLNX_ROOT` (default `$HOME/petalinux`, settings script `$PLNX_ROOT/2023.2/settings.sh`) | steps 4, 6 |
 | PuTTY (`plink.exe`, `pscp.exe`; `PLINK` / `PSCP` override the paths) and OpenSSH `ssh-keyscan`, `ssh-keygen` | step 7 |
-| the four fixtures and the two weight files of `models/mbv2_pose/` | every step; see the README, "Release assets" and "Fixtures and dataset files" |
+| the four fixtures and the two weight files of `models/mbv2_pose/` | every step; see [`QUICKSTART.md`](QUICKSTART.md), "Release assets" and "Fixtures and dataset files" |
 
 ## 1. Golden vectors, weight image, descriptor table, DDR map (Git Bash, about 3 minutes)
 
@@ -153,3 +153,36 @@ weights, the model description, fixtures, and its own post-processing on the pro
 Train in `train/<task>/`, export into `models/<task>/` (the file set of `models/mbv2_pose`), and give
 the scripts that name `models/mbv2_pose` (`golden/*/run_p*.sh`, `tools/gen_input_qlut.py`,
 `tools/hd_ref_export.py`, `sw/app/Makefile.cross`, `board/deploy.sh`) the new directory.
+
+## Summary of the steps
+
+All commands run from the repository root; the sections above give each step with its expected
+output and run time. In short:
+
+| step | command | output |
+|---|---|---|
+| 1. golden vectors | `( cd golden/p1_golden && bash run_p1.sh )`, then `python tools/pack_fuse_weights.py`, `tools/gen_desctab.py`, `tools/gen_fuse_ddr.py` | `golden/p1_golden/vec/`, test vectors in `rtl/fuse/tb/` |
+| 2. simulation | `powershell -File rtl\fuse\sim\run_engine_tests.ps1 -Integration` (about 40 min) | must end `all 35 ok` |
+| 3. bitstream | `vivado\build.cmd` (about 1 hour) | `build/system_fuse_ternpose.bit`, `.xsa`, reports |
+| 4. Linux | `BOARD_PW=... bash linux/build_linux.sh` (WSL, PetaLinux 2023.2) | `build/linux/{boot,sd}` |
+| 5. BOOT.BIN | `bash board/make_boot.sh` (needs only `bootgen`) | `build/BOOT.BIN` |
+| 6. board apps | `bash board/build_apps.sh` (WSL, PetaLinux SDK) | `build/arm/` |
+| 7. deploy and verify | `bash board/deploy.sh pushlinux`, then `data`, `verify`, `speed` | the figures recorded in `results/` |
+
+A rebuilt bitstream is not bit-identical to the release one; it counts as the same design when timing
+is met, the four fixtures are bit-exact on the board and the frame rate is in the range above. The
+build has no timing margin: the first routing ends about 30 ps below zero slack and the post-route
+step in `vivado/build_bd_fuse.tcl` recovers it.
+
+## Training and export
+
+Training code lives in `train/<task>/`, one self-contained workspace per task, each with a README
+giving its data, commands and accuracy ruler. The deployed pose model is retrained with
+
+    cd train/mbv2_pose
+    python -m src.run_recipe configs/probe_tern_dc32.json --stage B --workdir runs/probe_tern_dc32
+
+starting from `checkpoints/sports_r2_w3/best.pth` (a release asset), scored with
+`python -m src.score_ckpt <checkpoint>` and exported with `export/export_board_model.py`. Training is
+not bit-reproducible (cuDNN autotuning, data-loader order): a retrain gives a nearby PCKh, not the
+same checkpoint. See [`train/README.md`](../train/README.md).

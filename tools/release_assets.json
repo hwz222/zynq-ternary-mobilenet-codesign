@@ -117,7 +117,7 @@
     }
   ],
   "regenerated_not_released": {
-    "_what": "files derived from MPII images or annotations; they are not distributed. Rebuild them from your own MPII download (README, 'Fixtures and dataset files') and compare with these hashes.",
+    "_what": "files derived from MPII images or annotations; they are not distributed. Rebuild them from your own MPII download (docs/QUICKSTART.md, 'Fixtures and dataset files') and compare with these hashes.",
     "models/mbv2_pose/fixtures/fix_0.bin": "00ba35795fa6dcc87c6b4fed8f9473d7939c769d9dc97928edbd923155de43ed",
     "models/mbv2_pose/fixtures/fix_1.bin": "cce0dc613522cd924a1c734c3ca8f750f47208a09cee44a0100d247bc5d217e7",
     "models/mbv2_pose/fixtures/fix_2.bin": "56c627da6f83122138cacbf3848bdc7bd828759c4457e127d00aabe8f9f0fa28",
