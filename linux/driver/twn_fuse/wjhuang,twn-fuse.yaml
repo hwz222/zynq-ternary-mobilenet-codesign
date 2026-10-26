@@ -32,6 +32,10 @@ properties:
     maxItems: 1
     description: level high; version 1.1 only
 
+  interrupt-names:
+    items:
+      - const: interrupt
+
   clocks:
     maxItems: 1
     description: the PL clock the accelerator and its AXI ports run on
@@ -61,6 +65,7 @@ allOf:
     else:
       properties:
         interrupts: false
+        interrupt-names: false
 
 additionalProperties: false
 
@@ -73,6 +78,7 @@ examples:
         compatible = "wjhuang,twn-fuse-1.1";
         reg = <0xa0000000 0x10000>;
         interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
+        interrupt-names = "interrupt";
         clocks = <&pl_clk0>;
         clock-names = "ap_clk";
     };

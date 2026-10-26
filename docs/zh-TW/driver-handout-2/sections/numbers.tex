@@ -1,0 +1,30 @@
+% 講義裡會重複出現的量測數字只寫在這裡一次，來源都是 results/raw/linux_driver_v11_20261027/。
+% 改數字只改這個檔案。
+%
+% ---- 開機組 D：v1.0.0 的開機檔（BOOT.BIN 690d87cc5f4b6897、system.dtb 18fff66fcfb7798b），
+%      v1.1 的 twn_fuse.ko（5f77eacd80e62272），driver 輪詢
+% fps A/B，每組 6 次（兩輪、順序相反）：D1_ab_measure.log 第 28-31 行
+\newcommand{\abUio}{228.94}
+\newcommand{\abUioSix}{229.09}
+\newcommand{\abDrvDev}{228.83}
+\newcommand{\abDrvNc}{231.53}
+% CPU 存取 DMA buffer 的頻寬（MB/s）：D2_bench.log 第 11 行（Normal NC）、第 20 行（Device）
+\newcommand{\bwNcOne}{316}
+\newcommand{\bwNcEight}{4,250}
+\newcommand{\bwDevOne}{103}
+\newcommand{\bwDevEight}{853}
+\newcommand{\bwLoad}{81}
+% ioctl 與 backbone 一幀的時間分解（輪詢、Normal NC）：D2_bench.log 第 7-10 行
+\newcommand{\ioctlUs}{1.63}
+\newcommand{\bbAppUs}{4168.3}
+\newcommand{\bbDrvUs}{4164.8}
+\newcommand{\bbPlUs}{4129.0}
+\newcommand{\bbSysUs}{3.5}
+\newcommand{\bbWaitUs}{35.8}
+\newcommand{\bbCpuUs}{454.6}
+\newcommand{\bbCpuPct}{10.9}
+% pipeline 的分段時間：D6_stage_times.log 第 4-21 行
+\newcommand{\splitNcIn}{0.09--0.10}
+\newcommand{\splitDevIn}{0.14--0.15}
+\newcommand{\splitNcPeriod}{4.31--4.33}
+\newcommand{\splitDevPeriod}{4.35--4.38}
