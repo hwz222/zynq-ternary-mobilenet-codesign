@@ -620,6 +620,8 @@ static int twn_probe(struct platform_device *pdev)
 
 	/* 4. the interrupt, if the device tree gives one (hardware 1.1); else poll */
 	td->irq = use_irq ? platform_get_irq_optional(pdev, 0) : -ENXIO;
+	if (td->irq == -EPROBE_DEFER)	/* the interrupt controller is not ready yet */
+		return td->irq;
 	if (td->irq > 0) {
 		ret = devm_request_irq(dev, td->irq, twn_isr, 0, dev_name(dev), td);
 		if (ret)
@@ -633,8 +635,11 @@ static int twn_probe(struct platform_device *pdev)
 	td->misc.fops   = &twn_fops;
 	td->misc.parent = dev;
 	ret = misc_register(&td->misc);
-	if (ret)
+	if (ret) {
+		if (td->irq > 0)
+			wr(td, R_IRQ, 0);
 		return ret;
+	}
 
 	twn_debugfs_init(td);
 	dev_info(dev, "NBLK %u, %zu KB DMA buffer at %pad, /dev/%s, %s\n",

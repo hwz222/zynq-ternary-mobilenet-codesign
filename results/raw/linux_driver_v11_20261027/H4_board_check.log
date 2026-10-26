@@ -1,0 +1,40 @@
+== 2026-10-26 20:39 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  twn_fuse.ko aec4477e2c520faf  backends: drv
+== 1. fixtures, both backends
+a0000000.twn_fuse -> twn_fuse
+  mbv2_fuse_test_drv FUSE_HEAD_PL=1: 4/4 fixtures bit-exact
+  mbv2_fuse_test_drv FUSE_HEAD_PL=0: 4/4 fixtures bit-exact
+== 2. refusals and timeout
+PASS second open of the device (one owner at a time)      -> Device or resource busy
+PASS STATUS                                               -> ok
+     arena 8388608 bytes, CTRL 00000000 STATUS 00010043
+PASS mmap the whole buffer                                -> ok
+PASS mmap one page more than the buffer                   -> Invalid argument
+PASS mmap at a non-zero offset                            -> Invalid argument
+PASS SET_BASES, weights at the end of the buffer          -> Invalid argument
+PASS SET_BASES, offset not 16-byte aligned                -> Invalid argument
+PASS BB_RUN, input offset 1 TB                            -> Invalid argument
+PASS HD_COMMIT, output runs one beat past the end         -> Invalid argument
+PASS STATUS into an unmapped pointer                      -> Bad address
+PASS SET_TABLE whose words pointer is unmapped            -> Bad address
+PASS an ioctl number the driver does not know             -> Inappropriate ioctl for device
+PASS SET_TABLE that the PL's check refuses                -> Invalid argument
+PASS BB_RUN with no valid table                           -> Connection timed out
+     returned after 3.11 s
+PASS: 0 check(s) failed
+[  255.276885] twn_fuse a0000000.twn_fuse: descriptor table refused: error 1 at block 0
+[  258.388942] twn_fuse a0000000.twn_fuse: frame timed out: CTRL 00000000 STATUS 000100c2
+  mbv2_fuse_test_drv FUSE_HEAD_PL=1: 4/4 fixtures bit-exact
+  mbv2_fuse_test_drv FUSE_HEAD_PL=0: 4/4 fixtures bit-exact
+== 3. unload while open, while only mapped, then five unload/reload cycles
+  rmmod while open: refused (rmmod: ERROR: Module twn_fuse is in use)
+  rmmod while only mapped: refused (rmmod: ERROR: Module twn_fuse is in use)
+  cycle 1: 4/4 fixtures bit-exact
+  cycle 2: 4/4 fixtures bit-exact
+  cycle 3: 4/4 fixtures bit-exact
+  cycle 4: 4/4 fixtures bit-exact
+  cycle 5: 4/4 fixtures bit-exact
+== 4. pipeline throughput (120 frames, FUSE_BB2HD=1)
+  drv run 1: === fused cross-frame pipeline: 120 frames in 516.8 ms = 4.31 ms/frame = 232.22 fps ===
+  drv run 2: === fused cross-frame pipeline: 120 frames in 516.4 ms = 4.30 ms/frame = 232.39 fps ===
+  drv run 3: === fused cross-frame pipeline: 120 frames in 516.8 ms = 4.31 ms/frame = 232.21 fps ===
+BOARD CHECK: PASS

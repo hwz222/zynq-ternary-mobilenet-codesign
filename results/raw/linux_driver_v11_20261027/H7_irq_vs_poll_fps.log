@@ -1,0 +1,26 @@
+== 2026-10-26 20:40 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko aec4477e2c520faf
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko ; dmesg | grep 'twn_fuse a0000000' | tail -1 | grep -o -E 'interrupt|polling'
+interrupt
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 513.2 ms = 4.28 ms/frame = 233.84 fps ===
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko use_irq=0; dmesg | grep 'twn_fuse a0000000' | tail -1 | grep -o -E 'interrupt|polling'
+polling
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 518.7 ms = 4.32 ms/frame = 231.33 fps ===
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko ; dmesg | grep 'twn_fuse a0000000' | tail -1 | grep -o -E 'interrupt|polling'
+interrupt
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 515.4 ms = 4.30 ms/frame = 232.83 fps ===
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko use_irq=0; dmesg | grep 'twn_fuse a0000000' | tail -1 | grep -o -E 'interrupt|polling'
+polling
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 518.9 ms = 4.32 ms/frame = 231.27 fps ===
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko ; dmesg | grep 'twn_fuse a0000000' | tail -1 | grep -o -E 'interrupt|polling'
+interrupt
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 515.7 ms = 4.30 ms/frame = 232.71 fps ===
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko use_irq=0; dmesg | grep 'twn_fuse a0000000' | tail -1 | grep -o -E 'interrupt|polling'
+polling
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 519.1 ms = 4.33 ms/frame = 231.19 fps ===
+# rmmod twn_fuse; insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko

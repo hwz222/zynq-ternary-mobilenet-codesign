@@ -15,8 +15,11 @@
 #   sh v11_check.sh synthetic   the four synthetic fixtures, both head placements, on every
 #                               backend this boot offers
 #   sh v11_check.sh boot        the v1.1 image: module loaded at boot, interrupt, /dev/mem
-#                               refused, memory, the first-login script
+#                               refused, memory, password aging
 #   sh v11_check.sh smmu        the accelerator behind the SMMU: group, fixtures, fps, dma_fault
+#   sh v11_check.sh irqfps      pipeline fps with the interrupt and with use_irq=0, same boot
+#   sh v11_check.sh devmem      what /dev/mem still reaches: memory outside System RAM, and the
+#                               registers while the driver is unloaded (reads only)
 cd "$(dirname "$0")" || exit 1
 x() { echo "# $*"; sh -c "$*" 2>&1; }
 ko() {   # the module this boot uses: the file given to bind.sh, or the one installed in the image
@@ -112,7 +115,7 @@ boot)
     x "zcat /proc/config.gz 2>/dev/null | grep -E 'STRICT_DEVMEM|ARM_SMMU=' || echo no /proc/config.gz"
     x "devmem 0x60000000 32; echo exit \$?"      # DDR (the v1.0.0 buffer address)
     x "devmem 0xa0000008 32; echo exit \$?"      # the accelerator's NBLK register
-    x "ls -l /etc/profile.d/twn-firstlogin.sh" ;;
+    x "cut -d: -f1,3 /etc/shadow | grep -E '^(root|petalinux):'" ;;   # 0: must change at next login
 smmu)
     x "dmesg | grep -i -E 'arm-smmu|iommu' | head -8"
     x "ls /sys/kernel/iommu_groups/*/devices/ | grep -B1 twn_fuse"
@@ -123,6 +126,26 @@ smmu)
     x "echo 1 > /sys/kernel/debug/twn_fuse/dma_fault; echo exit \$?"
     x "dmesg | grep -i -E 'arm-smmu|context fault|dma_fault' | tail -6"
     fixtures mbv2_fuse_test_drv . ;;
+irqfps)
+    # throughput with the interrupt and with polling on the same boot: three rounds, one 120-frame
+    # pipeline run of each per round, alternating so that a drift shows in both
+    sh bind.sh drv "$(ko)" >/dev/null
+    for i in 1 2 3; do
+        for m in "" use_irq=0; do
+            x "rmmod twn_fuse; insmod $(ko) $m; dmesg | grep 'twn_fuse a0000000' | tail -1 | grep -o -E 'interrupt|polling'"
+            x "FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='"
+        done
+    done
+    x "rmmod twn_fuse; insmod $(ko)" ;;
+devmem)
+    # STRICT_DEVMEM refuses System RAM and IO_STRICT_DEVMEM refuses ranges a driver holds; what is
+    # neither stays open to root. Reads only; the read above System RAM is last because it may fault.
+    x "grep -E 'System RAM|twn_fuse' /proc/iomem"
+    x "devmem 0x7fe00000 32; echo exit \$?"      # inside System RAM
+    x "devmem 0xa0000008 32; echo exit \$?"      # NBLK, the driver holds the registers
+    x "rmmod twn_fuse; grep -c twn_fuse /proc/iomem; devmem 0xa0000008 32; echo exit \$?"
+    x "insmod $(ko); devmem 0xa0000008 32; echo exit \$?"
+    x "devmem 0x7ff00000 32; echo exit \$?" ;;   # the top 1 MB of DDR, outside /memory
 *)
-    sed -n '2,19p' "$0"; exit 2 ;;
+    sed -n '2,22p' "$0"; exit 2 ;;
 esac

@@ -1,0 +1,46 @@
+== 2026-10-26 20:38 UTC  serial console (COM14, 115200) of the board, boot H (the root password expired at build); control characters removed
+# keys typed, in order (the board echoes no password): Enter; root; the default password; the default password (current password); Ctrl-C; root; the default password; the default password (current password); Enter (an empty new password); Enter (the empty password again); the new password; a different password; root; the default password; the default password (current password); the new password; the new password again; a command; exit
+ternposev11 login: root
+Password: 
+You are required to change your password immediately (administrator enforced).
+Changing password for root.
+Current password: 
+New password: 
+PetaLinux 2023.2+release-S10121051 ternposev11 ttyPS0
+
+ternposev11 login: root
+Password: 
+You are required to change your password immediately (administrator enforced).
+Changing password for root.
+Current password: 
+New password: 
+Retype new password: 
+No password has been supplied.
+New password: 
+Retype new password: 
+Sorry, passwords do not match.
+
+Authentication 
+PetaLinux 2023.2+release-S10121051 ternposev11 ttyPS0
+
+ternposev11 login: root
+Password: 
+You are required to change your password immediately (administrator enforced).
+Changing password for root.
+Current password: 
+New password: 
+Retype new password: 
+Last login: Mon Oct 26 20:38:20 UTC 2026 from 192.168.10.163 on pts/0
+[  188.887073] audit: type=1006 audit(1793047131.278:10): pid=614 uid=0 old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=9 res=1
+[  188.899460] audit: type=1300 audit(1793047131.278:10): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=fffffa976a90 a2=1 a3=0 items=0 ppid=1 pid=614 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=9 comm="(systemd)" exe="/lib/systemd/systemd" key=(null)
+[  188.924911] audit: type=1327 audit(1793047131.278:10): proctitle="(systemd)"
+root@ternposev11:~# cut -d: -f1,3 /etc/shadow | grep -E '^(root|petalinux):'
+root:20752
+petalinux:0
+root@ternposev11:~# exit
+logout
+
+PetaLinux 2023.2+release-S10121051 ternposev11 ttyPS0
+
+ternposev11 login: 
+# prompts as the script read them: first login reached: new | after Ctrl-C: login | second login reached: new | after an empty password: retype | after the empty password twice: new | after two different passwords: login | fourth login reached: new | after the new password twice: shell

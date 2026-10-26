@@ -1,0 +1,20 @@
+== 2026-10-26 20:42 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko aec4477e2c520faf
+# grep -E 'System RAM|twn_fuse' /proc/iomem
+00000000-7fefffff : System RAM
+a0000000-a000ffff : a0000000.twn_fuse twn_fuse@a0000000
+# devmem 0x7fe00000 32; echo exit $?
+devmem: mmap: Operation not permitted
+exit 1
+# devmem 0xa0000008 32; echo exit $?
+devmem: mmap: Operation not permitted
+exit 1
+# rmmod twn_fuse; grep -c twn_fuse /proc/iomem; devmem 0xa0000008 32; echo exit $?
+0
+0x00000011
+exit 0
+# insmod /lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko; devmem 0xa0000008 32; echo exit $?
+devmem: mmap: Operation not permitted
+exit 1
+# devmem 0x7ff00000 32; echo exit $?
+0xFFFF0000
+exit 0

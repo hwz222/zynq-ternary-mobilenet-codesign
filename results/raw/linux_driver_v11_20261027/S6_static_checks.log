@@ -1,0 +1,29 @@
+== 2026-10-26 20:30 UTC  kernel source 6.1.30  twn_fuse.c 1006f944b08a55f7  twn_fuse_ioctl.h 680689f72675286d
+# make clean; make W=1          (W=1: the kernel's extra warnings; output below is complete)
+make -C ~/petalinux/proj/ternpose/build/tmp/work-shared/zynqmp-generic-xczu2cg/kernel-source O=~/twn_kbuild ARCH=arm64 CROSS_COMPILE=aarch64-xilinx-linux- M=<repo>/linux/driver/twn_fuse modules
+make[1]: Entering directory '~/petalinux/proj/ternpose/build/tmp/work-shared/zynqmp-generic-xczu2cg/kernel-source'
+make[2]: Entering directory '~/twn_kbuild'
+  CC [M]  <repo>/linux/driver/twn_fuse/twn_fuse.o
+  MODPOST <repo>/linux/driver/twn_fuse/Module.symvers
+  CC [M]  <repo>/linux/driver/twn_fuse/twn_fuse.mod.o
+  LD [M]  <repo>/linux/driver/twn_fuse/twn_fuse.ko
+make[2]: Leaving directory '~/twn_kbuild'
+make[1]: Leaving directory '~/petalinux/proj/ternpose/build/tmp/work-shared/zynqmp-generic-xczu2cg/kernel-source'
+exit 0
+# make clean; make W=1 V=1 | grep -o -E -- '-W(missing-declarations|missing-prototypes)' | sort -u    (W=1 reached the compiler)
+-Wmissing-declarations
+-Wmissing-prototypes
+# scripts/checkpatch.pl --no-tree --strict -f twn_fuse.c twn_fuse_ioctl.h
+----------
+twn_fuse.c
+----------
+total: 0 errors, 0 warnings, 0 checks, 692 lines checked
+
+twn_fuse.c has no obvious style problems and is ready for submission.
+----------------
+twn_fuse_ioctl.h
+----------------
+total: 0 errors, 0 warnings, 0 checks, 75 lines checked
+
+twn_fuse_ioctl.h has no obvious style problems and is ready for submission.
+exit 0

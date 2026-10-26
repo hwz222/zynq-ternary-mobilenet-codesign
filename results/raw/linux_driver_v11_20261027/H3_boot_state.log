@@ -1,0 +1,34 @@
+== 2026-10-26 20:39 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko aec4477e2c520faf
+# cat /proc/cmdline
+earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw uio_pdrv_genirq.of_id=generic-uio
+# lsmod | grep twn_fuse
+twn_fuse               20480  0
+# modinfo -n twn_fuse; grep -h twn_fuse /etc/modules-load.d/* 2>/dev/null
+/lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko
+twn_fuse
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/driver
+../../../../bus/platform/drivers/twn_fuse
+# dmesg | grep 'twn_fuse a0000000'
+[    4.795531] twn_fuse a0000000.twn_fuse: Adding to iommu group 15
+[    4.819475] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000ffff800000, /dev/twn_fuse, interrupt
+# grep twn_fuse /proc/interrupts
+ 55:          0          0     GICv2 121 Level     a0000000.twn_fuse
+# grep -E 'MemTotal|CmaTotal|CmaFree' /proc/meminfo
+MemTotal:        2035396 kB
+CmaTotal:         262144 kB
+CmaFree:          261632 kB
+# ls /proc/device-tree/reserved-memory 2>/dev/null || echo no reserved-memory node
+no reserved-memory node
+# zcat /proc/config.gz 2>/dev/null | grep -E 'STRICT_DEVMEM|ARM_SMMU=' || echo no /proc/config.gz
+CONFIG_ARM_SMMU=y
+CONFIG_STRICT_DEVMEM=y
+CONFIG_IO_STRICT_DEVMEM=y
+# devmem 0x60000000 32; echo exit $?
+devmem: mmap: Operation not permitted
+exit 1
+# devmem 0xa0000008 32; echo exit $?
+devmem: mmap: Operation not permitted
+exit 1
+# cut -d: -f1,3 /etc/shadow | grep -E '^(root|petalinux):'
+root:20752
+petalinux:0

@@ -6,11 +6,13 @@
  * the generator also writes its interrupt (pl_ps_irq0, GIC SPI 89, level high) and its clock.
  *
  * Until v1.0.0 this node said compatible = "generic-uio" and a 256 MB no-map region at
- * 0x6000_0000 was reserved for /dev/mem. The driver allocates its own 8 MB from CMA, so the
- * reservation is gone and those 256 MB are ordinary memory again.
+ * 0x6000_0000 was reserved for /dev/mem. The driver allocates its own 8 MB with the DMA API
+ * (from CMA without the SMMU; behind the SMMU from any free pages, which the SMMU makes
+ * contiguous for the PL), so the reservation is gone and those 256 MB are ordinary memory again.
  *
- * The SMMU translates the accelerator's DMA, so the PL reaches only the pages the driver maps
- * for it. The stream IDs (TBU [14:10] | master ID [9:6] | AXI ID [5:0]) of the four HP ports
+ * The SMMU translates the accelerator's DMA: a Non-secure transaction with one of the stream IDs
+ * below reaches only the pages the driver maps. Unlisted stream IDs (a nonzero AXI ID) and Secure
+ * transactions bypass it, because this kernel boots without arm_smmu.disable_bypass=1. The stream IDs (TBU [14:10] | master ID [9:6] | AXI ID [5:0]) of the four HP ports
  * were read on the board with arm_smmu.disable_bypass=1 (linux/driver/twn_fuse/smmu_dtb.sh):
  * HP0 0x0e80, HP1 0x12c0, HP2 0x1300, HP3 0x1740. Enabling the SMMU also puts the PS's own DMA
  * masters that zynqmp.dtsi lists (Ethernet, SD, USB, DMA engines, DisplayPort) behind it.

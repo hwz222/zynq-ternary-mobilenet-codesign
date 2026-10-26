@@ -27,8 +27,9 @@
 #   CACHE_PROJ  an earlier PetaLinux 2023.2 project whose build/downloads and build/sstate-cache are
 #               used read-only as mirrors when OFFLINE=1 (no default; required with OFFLINE=1)
 #   BOARD_PW    root password of the board (what board/deploy.sh calls BOARD_PW). Without it the image
-#               gets the published default password "twn-v1.1", and an interactive root login must
-#               set a new one before it gets a shell (recipes-core/board-config/files/twn-firstlogin.sh).
+#               gets the published default password "twn-v1.1", marked expired: every login (serial
+#               console or ssh) must set a new one first, and ssh commands, scp and sftp are refused until
+#               then (Yocto's passwd-expire, as PetaLinux does for its own user "petalinux").
 #   JOBS        bitbake threads and make -j (default 6; each of them can take ~1.5 GB)
 #   CLEAN       1: delete $PLNX_PROJ first and start from nothing
 #   SDK         1: also build the cross SDK and install it to $SDK_DIR (default $PLNX_ROOT/sdk, which
@@ -133,16 +134,15 @@ setcfg CONFIG_YOCTO_PARALLEL_MAKE "\"$JOBS\""
 # root password: kept out of the repo, written only into the project's own conf
 BSP=project-spec/meta-user/conf/petalinuxbsp.conf
 sed -i '/^# BOARD_PW begin/,/^# BOARD_PW end/d' "$BSP"
-FORCE_PW=0
+EXPIRE=
 if [ -z "${BOARD_PW:-}" ]; then
-    BOARD_PW=twn-v1.1; FORCE_PW=1
-    echo "NOTE: BOARD_PW not set: published default password '$BOARD_PW', changed at the first interactive login"
+    BOARD_PW=twn-v1.1; EXPIRE=" passwd-expire root;"
+    echo "NOTE: BOARD_PW not set: published default password '$BOARD_PW', expired (the first login must change it)"
 fi
 case "$BOARD_PW" in *\'*|*\"*|*\\*|*\;*|*\$*) die "BOARD_PW must not contain ' \" \\ ; or \$";; esac
 { echo "# BOARD_PW begin"
   # usermod -p takes a crypt hash; the $ signs are escaped for the extrausers class
-  echo "EXTRA_USERS_PARAMS:append = \" usermod -p '$(openssl passwd -6 "$BOARD_PW" | sed 's/\$/\\$/g')' root;\""
-  echo "TWN_FORCE_PW_CHANGE = \"$FORCE_PW\""
+  echo "EXTRA_USERS_PARAMS:append = \" usermod -p '$(openssl passwd -6 "$BOARD_PW" | sed 's/\$/\\$/g')' root;$EXPIRE\""
   echo "# BOARD_PW end"; } >> "$BSP"
 
 step "petalinux-config --silentconfig"

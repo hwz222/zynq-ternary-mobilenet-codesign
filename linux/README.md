@@ -35,8 +35,8 @@ SHA-256 printed at the end.
 
 - `BOARD_PW` is written into the image's root account as a SHA-512 crypt hash; do not publish a root
   file system built with it. Without `BOARD_PW` the image gets the published default password
-  `twn-v1.1` and `/etc/profile.d/twn-firstlogin.sh`, which makes the first interactive root login set
-  a new one (the release image is built this way).
+  `twn-v1.1`, marked expired, so the first login (serial console or ssh) must set a new one, and ssh
+  commands, scp and sftp are refused until then (the release image is built this way).
 - Put in `project-spec/` only files a person edited; never commit generated parts (hardware
   description, `.Xil/`, logs).
 - Files here are read by Linux tools: keep LF line endings (`.gitattributes` enforces it).

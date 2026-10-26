@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 /*
- * twn_fuse_ioctl.h -- the interface between the twn_fuse driver and user space.
+ * The interface between the twn_fuse driver and user space.
  *
  * Shared by the driver (twn_fuse.c) and the app backend (sw/app/pl_hal_fuse_drv.c).
  * Every DDR location is an OFFSET into the driver's buffer (the "arena"), never a
@@ -13,7 +13,8 @@
 #include <linux/types.h>
 
 #define TWN_DEV_PATH        "/dev/twn_fuse"
-#define TWN_IOC_MAGIC       0xBC   /* unused in Documentation/userspace-api/ioctl/ioctl-number.rst */
+/* 0xBC is unused in Documentation/userspace-api/ioctl/ioctl-number.rst */
+#define TWN_IOC_MAGIC       0xBC
 #define TWN_DESC_MAX_WORDS  512    /* the descriptor window 0x1000..0x17ff */
 #define TWN_HD_RQ_WORDS     256    /* the head's requantisation window 0x0400..0x07ff */
 

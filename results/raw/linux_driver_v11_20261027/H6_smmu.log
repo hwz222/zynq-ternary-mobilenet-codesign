@@ -1,0 +1,50 @@
+== 2026-10-26 20:40 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb bc4255b1c54ae27e  twn_fuse.ko aec4477e2c520faf
+# dmesg | grep -i -E 'arm-smmu|iommu' | head -8
+[    0.866550] iommu: Default domain type: Translated 
+[    0.870920] iommu: DMA domain TLB invalidation policy: strict mode 
+[    1.282287] arm-smmu fd800000.smmu: probing hardware configuration...
+[    1.288146] arm-smmu fd800000.smmu: SMMUv2 with:
+[    1.292751] arm-smmu fd800000.smmu: 	stage 1 translation
+[    1.298057] arm-smmu fd800000.smmu: 	stage 2 translation
+[    1.303364] arm-smmu fd800000.smmu: 	nested translation
+[    1.308587] arm-smmu fd800000.smmu: 	stream matching with 48 register groups
+# ls /sys/kernel/iommu_groups/*/devices/ | grep -B1 twn_fuse
+/sys/kernel/iommu_groups/15/devices/:
+a0000000.twn_fuse
+# dmesg | grep 'twn_fuse a0000000' | tail -1
+[  266.202626] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000ffff800000, /dev/twn_fuse, interrupt
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 5.05 ms  frame 9.45 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.60 ms  frame 8.85 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.53 ms  frame 8.78 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.25 ms  head 4.58 ms  frame 8.83 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.49 ms  head 12.24 ms  frame 16.73 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.51 ms  frame 14.88 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.36 ms  head 10.10 ms  frame 14.47 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.22 ms  frame 14.59 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a 'fps ==='
+=== fused cross-frame pipeline: 120 frames in 513.3 ms = 4.28 ms/frame = 233.78 fps ===
+# echo 1 > /sys/kernel/debug/twn_fuse/dma_fault; echo exit $?
+exit 0
+# dmesg | grep -i -E 'arm-smmu|context fault|dma_fault' | tail -6
+[    1.322181] arm-smmu fd800000.smmu: 	Supported page sizes: 0x61311000
+[    1.328596] arm-smmu fd800000.smmu: 	Stage-1: 48-bit VA -> 48-bit IPA
+[    1.335032] arm-smmu fd800000.smmu: 	Stage-2: 48-bit IPA -> 48-bit PA
+[    1.341676] arm-smmu fd800000.smmu: 	preserved 0 boot mappings
+[  269.471202] arm-smmu fd800000.smmu: Unhandled context fault: fsr=0x402, iova=0x00000000, fsynr=0x80000, cbfrsynra=0xe80, cb=15
+[  269.482771] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x000000ffff800000 + 8192 KB: frame done, STATUS 00010043
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 5.07 ms  frame 9.45 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.23 ms  head 4.60 ms  frame 8.83 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.23 ms  head 4.56 ms  frame 8.79 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.23 ms  head 4.57 ms  frame 8.80 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv . 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.49 ms  head 12.37 ms  frame 16.86 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.74 ms  frame 15.11 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.23 ms  frame 14.59 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.46 ms  frame 14.82 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
