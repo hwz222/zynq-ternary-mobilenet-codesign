@@ -1,0 +1,30 @@
+== 2026-10-26 17:45 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 690d87cc5f4b6897  system.dtb 18fff66fcfb7798b  twn_fuse.ko 5f77eacd80e62272
+# sha256sum syn/golden/fix_*.bin | cut -c1-16,65-
+d5422a581bb99212  syn/golden/fix_0.bin
+25a8c00010eb60dc  syn/golden/fix_1.bin
+33ef1f95d20dd3d9  syn/golden/fix_2.bin
+ef021de9fcb72324  syn/golden/fix_3.bin
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_uio syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.51 ms  head 5.10 ms  frame 9.61 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.39 ms  head 4.71 ms  frame 9.10 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 4.57 ms  frame 8.94 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.28 ms  head 4.64 ms  frame 8.92 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_uio syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.63 ms  head 12.15 ms  frame 16.77 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.41 ms  head 10.30 ms  frame 14.71 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.51 ms  head 9.92 ms  frame 14.43 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.55 ms  head 10.25 ms  frame 14.80 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.43 ms  head 5.12 ms  frame 9.55 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.26 ms  head 4.61 ms  frame 8.87 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.29 ms  head 4.57 ms  frame 8.86 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.29 ms  head 4.57 ms  frame 8.86 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# FUSE_HEAD_PL=0 ./mbv2_fuse_test_drv syn 2>&1 | grep -a -E '^fixture|BIT-EXACT|MISMATCH'
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.53 ms  head 12.25 ms  frame 16.78 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.38 ms  frame 14.75 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.40 ms  head 9.99 ms  frame 14.39 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 10.28 ms  frame 14.65 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==

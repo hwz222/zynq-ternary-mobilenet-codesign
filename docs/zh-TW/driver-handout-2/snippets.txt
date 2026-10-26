@@ -1,0 +1,41 @@
+# <repo-relative file> | <selector> | <label>   (read by ../driver-handout/extract.py; selectors fn:NAME, at:TEXT)
+# git:7615324:<path> is driver v1.0 (the first handout); git:3bdd485:<path> is the v1.0.0 release.
+
+# ---- 1. A/B: the memory attribute ----
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_mmap                          | drv_mmap
+linux/driver/twn_fuse/twn_fuse.c                 | at:static bool map_device             | drv_param_map
+linux/driver/twn_fuse/test/ab_measure.sh         | at:run() {                            | ab_run
+sw/app/pl_hal_fuse.c                             | at:int fd = open("/dev/mem"           | uio_devmem
+
+# ---- 2. ioctl cost ----
+linux/driver/twn_fuse/test/twn_bench.c           | at:	t0 = now_ns();                   | bench_status
+linux/driver/twn_fuse/test/twn_bench.c           | at:	c0 = cpu_ns();                   | bench_bbrun
+linux/driver/twn_fuse/test/twn_bench.c           | at:	/* 3. the CPU's own access       | bench_copy
+
+# ---- 3. interrupt ----
+git:7615324:linux/driver/twn_fuse/twn_fuse.c     | fn:twn_bb_run                         | v10_bb_run
+git:7615324:vivado/build_bd_fuse.tcl             | at:# --- no interrupt output          | v10_irq_zero
+rtl/fuse/twn_csr.v                               | at://  Interrupt (v1.1)               | csr_irq_doc
+rtl/fuse/twn_csr.v                               | at:// level interrupt from the registered state | csr_irq_reg
+rtl/fuse/twn_csr.v                               | at:// IRQ write:                      | csr_irq_wr
+rtl/fuse/twn_csr.v                               | at:// IRQ read:                       | csr_irq_rd
+rtl/fuse/twn_csr.v                               | at:if (w_hold[0] && tab_checked && d_valid) ap_start | csr_ctrl_wr
+rtl/ip/twn_fuse_layer.v                          | at:// ---------------- interrupt      | layer_irq_port
+vivado/package_fuse_ip.tcl                       | at:# The interrupt output: declare it | pkg_irq
+vivado/build_bd_fuse.tcl                         | at:# --- interrupt: the accelerator   | bd_irq
+linux/driver/twn_fuse/twn_fuse.c                 | at:static bool use_irq                | drv_param_irq
+linux/driver/twn_fuse/twn_fuse.c                 | fn:wait_done                          | drv_wait_done
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_bb_run                         | drv_bb_run
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_isr                            | drv_isr
+linux/driver/twn_fuse/twn_fuse.c                 | at:/* 4. the interrupt, if the device | drv_probe_irq
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_remove                         | drv_remove
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_of_match                       | drv_of_match
+
+# ---- 5. debugfs ----
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_nblk_set                       | drv_nblk_set
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_dbg_regs                       | drv_dbg_regs
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_debugfs_init                   | drv_debugfs_init
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_fault_set                      | drv_fault_set
+sw/app/pl_hal_fuse_drv.c                         | fn:dbg_reg                            | hal_dbg_reg
+sw/app/pl_hal_fuse_drv.c                         | fn:fuse_set_nblk                      | hal_set_nblk
+git:7615324:sw/app/pl_hal_fuse_drv.c             | fn:fuse_set_nblk                      | v10_hal_set_nblk

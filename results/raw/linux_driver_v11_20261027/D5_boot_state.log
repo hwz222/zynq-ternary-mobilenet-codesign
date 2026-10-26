@@ -1,0 +1,45 @@
+== 2026-10-26 17:45 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 690d87cc5f4b6897  system.dtb 18fff66fcfb7798b  twn_fuse.ko 5f77eacd80e62272
+# cat /proc/cmdline
+earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw uio_pdrv_genirq.of_id=generic-uio
+# lsmod | grep twn_fuse
+twn_fuse               20480  0
+# modinfo -n twn_fuse; grep -h twn_fuse /etc/modules-load.d/* 2>/dev/null
+modinfo: ERROR: Module twn_fuse not found.
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/driver
+../../../../bus/platform/drivers/twn_fuse
+# dmesg | grep 'twn_fuse a0000000'
+[ 2144.308649] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 2174.902883] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 2176.678328] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 2178.433578] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 2180.190269] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 2464.611715] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 3532.362562] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 3534.139395] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 3535.890281] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 3537.644432] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 3543.077557] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 3547.884770] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x0000000050100000 + 8192 KB: frame done, STATUS 00010043
+[ 4057.215096] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+[ 4061.891258] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse, polling
+# grep twn_fuse /proc/interrupts
+# grep -E 'MemTotal|CmaTotal|CmaFree' /proc/meminfo
+MemTotal:        1773764 kB
+CmaTotal:         262144 kB
+CmaFree:          253376 kB
+# ls /proc/device-tree/reserved-memory 2>/dev/null || echo no reserved-memory node
+#address-cells
+#size-cells
+name
+pl_arena@60000000
+ranges
+# zcat /proc/config.gz 2>/dev/null | grep -E 'STRICT_DEVMEM|ARM_SMMU=' || echo no /proc/config.gz
+# CONFIG_STRICT_DEVMEM is not set
+# devmem 0x60000000 32; echo exit $?
+0x00000000
+exit 0
+# devmem 0xa0000008 32; echo exit $?
+0x00000011
+exit 0
+# ls -l /etc/profile.d/twn-firstlogin.sh
+ls: /etc/profile.d/twn-firstlogin.sh: No such file or directory

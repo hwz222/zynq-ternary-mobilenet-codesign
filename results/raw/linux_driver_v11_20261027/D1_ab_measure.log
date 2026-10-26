@@ -1,0 +1,31 @@
+== 2026-10-26 17:36 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 690d87cc5f4b6897  system.dtb 18fff66fcfb7798b  twn_fuse.ko 5f77eacd80e62272
+# sh test/ab_measure.sh 2>/dev/null || sh ab_measure.sh
+uio 229.45
+uio 229.15
+uio 229.03
+uio_68 228.95
+uio_68 228.85
+uio_68 229.47
+drv_dev 228.40
+drv_dev 228.78
+drv_dev 228.44
+drv_nc 231.71
+drv_nc 232.20
+drv_nc 231.26
+drv_nc 231.37
+drv_nc 231.39
+drv_nc 231.27
+drv_dev 228.92
+drv_dev 229.33
+drv_dev 229.11
+uio_68 229.20
+uio_68 229.07
+uio_68 229.03
+uio 228.77
+uio 228.67
+uio 228.55
+== mean of 6 runs per arm
+uio      228.94 fps (n=6)
+uio_68   229.09 fps (n=6)
+drv_dev  228.83 fps (n=6)
+drv_nc   231.53 fps (n=6)

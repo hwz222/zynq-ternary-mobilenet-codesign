@@ -518,6 +518,39 @@ static int twn_nblk_set(void *data, u64 val)
 }
 DEFINE_DEBUGFS_ATTRIBUTE(twn_nblk_fops, twn_nblk_get, twn_nblk_set, "%llu\n");
 
+/*
+ * A test of the SMMU, not of the accelerator: one backbone frame that reads its input from
+ * the first byte after the DMA buffer. Behind the SMMU that address is not mapped, so the
+ * SMMU stops the reads and the kernel logs a context fault; without the SMMU the PL reads
+ * whatever memory follows the buffer, and nothing notices. The output, written to the start
+ * of the buffer, is meaningless; an app reloads the buffer when it starts.
+ */
+static int twn_fault_set(void *data, u64 val)
+{
+	struct twn_dev *td = data;
+	int ret;
+
+	if (val != 1 || !(rd(td, R_STATUS) & ST_VALID))
+		return -EINVAL;         /* needs the table an app loads */
+	mutex_lock(&td->bb_lock);
+	ret = wait_bit(td, R_CTRL, CTRL_BUSY, false);
+	if (!ret) {
+		wr(td, R_CTRL, CTRL_CLR_DONE);
+		reinit_completion(&td->bb_done);
+		wr_addr(td, R_IN, td->arena_size);
+		wr_addr(td, R_OUT, 0);
+		wr(td, R_CTRL, CTRL_START);
+		ret = wait_done(td, &td->bb_done, R_CTRL, CTRL_DONE);
+		wr(td, R_CTRL, CTRL_CLR_DONE);
+	}
+	dev_info(td->dev, "dma_fault: input at %pad + %zu KB: %s, STATUS %08x\n",
+		 &td->arena_dma, td->arena_size >> 10, ret ? "timed out" : "frame done",
+		 rd(td, R_STATUS));
+	mutex_unlock(&td->bb_lock);
+	return ret;
+}
+DEFINE_DEBUGFS_ATTRIBUTE(twn_fault_fops, NULL, twn_fault_set, "%llu\n");
+
 static const struct debugfs_reg32 twn_dbg_regs[] = {
 	{ "CTRL",    R_CTRL },        { "NBLK",    R_NBLK },
 	{ "STATUS",  R_STATUS },      { "PIX_NZ",  R_PIX_NZ },
@@ -537,6 +570,7 @@ static void twn_debugfs_init(struct twn_dev *td)
 	debugfs_create_regset32("regs", 0444, td->dbg, &td->regset);
 	debugfs_create_file_unsafe("nblk", 0644, td->dbg, td, &twn_nblk_fops);
 	debugfs_create_u32("irq_count", 0444, td->dbg, &td->irq_count);
+	debugfs_create_file_unsafe("dma_fault", 0200, td->dbg, td, &twn_fault_fops);
 }
 
 /* ---- probe / remove ---- */

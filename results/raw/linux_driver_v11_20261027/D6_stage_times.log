@@ -1,0 +1,22 @@
+== 2026-10-26 17:49 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 690d87cc5f4b6897  system.dtb 18fff66fcfb7798b  twn_fuse.ko 5f77eacd80e62272
+# rmmod twn_fuse; insmod ./twn_fuse.ko 
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 PIPE_TIMING=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a -E 'producer split|fps ==='
+[pipe_timing] producer split (last frame): write-in=0.10  stage-boundary=0.00  backbone PL=4.14  head PL=3.09 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 519.6 ms = 4.33 ms/frame = 230.94 fps ===
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 PIPE_TIMING=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a -E 'producer split|fps ==='
+[pipe_timing] producer split (last frame): write-in=0.09  stage-boundary=0.00  backbone PL=4.15  head PL=3.07 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 518.1 ms = 4.32 ms/frame = 231.60 fps ===
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 PIPE_TIMING=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a -E 'producer split|fps ==='
+[pipe_timing] producer split (last frame): write-in=0.09  stage-boundary=0.00  backbone PL=4.15  head PL=3.13 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 517.6 ms = 4.31 ms/frame = 231.83 fps ===
+# rmmod twn_fuse; insmod ./twn_fuse.ko map_device=1
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 PIPE_TIMING=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a -E 'producer split|fps ==='
+[pipe_timing] producer split (last frame): write-in=0.15  stage-boundary=0.00  backbone PL=4.19  head PL=3.10 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 525.2 ms = 4.38 ms/frame = 228.47 fps ===
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 PIPE_TIMING=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a -E 'producer split|fps ==='
+[pipe_timing] producer split (last frame): write-in=0.14  stage-boundary=0.00  backbone PL=4.18  head PL=3.09 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 522.9 ms = 4.36 ms/frame = 229.51 fps ===
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 PIPE_TIMING=1 ./mbv2_fuse_pipe_drv . 120 0 2>&1 | grep -a -E 'producer split|fps ==='
+[pipe_timing] producer split (last frame): write-in=0.14  stage-boundary=0.00  backbone PL=4.15  head PL=3.07 ms  (the head overlaps the backbone; it is not additive)
+=== fused cross-frame pipeline: 120 frames in 522.3 ms = 4.35 ms/frame = 229.74 fps ===
+# rmmod twn_fuse; insmod ./twn_fuse.ko

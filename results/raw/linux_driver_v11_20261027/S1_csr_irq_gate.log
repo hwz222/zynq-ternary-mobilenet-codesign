@@ -1,0 +1,15 @@
+    good | [twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+    good | tb_csr_irq: PASS (18 checks)
+    mask | [twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+    mask | FAIL: 2 backbone done while masked: irq = 1, expected 0
+    mask | FAIL: 2 ap_done set, no irq: IRQ reads 00000014, expected 00000004
+    mask | FAIL: 6 backbone done, backbone source off: irq = 1, expected 0
+    mask | tb_csr_irq: 3 FAILURES of 18 checks
+    ctrl | [twn_csr] window map OK: 65536 addresses, 0 select both windows; 40 named registers, 0 swallowed; requant window 0x0400..0x07fc
+    ctrl | FAIL: 5 enable survives CTRL writes: irq = 0, expected 1
+    ctrl | tb_csr_irq: 1 FAILURES of 18 checks
+
+intact             = PASS   (must be PASS)
+CSR_IRQ_BREAK_MASK = FAIL(3)   (must NOT be PASS)
+CSR_IRQ_BREAK_CTRL = FAIL(1)   (must NOT be PASS)
+CSR_IRQ_GATE_SELFTEST_PASS

@@ -1,6 +1,6 @@
 """Partial check of the device-tree binding wjhuang,twn-fuse.yaml, for machines without dtschema.
 
-    python3 binding_check.py <kernel-source>      (run in WSL / Linux; needs PyYAML, cpp and dtc)
+    python3 binding_check.py <kernel-source> [system.dtb]   (run in WSL / Linux; needs PyYAML, cpp, dtc)
 
 The official check is `make dt_binding_check DT_SCHEMA_FILES=...` in a kernel tree, which needs the
 dtschema package. This script checks what it can without it:
@@ -9,7 +9,9 @@ dtschema package. This script checks what it can without it:
   3. the example, run through the C preprocessor with the kernel's dt-bindings headers,
      compiles with dtc inside a minimal tree;
   4. the example satisfies the binding's own rules: required properties, and for version 1.1
-     an interrupt.
+     an interrupt;
+  5. with a .dtb given: its accelerator node (as PetaLinux generated it) has only described
+     properties, the required ones, and for version 1.1 an interrupt.
 Prints BINDING CHECK: PASS or FAIL.
 """
 import os
@@ -30,6 +32,27 @@ def check(ok, what):
     print('%-4s %s' % ('PASS' if ok else 'FAIL', what))
     if not ok:
         fails.append(what)
+
+
+def check_dtb(doc, dtb):
+    """5. the accelerator node of a real device tree (the one PetaLinux generated) against the binding"""
+    dts = subprocess.run(['dtc', '-q', '-I', 'dtb', '-O', 'dts', dtb], capture_output=True, text=True).stdout
+    nodes = [n for n in re.finditer(r'\n(\t+)([\w-]+@[0-9a-f]+) \{\n((?:\1\t.*\n)*?)\1\};', dts)
+             if 'wjhuang,twn-fuse' in n.group(3)]
+    check(len(nodes) == 1, '%s: one node with a wjhuang,twn-fuse compatible' % os.path.basename(dtb))
+    if not nodes:
+        return
+    body = nodes[0].group(3)
+    print('     node %s:' % nodes[0].group(2))
+    print(''.join('       ' + line.strip() + '\n' for line in body.splitlines()), end='')
+    props = set(re.findall(r'^\s*([a-z#][a-z0-9,#-]*)\s*[=;]', body, re.M))
+    generic = {'status', 'phandle', 'interrupt-parent'}   # allowed on every node by the core schemas
+    for p in sorted(props - generic):
+        check(p in doc['properties'], 'dtb node: property %s is described' % p)
+    for r in doc['required']:
+        check(r in props, 'dtb node: has required property %s' % r)
+    if 'wjhuang,twn-fuse-1.1' in body:
+        check('interrupts' in props, 'dtb node: version 1.1 has an interrupt')
 
 
 def main():
@@ -71,6 +94,8 @@ def main():
             for p in props:
                 check(p in doc['properties'], 'example %d: property %s is described' % (i, p))
 
+    if len(sys.argv) > 2:
+        check_dtb(doc, sys.argv[2])
     print('BINDING CHECK: %s' % ('PASS' if not fails else 'FAIL (%d)' % len(fails)))
     return 1 if fails else 0
 

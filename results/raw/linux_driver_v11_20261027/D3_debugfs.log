@@ -1,0 +1,104 @@
+== 2026-10-26 17:36 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 690d87cc5f4b6897  system.dtb 18fff66fcfb7798b  twn_fuse.ko 5f77eacd80e62272
+# mount | grep -c debugfs || mount -t debugfs none /sys/kernel/debug
+1
+# ls /sys/kernel/debug/twn_fuse
+dma_fault
+irq_count
+nblk
+regs
+# cat /sys/kernel/debug/twn_fuse/regs
+CTRL = 0x00000000
+NBLK = 0x00000011
+STATUS = 0x00010043
+PIX_NZ = 0x00000000
+CAP0 = 0x00000000
+CAP1 = 0x00000000
+CAP2 = 0x00000000
+CAP3 = 0x00000000
+BB2HD = 0x00000013
+IRQ = 0x00000000
+HD_CTRL = 0x00000000
+HD_COMMIT = 0x000000f3
+HD_RQ_STAT = 0x0000100f
+# cat /sys/kernel/debug/twn_fuse/nblk /sys/kernel/debug/twn_fuse/irq_count
+17
+0
+# FUSE_NBLK=5 FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . | grep -a -E 'SHORT FRAME|pix_nz|arr_cap' | head -3
+fuse_hal: kernel driver /dev/twn_fuse
+fuse_hd: four descriptors committed (HD_COMMIT 000000f3), 256 requant words (HD_RQ_STAT 0000100f)
+mbv2_fuse_head: BB2HD on -- block 16 writes the head's input slots directly (A_BB2HD 00000011)
+  op61  modeA  IC=320 OC=32  8x8   in  1280 x16  w 10240  out   512  clamp 0..127 relu 1
+  op62  modeB  IC=32  OC=32 16x16  in   512 x1   w  1024  out  2048  clamp 0..127 relu 1
+  op63  modeB  IC=32  OC=32 32x32  in  2048 x1   w  1024  out  8192  clamp 0..127 relu 1
+  op64  type4  IC=32  OC=16 64x64  in  8192 x1   w    32  out 16384  clamp 0..0 relu 0
+  backbone 493767 cycles = 2.057 ms @ 240.000 MHz
+    array busy      486972   98.6%   (gate: >= 90%)
+    depthwise       305888   61.9%
+    memory stall         7    0.0%   (gate: <  10%)
+    idle before        926    0.2%
+    idle after        2133    0.4%
+  backbone 493598 cycles = 2.057 ms @ 240.000 MHz
+    array busy      486972   98.7%   (gate: >= 90%)
+    depthwise       305888   62.0%
+    memory stall         7    0.0%   (gate: <  10%)
+    idle before        757    0.2%
+    idle after        2133    0.4%
+  backbone 493678 cycles = 2.057 ms @ 240.000 MHz
+    array busy      486972   98.6%   (gate: >= 90%)
+    depthwise       305888   62.0%
+    memory stall         7    0.0%   (gate: <  10%)
+    idle before        837    0.2%
+    idle after        2133    0.4%
+  backbone 493638 cycles = 2.057 ms @ 240.000 MHz
+    array busy      486972   98.6%   (gate: >= 90%)
+    depthwise       305888   62.0%
+    memory stall         7    0.0%   (gate: <  10%)
+    idle before        797    0.2%
+    idle after        2133    0.4%
+== SHORT FRAME: 5 of 17 blocks. Fixture verdicts below are MEANINGLESS; read the dump. ==
+    pix_nz: array .... | bank_wr .... | bank_rd ....   (0x000)
+    arr_cap: pix0 00000000  pix1 00000000  pix2 00000000  pix3 00000000
+# cat /sys/kernel/debug/twn_fuse/nblk
+5
+# echo 99 > /sys/kernel/debug/twn_fuse/nblk; echo exit $?
+sh: line 1: echo: write error: Invalid argument
+exit 1
+# echo 17 > /sys/kernel/debug/twn_fuse/nblk; cat /sys/kernel/debug/twn_fuse/nblk
+17
+# echo 1 > /sys/kernel/debug/twn_fuse/dma_fault; echo exit $?
+exit 0
+# dmesg | grep -i -E 'context fault|dma_fault' | tail -2
+[ 3547.884770] twn_fuse a0000000.twn_fuse: dma_fault: input at 0x0000000050100000 + 8192 KB: frame done, STATUS 00010043
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . | grep -a -c 'final max|diff|=0'
+fuse_hal: kernel driver /dev/twn_fuse
+fuse_hd: four descriptors committed (HD_COMMIT 000000f3), 256 requant words (HD_RQ_STAT 0000100f)
+mbv2_fuse_head: BB2HD on -- block 16 writes the head's input slots directly (A_BB2HD 00000011)
+  op61  modeA  IC=320 OC=32  8x8   in  1280 x16  w 10240  out   512  clamp 0..127 relu 1
+  op62  modeB  IC=32  OC=32 16x16  in   512 x1   w  1024  out  2048  clamp 0..127 relu 1
+  op63  modeB  IC=32  OC=32 32x32  in  2048 x1   w  1024  out  8192  clamp 0..127 relu 1
+  op64  type4  IC=32  OC=16 64x64  in  8192 x1   w    32  out 16384  clamp 0..0 relu 0
+  backbone 990913 cycles = 4.129 ms @ 240.000 MHz
+    array busy      976076   98.5%   (gate: >= 90%)
+    depthwise       472744   47.7%
+    memory stall       167    0.0%   (gate: <  10%)
+    idle before       2179    0.2%
+    idle after        6585    0.7%
+  backbone 991051 cycles = 4.129 ms @ 240.000 MHz
+    array busy      976076   98.5%   (gate: >= 90%)
+    depthwise       472744   47.7%
+    memory stall       167    0.0%   (gate: <  10%)
+    idle before       2317    0.2%
+    idle after        6585    0.7%
+  backbone 991009 cycles = 4.129 ms @ 240.000 MHz
+    array busy      976076   98.5%   (gate: >= 90%)
+    depthwise       472744   47.7%
+    memory stall       167    0.0%   (gate: <  10%)
+    idle before       2275    0.2%
+    idle after        6585    0.7%
+  backbone 990942 cycles = 4.129 ms @ 240.000 MHz
+    array busy      976076   98.5%   (gate: >= 90%)
+    depthwise       472744   47.7%
+    memory stall       167    0.0%   (gate: <  10%)
+    idle before       2208    0.2%
+    idle after        6585    0.7%
+4
