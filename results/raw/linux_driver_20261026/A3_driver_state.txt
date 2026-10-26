@@ -1,0 +1,66 @@
+# modinfo twn_fuse.ko | grep -E "^(license|alias|vermagic|parm)"
+license:        Dual MIT/GPL
+alias:          of:N*T*Cwjhuang,twn-fuse-1.0C*
+alias:          of:N*T*Cwjhuang,twn-fuse-1.0
+vermagic:       6.1.30-xilinx-v2023.2 SMP mod_unload aarch64
+parm:           arena_mb:size of the DMA buffer in MB (default 8) (uint)
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/driver
+../../../../bus/platform/drivers/twn_fuse
+# grep -i a0000000 /proc/iomem
+a0000000-a000ffff : a0000000.twn_fuse twn_fuse@a0000000
+# ls -l /dev/twn_fuse; cat /sys/class/misc/twn_fuse/dev
+crw-------    1 root     root       10, 125 Oct 26 16:35 /dev/twn_fuse
+10:125
+# dmesg | grep 'twn_fuse ' | tail -1
+[   53.550246] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . > /dev/null 2>&1
+# for a in nblk status cycles_total cycles_array cycles_dw cycles_stall cycles_idle_pre cycles_idle_post; do printf '%-18s %s\n' $a "$(cat /sys/bus/platform/devices/a0000000.twn_fuse/$a)"; done
+nblk               17
+status             0x00010043
+cycles_total       990917
+cycles_array       976076
+cycles_dw          472744
+cycles_stall       167
+cycles_idle_pre    2183
+cycles_idle_post   6585
+# ls /sys/bus/platform/devices/a0000000.twn_fuse
+cycles_array
+cycles_dw
+cycles_idle_post
+cycles_idle_pre
+cycles_stall
+cycles_total
+driver
+driver_override
+misc
+modalias
+nblk
+of_node
+power
+status
+subsystem
+supplier:platform:firmware:zynqmp-firmware:clock-controller
+uevent
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 3000 0 > /dev/null 2>&1 &
+# sleep 2; pid=$(pidof mbv2_fuse_pipe_drv)
+# grep -E "twn_fuse|uio|/dev/mem" /proc/$pid/maps
+ffffab30d000-ffffabb0d000 rw-s 00000000 00:05 1441                       /dev/twn_fuse
+# ls -l /proc/$pid/fd | grep -E "twn|uio|mem"
+lrwx------    1 root     root            64 Oct 26 16:36 3 -> /dev/twn_fuse
+# wait
+# ten reloads with a 64 MB buffer each (640 MB in all; CMA is 256 MB)
+# ok=0; for i in 1 2 3 4 5 6 7 8 9 10; do rmmod twn_fuse && insmod twn_fuse.ko arena_mb=64 && [ -e /dev/twn_fuse ] && ok=$((ok+1)); done; echo "loaded $ok of 10"
+loaded 10 of 10
+# dmesg | grep 'twn_fuse ' | tail -10
+[   69.069175] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.143303] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.195390] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.255458] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.307431] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.375541] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.427521] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.487632] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.547582] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+[   69.607701] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+# rmmod twn_fuse && insmod twn_fuse.ko && dmesg | grep "twn_fuse " | tail -1
+[   69.665219] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse

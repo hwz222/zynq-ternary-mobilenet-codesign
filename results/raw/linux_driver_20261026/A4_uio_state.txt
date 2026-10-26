@@ -1,0 +1,16 @@
+# sh bind.sh uio
+a0000000.twn_fuse -> uio_pdrv_genirq
+# devmem 0xA000002C 32
+0x00010043
+# FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_uio . 3000 0 > /dev/null 2>&1 &
+# sleep 2; pid=$(pidof mbv2_fuse_pipe_uio)
+# grep -E "twn_fuse|uio|/dev/mem" /proc/$pid/maps
+aaaab86d0000-aaaab8724000 r-xp 00000000 00:02 9647                       /home/root/mbv2_fuse_pipe_uio
+aaaab873f000-aaaab8740000 r--p 0005f000 00:02 9647                       /home/root/mbv2_fuse_pipe_uio
+aaaab8740000-aaaab8741000 rw-p 00060000 00:02 9647                       /home/root/mbv2_fuse_pipe_uio
+ffff91e5d000-ffffa1e5d000 rw-s 60000000 00:05 3                          /dev/mem
+ffffa1e5d000-ffffa1e6d000 rw-s 00000000 00:05 1465                       /dev/uio4
+# ls -l /proc/$pid/fd | grep -E "twn|uio|mem"
+# wait
+# devmem 0xA000002C 32
+0x00010043

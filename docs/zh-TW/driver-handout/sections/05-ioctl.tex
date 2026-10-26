@@ -1,32 +1,141 @@
 \clearpage
 \section{ioctl：控制介面、copy\_from\_user 與 offset}
+\label{sec:ioctl}
 
 \begin{oneline}
-\todo{一句話講完這一節}
+app 透過 ioctl 下指令，kernel 一律用 \code{copy_from_user} 取參數，而 DDR 位址只收 buffer 內的 offset，由 driver 檢查範圍後再加上 buffer 的 DMA 位址寫進硬體。
 \end{oneline}
 
 \begin{before}
-\todo{v1.0.0 怎麼做，引用 sw/app/pl\_hal\_fuse.c 的實際程式碼}
+app 自己寫暫存器，寫進去的位址是實體位址（\code{g_arena_pa + OFF_IN} 這種算法）。第 80–81 行的 \code{wr64()} 直接把它拆成兩個 word 寫進 PL：
+
+\snip{uio_wr_rd}
+
+PL 拿到什麼位址就讀寫什麼位址，不經過任何權限檢查。只要 app 算錯一個位址，或被惡意修改，PL 就會去改寫 kernel 或其他程式的記憶體。
 \end{before}
 
 \begin{tech}
-\todo{用到的 kernel API 與機制}
+\begin{itemize}
+\item misc device：主裝置號固定是 10、次裝置號自動分配的字元裝置，一個 \code{misc_register()} 就會出現 \code{/dev/twn_fuse}。
+\item \code{file_operations.unlocked_ioctl}：app 呼叫 \code{ioctl(fd, cmd, arg)} 時，kernel 呼叫的函式。
+\item \code{_IO} / \code{_IOR} / \code{_IOW} / \code{_IOWR}：把「方向、資料大小、類別、編號」編進一個 32-bit 指令碼的巨集。
+\item uapi header：driver 和 app 共用的 \code{twn_fuse_ioctl.h}，只用 \code{__u32}、\code{__u64} 這種兩邊都有的型別。
+\item \code{copy_from_user} / \code{copy_to_user} / \code{get_user} / \code{put_user} / \code{memdup_user}：在 user 和 kernel 記憶體之間安全地搬資料。
+\item \code{in_arena()}：driver 自己的範圍檢查，所有 offset 都要經過它。
+\end{itemize}
 \end{tech}
 
 \begin{gain}
-\todo{具體改善了什麼，能驗證的寫法}
+\begin{itemize}
+\item 每個指令就是一段完整、順序固定的暫存器操作，app 不可能漏掉某一步。
+\item 寫進 PL 的位址一定落在 driver 的 buffer 裡；head 的傳輸長度已知，連「從起點到終點」整段範圍都會檢查。
+\item 錯誤用標準錯誤碼回報：位址越界回 \code{EINVAL}、壞指標回 \code{EFAULT}、不認得的指令回 \code{ENOTTY}（板上 7 項錯誤測試，見下）。呼叫端可以自己處理；目前的 HAL 為了不改原本的函式介面，收到錯誤仍然直接結束程式（第 9 節）。
+\end{itemize}
 \end{gain}
 
 \subsection{實際例子：程式碼與板上輸出}
-\todo{\textbackslash snip 抽出的函式，逐段說明；板上實際 log}
+
+\textbf{介面定義：九個指令。}這段在 \code{twn_fuse_ioctl.h}，driver 和 app 都 include 它：
+
+\snip{uapi_cmds}
+
+\code{0xBC} 是這個 driver 的「類別」（magic）。Linux 6.1 的 \code{Documentation/userspace-api/ioctl/ioctl-number.rst} 裡，\code{0xB8}–\code{0xBF} 沒有人登記。第二個參數是編號，第三個是參數的型別，巨集會用 \code{sizeof} 把大小編進去。例如跑一個 frame 的參數：
+
+\snip{uapi_bb_run}
+
+\textbf{設定 base：最簡單的完整範例。}複製參數、檢查範圍、寫暫存器，三步：
+
+\snip{drv_set_bases}
+
+\textbf{範圍檢查。}檢查三件事：起點 16-byte 對齊（PL 一次搬一個 16-byte 的 beat）、起點在 buffer 內、長度不會超出 buffer 結尾。寫成 \code{len <= size - off} 而不是 \code{off + len <= size}，是為了避免 \code{off + len} 在 64 bits 溢位、繞回一個很小的數字而通過檢查：
+
+\snip{drv_in_arena}
+
+\textbf{head 的描述子：長度已知，整段都檢查。}app 已經把形狀、旗標等欄位打包好，driver 只負責檢查三個位址範圍、寫進去、commit：
+
+\snip{drv_hd_commit}
+
+operator 0（head 的第一層）的輸入多保留 \code{HD_SLOT_OFF}（64 KB），因為 head 的硬體會在兩個輸入區之間切換，第二個輸入區在第一個之後 64 KB。
+
+\textbf{一次複製一整個陣列：\code{memdup_user}。}\code{twn_set_table}（第 \lineof{drv_set_table} 行）要把描述子表（17 個 block × 16 個 word = 272 個 word）複製進來。\code{memdup_user} 等於「\code{kmalloc} + \code{copy_from_user}」，失敗時回傳錯誤指標，用 \code{IS_ERR} / \code{PTR_ERR} 取出錯誤碼；用完要 \code{kfree}。
+
+\textbf{板上：該拒絕的都拒絕了。}
+
+\boardfile{A2_board_check_uio_dtb.log}{16-22}
+
+\code{Bad address} 就是 \code{EFAULT}：測試程式故意把參數指標設成 16（一個沒有映射的位址），\code{copy_to_user} / \code{memdup_user} 發現後回報錯誤，kernel 沒有當掉。
 
 \subsection{原理}
-\todo{為什麼這樣做是對的；必要時一張圖}
+
+\textbf{一次 ioctl 的路徑。}
+
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize,
+  b/.style={draw,rounded corners=2pt,align=center,minimum height=8mm,text width=27mm},
+  arr/.style={-{Stealth[length=2mm]},thick}]
+\node[b,fill=user] (a) {app：\code{ioctl(fd,}\\\code{TWN_IOC_BB_RUN, &r)}};
+\node[b,fill=kern,right=6mm of a] (b) {系統呼叫進入 kernel\\\code{vfs_ioctl}};
+\node[b,fill=kern,right=6mm of b] (c) {\code{f_op->unlocked_ioctl}\\= \code{twn_ioctl}};
+\node[b,fill=kern,right=6mm of c] (d) {\code{twn_bb_run}\\複製、檢查、做事};
+\draw[arr] (a)--(b); \draw[arr] (b)--(c); \draw[arr] (c)--(d);
+\draw[dashed,gray] ($(a.east)!0.5!(b.west)+(0,9mm)$) -- ++(0,-18mm) node[below,font=\scriptsize]{user | kernel};
+\end{tikzpicture}
+\end{center}
+
+\textbf{指令碼怎麼編。}Linux 的 \code{_IOC} 把一個 32-bit 數字切成四段（\code{include/uapi/asm-generic/ioctl.h}）：
+
+\begin{center}
+\small
+\begin{tabular}{cccc}
+\toprule
+bits 31--30 & bits 29--16 & bits 15--8 & bits 7--0 \\
+方向 & 參數大小（bytes） & 類別 & 編號 \\
+\midrule
+3（讀 + 寫） & 48 & \code{0xBC} & 3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+所以 \code{TWN_IOC_BB_RUN} = \code{0xC030BC03}（\code{struct twn_bb_run} 是 3 個 \code{__u64} 加 6 個 \code{__u32}，共 48 bytes）。參數大小也在指令碼裡：struct 的大小一改，指令碼就不同，舊的 app 送來的指令 driver 不認得，回 \code{ENOTTY}。只改欄位順序、大小不變時，這個機制就偵測不到。
+
+\textbf{為什麼一定要用 \code{copy_from_user}。}ioctl 的 \code{arg} 是 app 位址空間裡的一個指標，kernel 不能直接解指標，理由有三個：
+\begin{enumerate}
+\item \textbf{位址可能根本沒有映射。}kernel 直接解這種指標會 oops。\code{copy_from_user} 遇到這種 fault 時，kernel 的 exception table（記錄「這幾個指令出錯時跳到哪裡修復」的表）會接手，函式回傳「還有幾個 byte 沒複製」，driver 據此回 \code{-EFAULT}。（頁面只是暫時不在記憶體，例如被 swap 出去，不是問題：fault handler 會把它換回來，兩種寫法都一樣。）
+\item \textbf{位址可能指向 kernel。}app 可以傳一個 kernel 記憶體的位址，想騙 driver 幫它讀寫 kernel。\code{copy_from_user} 先用 \code{access_ok} 檢查整段位址都在 user space 的範圍內。
+\item \textbf{硬體不會幫你擋。}ARMv8.1 起有 PAN（Privileged Access Never），kernel 直接存取 user 記憶體會發生例外。這塊板子的 Cortex-A53 是 ARMv8.0，沒有 PAN 硬體。kernel 雖然編進了 PAN 支援（\code{CONFIG_ARM64_PAN=y}），但在 A53 上偵測不到這個功能，也沒有開軟體模擬（\code{CONFIG_ARM64_SW_TTBR0_PAN} 沒設），所以直接解 user 指標不會被硬體擋下。
+\end{enumerate}
+
+\textbf{為什麼只收 offset，不收實體位址。}這塊板子沒有啟用 SMMU（系統層級的 IOMMU，讓裝置的 DMA 也經過頁表檢查），PL 的 DMA 拿到什麼實體位址就存取什麼。如果 driver 接受 app 給的實體位址，等於讓任何能開 \code{/dev/twn_fuse} 的程式控制一個能讀寫全部記憶體的 DMA 引擎。只收 offset，再由 driver 檢查、加上自己的 DMA 位址，PL 收到的位址就一定落在 driver 的 buffer 裡。
+
+\textbf{這個保護的範圍要說清楚。}
+\begin{itemize}
+\item head 的三個位址都有傳輸長度，driver 檢查的是整段範圍。
+\item backbone 只檢查起點：輸出會寫多長，取決於描述子表的內容，driver 不逐項解讀。
+\item 描述子表本身是 PL 解讀的，裡面的欄位理論上仍可讓 PL 越界。
+\item root 程式仍可經 \code{/dev/mem} 繞過 driver（第 4 節）。
+\end{itemize}
+要完全把 PL 的 DMA 關在 buffer 裡，得開 SMMU，讓 PL 的每一次存取都經過頁表檢查。這次沒有做。
 
 \subsection{面試會問}
-\begin{qa}{ioctl：為什麼要用 copy\_from\_user？為什麼只收 offset，不收實體位址？}
-\todo{30 秒版本的回答}
+
+\begin{qa}{為什麼要用 copy\_from\_user？為什麼只收 offset，不收實體位址？}
+ioctl 的參數是 user space 的指標，可能根本沒有映射，也可能故意指向 kernel 記憶體。\code{copy_from_user} 先用 \code{access_ok} 確認位址在 user 範圍；複製時遇到無法處理的 fault，由 exception table 接住並回傳失敗，我就回 \code{-EFAULT}，kernel 不會 oops。A53 是 ARMv8.0，沒有 PAN，硬體不會擋 kernel 直接讀 user 指標，所以更要靠它。只收 offset，是因為 PL 的 DMA 沒經過 SMMU，給什麼實體位址就寫什麼；我讓 app 只能給 buffer 內的 offset，檢查對齊和範圍，連 offset 加長度的溢位都擋掉，再加上 buffer 的 DMA 位址寫進硬體。板上越界都回 \code{EINVAL}，壞指標回 \code{EFAULT}。限制是 backbone 的描述子內容我不解讀，完整隔離要靠 SMMU。
 \end{qa}
 
 \subsection{關鍵函式速查}
-\todo{函式、在哪個檔案第幾行、做什麼}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+九個指令碼 & \code{twn_fuse_ioctl.h}:\lineof{uapi_cmds} & driver 與 app 共用的介面 \\
+\code{in_arena()} & \code{twn_fuse.c}:\lineof{drv_in_arena} & 對齊、起點、長度，含溢位防護 \\
+\code{twn_set_bases()} & \code{twn_fuse.c}:\lineof{drv_set_bases} & 最簡單的完整 ioctl：複製、檢查、寫入 \\
+\code{twn_set_table()} & \code{twn_fuse.c}:\lineof{drv_set_table} & \code{memdup_user} 複製描述子表，跑 PL 的檢查 \\
+\code{twn_hd_commit()} & \code{twn_fuse.c}:\lineof{drv_hd_commit} & head 描述子：三段範圍完整檢查 \\
+\code{twn_ioctl()} & \code{twn_fuse.c}:\lineof{drv_ioctl} & 依指令分派，並上鎖（第 7 節） \\
+\bottomrule
+\end{tabularx}
+\end{center}

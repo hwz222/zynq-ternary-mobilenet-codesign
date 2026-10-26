@@ -1,0 +1,21 @@
+# sha256sum /run/media/mmcblk0p1/system.dtb /run/media/mmcblk0p1/BOOT.BIN | cut -c1-16,65-
+18fff66fcfb7798b  /run/media/mmcblk0p1/system.dtb
+690d87cc5f4b6897  /run/media/mmcblk0p1/BOOT.BIN
+# uname -r; cat /proc/cmdline
+6.1.30-xilinx-v2023.2
+earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw uio_pdrv_genirq.of_id=generic-uio
+# uptime
+ 16:35:41 up 0 min,  load average: 1.21, 0.33, 0.11
+# devmem 0xA000002C 32
+0x00000000
+# dmesg | grep -i 'cma: reserved'
+[    0.000000] cma: Reserved 256 MiB at 0x0000000050000000
+# grep -E "MemTotal|CmaTotal" /proc/meminfo
+MemTotal:        1773764 kB
+CmaTotal:         262144 kB
+# tr "\0" "\n" < /sys/bus/platform/devices/a0000000.twn_fuse/of_node/compatible
+generic-uio
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/driver
+../../../../bus/platform/drivers/uio_pdrv_genirq
+# cat /sys/class/uio/uio4/name
+twn_fuse

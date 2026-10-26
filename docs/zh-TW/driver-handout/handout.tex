@@ -1,72 +1,127 @@
 % twn_fuse Linux driver 開發講義（繁體中文）。建置：在本資料夾執行 latexmk，輸出 build/handout.pdf。
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=22mm]{geometry}
+\usepackage[top=20mm,bottom=20mm,left=20mm,right=20mm,headheight=14pt]{geometry}
 \usepackage{fontspec}
 \usepackage{xeCJK}
 \setmainfont{Segoe UI}
 \setsansfont{Segoe UI}
-\setmonofont{Consolas}[Scale=0.95]
+\setmonofont{Consolas}[Scale=0.92]
 \setCJKmainfont{Microsoft JhengHei}[BoldFont={Microsoft JhengHei Bold}]
 \setCJKsansfont{Microsoft JhengHei}[BoldFont={Microsoft JhengHei Bold}]
 \setCJKmonofont{Microsoft JhengHei}
-\linespread{1.35}
+\xeCJKsetup{CJKecglue={\hskip 0.15em plus 0.05em}}
+\linespread{1.3}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0.6em}
+\setlength{\parskip}{0.55em}
 
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{array}
 \usepackage{enumitem}
-\setlist{itemsep=0.2em,topsep=0.3em}
+\setlist{itemsep=0.15em,topsep=0.25em,leftmargin=1.4em}
 \usepackage[most]{tcolorbox}
 \usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,calc,backgrounds}
+\usepackage{fancyhdr}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
-\titleformat{\section}{\Large\bfseries\color{ink}}{\thesection}{0.8em}{}
-\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
 
 \definecolor{ink}{HTML}{1F3A5F}
 \definecolor{oldc}{HTML}{8A5A00}   \definecolor{oldbg}{HTML}{FFF6E5}
 \definecolor{techc}{HTML}{1F5FA8}  \definecolor{techbg}{HTML}{EAF2FC}
 \definecolor{gainc}{HTML}{2E7D32}  \definecolor{gainbg}{HTML}{EAF6EA}
 \definecolor{qac}{HTML}{5B3F8C}    \definecolor{qabg}{HTML}{F3EEFA}
+\definecolor{pitc}{HTML}{A23B2A}   \definecolor{pitbg}{HTML}{FCEDEA}
 \definecolor{codebg}{HTML}{F7F7F5}
+\definecolor{kern}{HTML}{DCE8F5}   \definecolor{user}{HTML}{F2EBDD}  \definecolor{hw}{HTML}{E3F1E3}
 
-% ---- 每一節固定用的三個框：原本怎麼做 / 用了什麼技術 / 改善了什麼 ----
+\titleformat{\section}{\Large\bfseries\color{ink}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{0.6em}{0.6em}
+\titlespacing*{\subsection}{0pt}{0.9em}{0.35em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gray}twn\_fuse Linux driver 開發講義}
+\fancyhead[R]{\small\color{gray}\leftmark}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ #1}{}}
+
+% ---- 每一節固定的框 ----
 \newtcolorbox{oneline}{colback=ink!6,colframe=ink,boxrule=0.6pt,arc=1mm,left=2mm,right=2mm,
-  fontupper=\bfseries}
+  fontupper=\bfseries,before skip=0.4em,after skip=0.6em}
 \newtcolorbox{before}{colback=oldbg,colframe=oldc,title={原本怎麼做（v1.0.0 的 UIO 版本）},
-  fonttitle=\bfseries,boxrule=0.6pt,arc=1mm}
+  fonttitle=\bfseries,boxrule=0.6pt,arc=1mm,breakable}
 \newtcolorbox{tech}{colback=techbg,colframe=techc,title={用了什麼技術},fonttitle=\bfseries,
-  boxrule=0.6pt,arc=1mm}
+  boxrule=0.6pt,arc=1mm,breakable}
 \newtcolorbox{gain}{colback=gainbg,colframe=gainc,title={改善了什麼},fonttitle=\bfseries,
-  boxrule=0.6pt,arc=1mm}
-\newtcolorbox{qa}[1]{colback=qabg,colframe=qac,title={面試會問：#1},fonttitle=\bfseries,
-  boxrule=0.6pt,arc=1mm}
+  boxrule=0.6pt,arc=1mm,breakable}
+\newtcolorbox{qa}[1]{colback=qabg,colframe=qac,title={面試會問（完整版，約 1 分鐘）：#1},
+  fonttitle=\bfseries,boxrule=0.6pt,arc=1mm,breakable}
+\newtcolorbox{qashort}[1]{colback=qabg,colframe=qac,title={#1},fonttitle=\bfseries,
+  boxrule=0.6pt,arc=1mm,breakable}
+\newtcolorbox{pit}{colback=pitbg,colframe=pitc,title={踩過的坑},fonttitle=\bfseries,
+  boxrule=0.6pt,arc=1mm,breakable}
 
 % ---- 程式碼：一律由 extract.py 從 repo 的實際檔案抽出，保留原始行號 ----
-\lstset{language=C,basicstyle=\ttfamily\small,numbers=left,numberstyle=\tiny\color{gray},
+\lstset{language=C,basicstyle=\ttfamily\footnotesize,numbers=left,numberstyle=\tiny\color{gray},
+  numbersep=6pt,xleftmargin=1.6em,
   backgroundcolor=\color{codebg},frame=single,rulecolor=\color{gray!40},breaklines=true,
-  columns=fullflexible,keepspaces=true,showstringspaces=false,tabsize=8,
-  keywordstyle=\color{techc}\bfseries,commentstyle=\color{gray}\itshape,stringstyle=\color{oldc},
-  captionpos=t}
-% \snip{<檔名，點換成底線>}{<函式名>}，例如 \snip{pl_hal_fuse_c}{fuse_run_frame}
-\newcommand{\snip}[2]{%
-  \input{build/snippets/#1__#2.tex}%
-  \lstinputlisting[firstnumber=\snipfirst,title={\small\snippath\ :\ \snipfirst}]{build/snippets/#1__#2.c}}
-% 板上實際輸出（log）：不編號
-\lstnewenvironment{boardlog}{\lstset{language={},numbers=none,basicstyle=\ttfamily\footnotesize,
-  backgroundcolor=\color{black!80},basicstyle=\ttfamily\footnotesize\color{white}}}{}
+  breakatwhitespace=true,columns=fullflexible,keepspaces=true,showstringspaces=false,tabsize=4,
+  keywordstyle=\color{techc}\bfseries,commentstyle=\color{gray!90!black}\itshape,
+  stringstyle=\color{oldc},captionpos=t,aboveskip=0.5em,belowskip=0.5em,
+  morekeywords={u32,u64,size_t,bool,dma_addr_t,__u32,__u64,uint32_t,uint64_t}}
+% \snip[語言]{標籤}：印出 build/snippets/<標籤>.c，標題是「檔案 : 起始行–結束行」
+\newcommand{\snip}[2][C]{%
+  \input{build/snippets/#2.tex}%
+  \lstinputlisting[language=#1,firstnumber=\snipfirst,
+    title={\scriptsize\ttfamily\snippath\ :\ \snipfirst--\sniplast}]{build/snippets/#2.c}}
+% 板上實際輸出：\boardfile[說明]{檔名}{起-迄行} 直接從 results/raw/linux_driver_20261026/ 讀出原文，
+% 不手抄；行首「# 」是腳本印出的指令本身
+\lstdefinestyle{board}{language={},numbers=none,xleftmargin=0pt,
+  basicstyle=\ttfamily\scriptsize\color{white},backgroundcolor=\color{black!82},
+  rulecolor=\color{black!82}}
+\newcommand{\logdir}{../../../results/raw/linux_driver_20261026}
+% 每個框都不超過 25 行，放進 minipage 讓它不會跨頁斷開
+\newcommand{\boardfile}[3][]{%
+  \par\noindent\begin{minipage}{\linewidth}%
+  \lstinputlisting[style=board,linerange={#3},
+    title={\scriptsize\ttfamily results/raw/linux\_driver\_20261026/\detokenize{#2}\ :\ #3\normalfont #1}]{\logdir/#2}%
+  \end{minipage}\par}
+\lstnewenvironment{cmdline}{\lstset{language=bash,numbers=none,xleftmargin=0pt,
+  basicstyle=\ttfamily\footnotesize}}{}
 
+% \code{...}：行內程式碼，保留空白；在 _ / . 之後允許換行，長名稱才不會超出版面
+\ExplSyntaxOn
+\NewDocumentCommand \code { m }
+  {
+    \tl_set:Ne \l_tmpa_tl { \tl_to_str:n {#1} }
+    \regex_replace_all:nnN { ([_/\.]) } { \1 \c{allowbreak} } \l_tmpa_tl
+    \texttt { \tl_use:N \l_tmpa_tl }
+  }
+\ExplSyntaxOff
+\emergencystretch=2em
 \newcommand{\todo}[1]{\textcolor{red}{（待寫：#1）}}
+\newcommand{\sref}[1]{\S\ref{#1}}
+% \lineof{標籤}：該段程式碼在原始檔的起始行號（給速查表用，跟著程式碼自動更新）
+\newcommand{\lineof}[1]{\begingroup\input{build/snippets/#1.tex}\snipfirst\endgroup}
 
-\title{\bfseries twn\_fuse Linux platform driver 開發講義}
+\title{\bfseries twn\_fuse Linux platform driver 開發講義\\[0.3em]
+  \large 從 UIO 到 kernel driver：每一項技術、每一行關鍵程式}
 \author{Wei-Jhe Huang}
-\date{草稿：\today}
+\date{2026 年 10 月 27 日}
+\renewcommand{\contentsname}{目錄}
+\renewcommand{\figurename}{圖}
+\input{sections/numbers}
 
 \begin{document}
 \maketitle
+\thispagestyle{empty}
 \tableofcontents
 \clearpage
 

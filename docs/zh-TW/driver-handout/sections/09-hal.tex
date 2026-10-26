@@ -1,30 +1,107 @@
 \clearpage
-\section{App 端：同一份 HAL 介面、兩個 backend}
+\section{App 端：同一份 HAL 介面、兩個實作}
+\label{sec:hal}
 
 \begin{oneline}
-\todo{一句話講完這一節}
+app 的演算法和位址計算都沒有改：\code{pl_hal_fuse.h} 現在有兩個實作，編譯時用 \code{HAL=uio} 或 \code{HAL=drv} 選一個，而 driver 版本回報「buffer 基底位址是 0」，讓 app 算出的位址自動變成 offset。
 \end{oneline}
 
 \begin{before}
-\todo{v1.0.0 怎麼做，引用 sw/app/pl\_hal\_fuse.c 的實際程式碼}
+v1.0.0 的 \code{Makefile.cross} 只有一個實作可選（第 20 行的 \code{pl_hal_fuse.c}）：
+
+\snip[make]{v100_make_common}
+
+\code{pl_hal_fuse.c} 裡混著兩種程式：要碰暫存器的（UIO、\code{/dev/mem}），和完全不碰硬體的（head 描述子的編碼與檢查、印 counter）。app（\code{mbv2_fuse_ps.c}）只呼叫這份介面、不直接碰硬體，這個分層正是這次能換實作的原因。
 \end{before}
 
 \begin{tech}
-\todo{用到的 kernel API 與機制}
+\begin{itemize}
+\item HAL（Hardware Abstraction Layer）：上層只依賴一份 header，底下可以換不同的實作。
+\item 連結時選擇：\code{Makefile.cross} 用 \code{HAL} 變數決定要編哪一個 \code{.c}，兩個實作提供同一組函式名稱。
+\item 重構：把不碰硬體的函式搬到 \code{pl_hal_fuse_enc.c}，兩個實作共用，內容一字不改。
+\item 「基底 0」：driver 版本的 \code{fuse_arena_init()} 回報實體位址 0。
+\item \code{_Static_assert}：編譯時期的檢查，條件不成立就編譯失敗。
+\end{itemize}
 \end{tech}
 
 \begin{gain}
-\todo{具體改善了什麼，能驗證的寫法}
+\begin{itemize}
+\item 兩個版本跑的是同一份 app 程式碼，量到的差異只來自 HAL 底下那一層，比較才有意義（第 10 節）。
+\item UIO 版本保留下來：當作回退，也保留它專有的 RTL 除錯功能（例如只跑前 $n$ 個 block 的 \code{fuse_set_nblk()}）。
+\item app 本身只改了一處：要求的 buffer 大小從整塊 256 MB 改成實際需要的 6 MB，並加一個 \code{_Static_assert} 保證配置不會超過。另外改了建置檔（\code{Makefile.cross}、\code{board/build_apps.sh}）。
+\end{itemize}
 \end{gain}
 
 \subsection{實際例子：程式碼與板上輸出}
-\todo{\textbackslash snip 抽出的函式，逐段說明；板上實際 log}
+
+\textbf{在 Makefile 選實作。}\code{$(if $(filter drv,$(HAL)),A,B)}：\code{HAL} 是 \code{drv} 就選 A，否則選 B（\code{HAL ?= uio} 在第 \lineof{app_make_hal_var} 行）：
+
+\snip[make]{app_make_hal}
+
+\begin{cmdline}
+bash board/build_apps.sh            # HAL=uio, into build/arm
+HAL=drv bash board/build_apps.sh    # HAL=drv, into build/arm-drv
+\end{cmdline}
+
+\textbf{每個 HAL 函式都變成一個 ioctl。}共用的錯誤處理：
+
+\snip{app_xioctl}
+
+跑一個 frame。和 UIO 版本 61 行的 \code{fuse_run_frame}（第 6 節）比，這裡只剩填參數、呼叫、存下 counter。注意其中的 \code{exit(1)}：\code{fuse_run_frame()} 的介面沒有錯誤回傳值，為了不改介面，driver 回的錯誤碼在這裡仍然變成結束程式；要讓 app 自己處理逾時，得連 \code{pl_hal_fuse.h} 的介面一起改：
+
+\snip{app_run_frame}
+
+head 的描述子：先用共用的 \code{fuse_hd_desc_check()} 檢查幾何規則，再用共用的編碼函式把欄位打包成暫存器格式，交給 driver：
+
+\snip{app_hd_commit}
+
+\textbf{「基底 0」怎麼讓 app 不用改。}app 算位址的方式一直是「基底 + 區段 offset」，例如：
+
+\snip{app_run_call}
+
+\begin{itemize}
+\item UIO 版本：\code{g_arena_pa} = \code{0x6000_0000}，傳下去的是實體位址，HAL 直接寫進暫存器。
+\item driver 版本：\code{fuse_arena_init()} 回報 \code{g_arena_pa} = 0（第 4 節），傳下去的就是 \code{OFF_IN} 這種 offset，HAL 原封不動交給 ioctl，driver 再加上真正的 DMA 位址。
+\end{itemize}
+
+同一行 app 程式，在兩個實作底下都對。
+
+\textbf{板上：兩個版本，同樣的答案。}
+
+\boardfile{A2_board_check_uio_dtb.log}{2-8}
 
 \subsection{原理}
-\todo{為什麼這樣做是對的；必要時一張圖}
+
+\textbf{為什麼在連結時選，不在執行時選。}執行時選（例如用函式指標表）要多一層間接呼叫，兩個實作的程式碼也都會編進同一個執行檔。這裡兩個版本不會在同一個程式裡同時用到，用 Makefile 在連結時選最簡單：每個執行檔只含一個實作，函式名稱完全相同，app 看不出差別。
+
+\textbf{為什麼不乾脆把 app 改成直接呼叫 ioctl。}因為這樣得改動 app 裡每一處算位址、每一次啟動與等待，而且 UIO 版本就沒辦法保留了。守住 HAL 這一層，所有差異都關在兩個 \code{.c} 檔裡，app 不用跟著改，也就不會因為改 app 而引入新的錯誤。
+
+\textbf{為什麼要搬出 \code{pl_hal_fuse_enc.c}。}head 描述子的編碼與檢查是純計算，兩個實作都要用。如果各自複製一份，將來改了一邊忘了另一邊，兩個版本就會悄悄產生不同的結果。搬到一個共用檔、內容不改，就只有一份。
+
+\textbf{\code{_Static_assert} 保護什麼。}driver 只配 8 MB，app 用 \code{FUSE_ARENA_NEED}（6 MB）要求 buffer。如果有人在 app 裡多加一個區段、讓配置超過 6 MB，這行檢查會讓編譯直接失敗，而不是等到板上 PL 寫出界才發現：
+
+\snip{app_static_assert}
 
 \subsection{面試會問}
-\todo{本節沒有對應的面試六題；寫可能被追問的一題}
+
+\begin{qa}{換成 driver 之後，上層的 app 改了多少？}
+演算法和位址計算都沒改。app 本來就只透過 \code{pl_hal_fuse.h} 這份 HAL 介面碰硬體，我替它寫了第二個實作 \code{pl_hal_fuse_drv.c}，用 Makefile 的 \code{HAL=drv} 在連結時選。一個關鍵技巧是 driver 版本回報 buffer 基底位址為 0：app 原本用「基底 + offset」算實體位址，基底是 0 時算出來的就是 offset，正好是 ioctl 要的。不碰硬體的編碼函式搬到共用檔，兩邊用同一份。app 只改了要求的 buffer 大小，並用 \code{_Static_assert} 防止配置超過。因為兩個版本跑同一份 app，我才能在同一顆 bitstream 上直接比較：4 張 fixture 都 bit-exact，吞吐量也量得到。
+\end{qa}
 
 \subsection{關鍵函式速查}
-\todo{函式、在哪個檔案第幾行、做什麼}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{HAL} 變數 & \code{Makefile.cross}:\lineof{app_make_hal_var} & 選 \code{pl_hal_fuse.c} 或 \code{pl_hal_fuse_drv.c} \\
+\code{xioctl()} & \code{pl_hal_fuse_drv.c}:\lineof{app_xioctl} & 呼叫 ioctl，失敗時印出是哪一個 \\
+\code{fuse_arena_init()} & \code{pl_hal_fuse_drv.c}:\lineof{app_arena_init} & \code{mmap} buffer，回報基底 0 \\
+\code{fuse_run_frame()} & \code{pl_hal_fuse_drv.c}:\lineof{app_run_frame} & 一個 \code{TWN_IOC_BB_RUN} \\
+\code{fuse_hd_commit()} & \code{pl_hal_fuse_drv.c}:\lineof{app_hd_commit} & 檢查、打包、\code{TWN_IOC_HD_COMMIT} \\
+\code{pl_hal_fuse_enc.c} & \code{sw/app/} & 兩個實作共用的編碼與檢查 \\
+\bottomrule
+\end{tabularx}
+\end{center}

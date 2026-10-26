@@ -1,5 +1,72 @@
-# <repo-relative file>   <function>      (read by extract.py)
-# the UIO path of v1.0.0, quoted in the "原本怎麼做" part of each section
-sw/app/pl_hal_fuse.c      fuse_hal_init
-sw/app/pl_hal_fuse.c      fuse_arena_init
-sw/app/pl_hal_fuse.c      fuse_run_frame
+# <repo-relative file> | <selector> | <label>        (read by extract.py; selectors: fn:NAME, at:TEXT)
+
+# ---- the driver ----
+linux/driver/twn_fuse/twn_fuse.c | at:/* ---- registers         | drv_regs
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_dev                   | drv_struct
+linux/driver/twn_fuse/twn_fuse.c | fn:rd                        | drv_rd
+linux/driver/twn_fuse/twn_fuse.c | fn:wr                        | drv_wr
+linux/driver/twn_fuse/twn_fuse.c | fn:wr_addr                   | drv_wr_addr
+linux/driver/twn_fuse/twn_fuse.c | fn:in_arena                  | drv_in_arena
+linux/driver/twn_fuse/twn_fuse.c | fn:wait_bit                  | drv_wait_bit
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_set_table             | drv_set_table
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_set_bases             | drv_set_bases
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_bb_run                | drv_bb_run
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_hd_commit             | drv_hd_commit
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_hd_start              | drv_hd_start
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_hd_wait               | drv_hd_wait
+linux/driver/twn_fuse/twn_fuse.c | fn:file_to_td                | drv_file_to_td
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_open                  | drv_open
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_mmap                  | drv_mmap
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_ioctl                 | drv_ioctl
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_fops                  | drv_fops
+linux/driver/twn_fuse/twn_fuse.c | fn:TWN_REG_ATTR              | drv_reg_attr
+linux/driver/twn_fuse/twn_fuse.c | at:TWN_REG_ATTR(cycles_total | drv_reg_attr_use
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_attrs                 | drv_attrs
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_probe                 | drv_probe
+linux/driver/twn_fuse/twn_fuse.c | at:/* 1. map the node         | drv_probe_map
+linux/driver/twn_fuse/twn_fuse.c | at:/* 2. is this our hardware | drv_probe_nblk
+linux/driver/twn_fuse/twn_fuse.c | at:/* 3. the DMA buffer      | drv_probe_dma
+linux/driver/twn_fuse/twn_fuse.c | at:/* 4. the character device | drv_probe_misc
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_remove                | drv_remove
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_of_match              | drv_of_match
+linux/driver/twn_fuse/twn_fuse.c | fn:twn_driver                | drv_driver
+linux/driver/twn_fuse/twn_fuse_ioctl.h | fn:twn_bb_run          | uapi_bb_run
+linux/driver/twn_fuse/twn_fuse_ioctl.h | fn:twn_hd_desc         | uapi_hd_desc
+linux/driver/twn_fuse/twn_fuse_ioctl.h | at:#define TWN_IOC_STATUS | uapi_cmds
+linux/driver/twn_fuse/bind.sh            | at:case "$1" in     | bind_case
+linux/driver/twn_fuse/patch_dtb.sh       | at:set -e           | patch_dtb
+
+# ---- the v1.0.0 UIO path, quoted in the "原本怎麼做" boxes ----
+sw/app/pl_hal_fuse.c | at:static inline void   wr(             | uio_wr_rd
+sw/app/pl_hal_fuse.c | fn:fuse_wmb                            | uio_wmb
+sw/app/pl_hal_fuse.c | fn:fuse_hal_init                        | uio_hal_init
+sw/app/pl_hal_fuse.c | fn:fuse_arena_init                      | uio_arena_init
+sw/app/pl_hal_fuse.c | fn:fuse_run_frame                       | uio_run_frame
+sw/app/pl_hal_fuse.c | fn:fuse_hd_start                        | uio_hd_start
+linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:reserved-memory | dt_reserved
+linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:&fuse_0 {   | dt_uio_node
+
+# ---- the app side ----
+sw/app/pl_hal_fuse_drv.c | fn:fuse_arena_init                  | app_arena_init
+sw/app/pl_hal_fuse_drv.c | fn:fuse_run_frame                   | app_run_frame
+sw/app/pl_hal_fuse_drv.c | fn:fuse_hd_commit                   | app_hd_commit
+sw/app/pl_hal_fuse_drv.c | fn:xioctl                           | app_xioctl
+sw/app/Makefile.cross    | at:# HAL=uio (default)              | app_make_hal
+sw/app/mbv2_fuse_ps.c    | at:#define OFF_WEIGHTS              | app_arena_map
+sw/app/mbv2_fuse_ps.c    | fn:mbv2_fuse_frame_pl               | app_frame_pl
+linux/driver/twn_fuse/test/twn_errtest.c | fn:check            | test_check
+sw/app/mbv2_fuse_ps.c    | at:    uint64_t pl_ns = fuse_run_frame(g_arena_pa + OFF_IN,  | app_run_call
+sw/app/mbv2_fuse_ps.c    | at:_Static_assert(OFF_HD_OUT        | app_static_assert
+linux/driver/twn_fuse/test/twn_errtest.c | at:#define CALL(       | test_call
+linux/driver/twn_fuse/test/board_check.sh | at:fixtures() {      | check_fixtures
+
+# ---- added after review round 1 ----
+sw/app/pl_hal_fuse.c | at:    int fd = open(uio, O_RDWR        | uio_map_regs
+sw/app/pl_hal_fuse.c | at:    int fd = open("/dev/mem", O_RDWR | uio_map_mem
+sw/app/pl_hal_fuse.c | fn:fuse_read_counters                            | uio_counters
+git:3bdd485:sw/app/Makefile.cross | at:COMMON =                          | v100_make_common
+board/deploy.sh      | at:verify)                                        | deploy_verify
+sw/app/mbv2_fuse_ps.c | at:#define FUSE_ARENA_NEED                     | app_arena_need
+sw/app/Makefile.cross | at:HAL     ?= uio                              | app_make_hal_var
+linux/driver/twn_fuse/twn_fuse.c | at:TWN_REG_ATTR(nblk,                 | drv_attr_nblk
+linux/driver/twn_fuse/twn_fuse.c | at:	ret = readl_poll_timeout(td->regs + R_STATUS | drv_table_poll

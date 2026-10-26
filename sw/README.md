@@ -8,6 +8,8 @@ Software that runs with the accelerator: the integer network in C, and the board
 |---|---|
 | `net/` | `mbv2_pose.[ch]`: integer implementation of the whole network, layer by layer. It is the reference of every bit-exact gate, and it runs the head on the processor when `FUSE_HEAD_PL=0` |
 | `app/pl_hal_fuse.[ch]` | register map and DMA arena of the accelerator, UIO lookup by name |
+| `app/pl_hal_fuse_drv.c` | the same interface (`pl_hal_fuse.h`) on top of the kernel driver `linux/driver/twn_fuse`; built with `HAL=drv` |
+| `app/pl_hal_fuse_enc.c` | the parts of the interface that touch no register (head descriptor encoders and checks, counter print), shared by both |
 | `app/mbv2_fuse_ps.[ch]` | frame control, head in the PL or on the processor, post-processing (arg-max of the heatmaps) |
 | `app/mbv2_ps.[ch]`, `app/pl_hal.h`, `app/pl_hal_zynq.c` | the processor-side network path (it provides `mbv2_ps_head()`, the head on the processor) and the hardware layer of an earlier per-layer accelerator; linked into every app |
 | `app/mbv2_fuse_test.c` | the four fixtures, bit-exact check (`deploy.sh verify`) |

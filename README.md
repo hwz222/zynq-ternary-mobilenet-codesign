@@ -47,6 +47,7 @@ Every number with its source entry and the full table: [docs/RESULTS.md](docs/RE
 | run it on the board | [docs/QUICKSTART.md](docs/QUICKSTART.md) |
 | rebuild the bitstream or Linux | [docs/REBUILD.md](docs/REBUILD.md) |
 | read the RTL | [rtl/](rtl/README.md) |
+| use the Linux kernel driver instead of UIO | [linux/driver/twn_fuse/](linux/driver/twn_fuse/README.md) |
 | train or export a model | [train/](train/README.md) |
 | check correctness | [docs/VERIFICATION.md](docs/VERIFICATION.md) |
 | see all results | [docs/RESULTS.md](docs/RESULTS.md) |

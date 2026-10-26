@@ -1,32 +1,164 @@
 \clearpage
 \section{Device tree 與 probe：kernel 怎麼找到 driver}
+\label{sec:dt}
 
 \begin{oneline}
-\todo{一句話講完這一節}
+kernel 拿 device tree 節點的 \code{compatible} 字串去比對每個 driver 的比對表，對上了就呼叫那個 driver 的 \code{probe()} 來接管硬體。
 \end{oneline}
 
 \begin{before}
-\todo{v1.0.0 怎麼做，引用 sw/app/pl\_hal\_fuse.c 的實際程式碼}
+PetaLinux 從 Vivado 的硬體描述檔自動產生節點，原本的 \code{compatible} 是 \code{"xlnx,twn-fuse-1.0"}。v1.0.0 在 \code{system-user.dtsi} 把它改寫成 \code{"generic-uio"}（第 19 行）：
+
+\snip[{}]{dt_uio_node}
+
+開機參數 \code{uio_pdrv_genirq.of_id=generic-uio} 再讓 UIO driver 去認這個字串。UIO driver 不知道這是什麼硬體，只把節點的位址範圍開成 \code{/dev/uio4}。app 再自己去 \code{/sys/class/uio/} 找名字對的編號（第 119–123 行），然後 \code{mmap} 進來（第 132 行）：
+
+\snip{uio_hal_init}
+
+問題：
+\begin{itemize}
+\item 第 19 行的 \code{"generic-uio"} 描述的是「要交給哪個 driver」，不是「這是什麼硬體」。device tree 的原則是只描述硬體。
+\item 要靠開機參數配合，少了它 UIO driver 就不認這個節點。
+\item kernel 對這顆硬體一無所知：不檢查、不配置資源，也不知道誰在用它。
+\end{itemize}
 \end{before}
 
 \begin{tech}
-\todo{用到的 kernel API 與機制}
+\begin{itemize}
+\item \code{struct platform_driver}：SoC（System on Chip，把 CPU 與周邊做在同一顆晶片上）周邊的 driver 型別。這類周邊不在 PCI、USB 這種能自動列舉的匯流排上，要靠 device tree 告訴 kernel 它們在哪裡。
+\item \code{struct of_device_id} 比對表（\code{of_match_table}）：列出這個 driver 認得的 \code{compatible} 字串。
+\item \code{MODULE_DEVICE_TABLE(of, ...)}：把比對表寫進 module 的資訊，讓系統知道哪個 module 該被自動載入。
+\item \code{module_platform_driver()}：一行巨集，產生 module 載入時註冊、卸載時取消註冊的程式碼。
+\item \code{probe()} / \code{remove()}，以及 \code{devm_*} 系列（device-managed）：資源跟著裝置走，driver 離開時自動釋放。
+\item \code{driver_override}：sysfs 裡的一個檔案，強制指定某個裝置只能交給哪個 driver。
+\end{itemize}
 \end{tech}
 
 \begin{gain}
-\todo{具體改善了什麼，能驗證的寫法}
+\begin{itemize}
+\item 硬體由自己的名字 \code{"wjhuang,twn-fuse-1.0"} 認領，不需要開機參數（板上驗證：改過 dtb 後 \code{insmod} 就自動綁上，見下方 \code{B1}）。
+\item \code{probe()} 時就檢查硬體、配置記憶體、建立 \code{/dev/twn_fuse}；結果寫進 \code{dmesg}，不是等 app 跑起來才發現。
+\item 開發期間不改 dtb，用 \code{driver_override} 在 UIO 和 driver 之間切換；重開機就回到原狀（第 10 節的回退紀錄）。
+\end{itemize}
 \end{gain}
 
 \subsection{實際例子：程式碼與板上輸出}
-\todo{\textbackslash snip 抽出的函式，逐段說明；板上實際 log}
+
+\textbf{比對表和 driver 宣告。}比對表只有一筆，最後一筆是空的（表示結束）。\code{MODULE_DEVICE_TABLE} 把這張表匯出給 module 工具：
+
+\snip{drv_of_match}
+
+\code{struct platform_driver} 把四樣東西綁在一起：\code{probe}、\code{remove}、比對表，以及 sysfs 屬性（第 8 節）。\code{.name} 是 driver 的名字，\code{driver_override} 比對的就是它。\code{suppress_bind_attrs} 的理由在第 7 節：
+
+\snip{drv_driver}
+
+最後一行 \code{module_platform_driver(twn_driver);} 展開後就是 module 的 \code{init} 和 \code{exit}：載入時 \code{platform_driver_register()}，卸載時 \code{platform_driver_unregister()}。
+
+\textbf{probe：接管硬體的四個步驟。}\code{probe()} 收到一個 \code{struct platform_device}，裡面已經有 device tree 節點的資訊（位址範圍、中斷等）。每一步失敗就回傳錯誤碼，kernel 會放棄綁定：
+
+\snip{drv_probe}
+
+\begin{enumerate}
+\item 第 1 步：把暫存器映射進 kernel（第 2 節）。
+\item 第 2 步：讀 NBLK 確認是不是這顆硬體（第 2 節）。
+\item 第 3 步：配 DMA buffer（第 3 節）。
+\item 第 4 步：註冊 \code{/dev/twn_fuse}（第 5 節）。
+\end{enumerate}
+
+\code{devm_kzalloc} 配的 \code{struct twn_dev}，用 \code{platform_set_drvdata} 掛在裝置上，之後 \code{remove()} 和 sysfs 都用 \code{platform_get_drvdata} / \code{dev_get_drvdata} 拿回來。
+
+\textbf{remove：只做一件事。}其他資源都是 \code{devm_} 配的，driver 離開時由 kernel 自動釋放，所以 \code{remove()} 只要把 \code{/dev/twn_fuse} 拿掉：
+
+\snip{drv_remove}
+
+\textbf{板上：module 帶著比對字串。}\code{modinfo} 印出的 \code{alias} 就是 \code{MODULE_DEVICE_TABLE} 產生的：
+
+\boardfile{A3_driver_state.txt}{1-6}
+
+\textbf{板上：改過的 dtb 開機後，\code{insmod} 就自動綁上。}\code{driver_override} 是 \code{(null)}，完全靠 \code{compatible} 比對。\code{insmod} 之前，\code{driver} 這個連結不存在，因為沒有 driver 認得 \code{wjhuang,twn-fuse-1.0}：
+
+\boardfile{B1_patched_dtb_boot.txt}{1-22}
+
+框裡第 4 行那句 \code{No such file or directory}，是第 8 行 \code{ls -l .../driver} 的錯誤訊息：它走 stderr，比 stdout 先到達紀錄檔，所以印在前面。意思正是「這時還沒有 driver」。
+
+\textbf{開發時不改 dtb：用 \code{driver_override} 切換。}\code{bind.sh} 把裝置在兩個 driver 之間搬來搬去，不用重開機。twn\_fuse 沒有 sysfs 的 \code{unbind}（第 7 節），所以離開 twn\_fuse 一律走 \code{rmmod}：
+
+\snip[bash]{bind_case}
+
+\code{board_check.sh} 第 1 步就是先切到 UIO 跑一次、再切到 driver 跑一次：
+
+\boardfile{A2_board_check_uio_dtb.log}{2-8}
+
+\textbf{改 dtb 只需要改一行。}\code{patch_dtb.sh} 用 \code{fdtput} 直接改 dtb 二進位檔裡的字串，不用重建 PetaLinux：
+
+\snip[bash]{patch_dtb}
+
+兩個 dtb 反編譯回文字（\code{dtc -I dtb -O dts}）後比對，整棵樹只差這一行：
+
+\boardfile{dtb_diff.txt}{1-6}
 
 \subsection{原理}
-\todo{為什麼這樣做是對的；必要時一張圖}
+
+\textbf{從開機到 probe 的路徑。}
+
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize,
+  st/.style={draw,rounded corners=2pt,fill=kern,align=center,minimum height=9mm,text width=24mm},
+  arr/.style={-{Stealth[length=2mm]},thick}]
+\node[st] (a) {U-Boot 載入\\\code{system.dtb}};
+\node[st,right=5mm of a] (b) {kernel 把 dtb\\展開成節點樹};
+\node[st,right=5mm of b] (c) {每個 PL 節點建成\\\code{platform_device}};
+\node[st,right=5mm of c] (d) {\code{insmod}：driver\\註冊、逐一比對};
+\node[st,below=6mm of d] (e) {比對成功\\呼叫 \code{probe()}};
+\draw[arr] (a)--(b); \draw[arr] (b)--(c); \draw[arr] (c)--(d); \draw[arr] (d)--(e);
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}
+\item U-Boot 把 \code{system.dtb} 放進記憶體，開機時交給 kernel。
+\item kernel 把 dtb 展開成一棵節點樹。\code{amba_pl} 底下每個節點都被建成一個 \code{platform_device}，名字是「位址.節點名」，例如 \code{a0000000.twn_fuse}；節點的 \code{reg} 屬性變成它的記憶體資源（\code{0xA000_0000} 起 64 KB）。
+\item driver 註冊時，platform bus 拿這個 driver 和每個還沒有 driver 的裝置比對。比對函式在 Linux 6.1 是 \code{drivers/base/platform.c} 第 1331 行的 \code{platform_match()}，順序是：
+\begin{enumerate}
+\item 裝置設了 \code{driver_override}：只比 driver 的名字，其他規則都不看；
+\item 比 device tree 的 \code{compatible} 字串和 driver 的 \code{of_match_table}；
+\item 比 ACPI（x86 伺服器用，這裡沒有）；
+\item 比 \code{id_table}；
+\item 最後比裝置名稱和 driver 名稱。
+\end{enumerate}
+\item 比對成功，driver core 呼叫 \code{probe()}。\code{probe()} 回傳 0 才算綁定成功；回傳錯誤碼，driver core 會把 \code{devm_} 配過的東西全部收回。
+\end{enumerate}
+
+\textbf{\code{compatible} 字串的格式。}依 Devicetree Specification，格式是 \code{"製造商,型號"}，逗號前面是 vendor prefix。Linux 在 \code{Documentation/devicetree/bindings/vendor-prefixes.yaml} 登記合法的前綴，例如 \code{xlnx}、\code{arm}。\code{wjhuang} 不在表上：自己用沒問題，送進 Linux 官方 kernel 才需要登記。
+
+結尾的 \code{-1.0} 是硬體版本。以後暫存器排列改了（例如加上中斷），就換成 \code{-1.1}，舊 driver 比對不到新字串，就不會用錯誤的暫存器位置去操作新硬體。
+
+\textbf{\code{MODULE_DEVICE_TABLE} 有什麼用。}它把 \code{of:N*T*Cwjhuang,twn-fuse-1.0} 這樣的別名寫進 \code{.ko}。裝置出現時，kernel 送出一個 uevent（kernel 通知 user space「有裝置出現」的訊息），裡面帶著同樣格式的字串；user space 的 udev 收到後，據此自動 \code{modprobe} 對應的 module。這塊板子的 root file system 沒有收錄 \code{twn_fuse.ko}，所以目前每次開機都要手動 \code{insmod}。
+
+\textbf{\code{devm_} 為什麼好用。}每一筆 \code{devm_*} 配置都登記在裝置上。driver 離開（\code{remove()} 回傳之後），或 \code{probe()} 中途失敗時，kernel 按照相反順序全部釋放。所以 \code{probe()} 裡每一步失敗只要 \code{return} 錯誤碼，不用寫一串 \code{goto} 收拾前面配過的東西。
+
+\textbf{一個沒處理的限制：PL 的時脈。}PetaLinux 產生的節點有 \code{clocks = <&zynqmp_clk 71>}（PL 的 240 MHz 時脈 pl0），但 \code{twn_probe} 沒有去取用它。現在能正常運作，是因為開機參數有 \code{clk_ignore_unused}（\code{A1_fresh_boot_uio_dtb.txt} 第 6 行），kernel 不會關掉「沒有 driver 宣告在用」的時脈。拿掉這個參數，kernel 開機後期可能把 pl0 關掉，之後讀 CSR 會讓 AXI 匯流排卡住。正確做法是在 \code{probe()} 用 \code{devm_clk_get_enabled()} 宣告使用這個時脈；這次沒做，因為 \code{rmmod} 時它會把時脈關掉，連帶讓切回 UIO 的路徑失效，需要另外設計。
 
 \subsection{面試會問}
-\begin{qa}{device-tree matching：compatible 字串怎麼讓 kernel 找到你的 driver，進而呼叫 probe？}
-\todo{30 秒版本的回答}
+
+\begin{qa}{compatible 字串怎麼讓 kernel 找到你的 driver，進而呼叫 probe？}
+開機時 kernel 把 device tree 展開，PL 底下每個節點變成一個 platform device，節點的位址範圍變成它的資源。我的 driver 有一張 \code{of_match_table}，裡面是 \code{"wjhuang,twn-fuse-1.0"}。module 載入時 driver 向 platform bus 註冊，bus 用 \code{platform_match()} 拿 driver 和每個裝置比對：先看 \code{driver_override}，再比 compatible 字串。對上了就呼叫我的 \code{probe()}，我在裡面 ioremap 暫存器、配 DMA buffer、註冊 \code{/dev/twn_fuse}。開發時我沒改 dtb，而是用 \code{driver_override} 把裝置從 UIO 搬過來；最後再改 dtb，驗證只靠 compatible 也能自動綁上。
 \end{qa}
 
 \subsection{關鍵函式速查}
-\todo{函式、在哪個檔案第幾行、做什麼}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{twn_of_match} & \code{twn_fuse.c}:\lineof{drv_of_match} & 比對表，只認 \code{"wjhuang,twn-fuse-1.0"} \\
+\code{twn_driver} & \code{twn_fuse.c}:\lineof{drv_driver} & 把 probe、remove、比對表、sysfs 屬性綁在一起 \\
+\code{twn_probe()} & \code{twn_fuse.c}:\lineof{drv_probe} & 接管硬體的四個步驟 \\
+\code{twn_remove()} & \code{twn_fuse.c}:\lineof{drv_remove} & 拿掉 \code{/dev/twn_fuse}，其他交給 \code{devm_} \\
+\code{platform_match()} & kernel \code{drivers/base/platform.c}:1331 & 比對順序：override、compatible、ACPI、id table、名稱 \\
+\code{bind.sh} & \code{linux/driver/twn_fuse/} & 用 \code{driver_override} 在 UIO 和 driver 之間切換 \\
+\code{patch_dtb.sh} & \code{linux/driver/twn_fuse/} & 用 \code{fdtput} 改 dtb 的 compatible \\
+\bottomrule
+\end{tabularx}
+\end{center}

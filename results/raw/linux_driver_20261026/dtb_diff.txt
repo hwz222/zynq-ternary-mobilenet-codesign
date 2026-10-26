@@ -1,0 +1,6 @@
+18fff66fcfb7798b  system_uio.dtb
+564da1539647de7c  system_twn_fuse.dtb
+1379c1379
+< 			compatible = "generic-uio";
+---
+> 			compatible = "wjhuang,twn-fuse-1.0";

@@ -1,2 +1,28 @@
+\clearpage
 \section{面試六題：30 秒版本}
-\todo{六題各一段，可以直接講出口的版本，並標出對應章節}
+
+每題先講結論，再講一個這個專案裡的實際數字或證據。完整版在括號中的章節。
+
+\begin{qashort}{1. compatible 字串怎麼讓 kernel 找到 driver、呼叫 probe？（第 1 節）}
+開機時 device tree 的每個 PL 節點被建成 platform device。我的 driver 在 \code{of_match_table} 放了 \code{"wjhuang,twn-fuse-1.0"}，註冊時 platform bus 用 \code{platform_match()} 比對：有 \code{driver_override} 就只比 driver 名字，否則比 compatible。對上了就呼叫 \code{probe()}，我在裡面映射暫存器、配 DMA buffer、建 \code{/dev/twn_fuse}。兩條路我都在板上驗證過。
+\end{qashort}
+
+\begin{qashort}{2. 為什麼要 ioremap，不能直接用指標存取 0xA000\_0000？（第 2 節）}
+開了 MMU 之後指標都是虛擬位址，\code{0xA0000000} 當成虛擬位址屬於 user 那一半，kernel 頁表也沒有周邊的對應，直接存取會 page fault。\code{ioremap} 建一筆 Device-nGnRE 屬性的頁表：不走 cache、不合併、不重排。我用 \code{readl} / \code{writel} 存取，\code{writel} 寫入前有 \code{dma_wmb}，保證 app 寫進 DDR 的輸入在 START 之前就讓 PL 看得到。
+\end{qashort}
+
+\begin{qashort}{3. 為什麼不用 kmalloc 或 /dev/mem？HP port 不 coherent，cache 怎麼辦？（第 3 節）}
+我用 \code{dma_alloc_coherent}，它同時給 CPU 位址和 DMA 位址。\code{kmalloc} 是 cacheable、最大 4 MB、不給 DMA 位址；\code{/dev/mem} 能讀寫全部實體記憶體，位址還得寫死。HP port 不查 CPU cache，device tree 也沒寫 \code{dma-coherent}，所以 kernel 把 buffer 映射成 non-cacheable，CPU 直接讀寫 DDR。另外兩個選擇是 streaming DMA 加 \code{dma_sync_*}，或改用 HPC port 做硬體一致性。
+\end{qashort}
+
+\begin{qashort}{4. app 為什麼只看得到 buffer，看不到暫存器？（第 4 節）}
+app 的頁表由 kernel 決定。driver 的 \code{.mmap} 只用 \code{dma_mmap_coherent} 映射那塊 buffer，並檢查長度和 offset；暫存器只在 kernel 裡 ioremap。板上 \code{/proc/<pid>/maps}：UIO 版本有 256 MB 的 \code{/dev/mem} 和 64 KB 的 \code{/dev/uio4}，driver 版本只有 8 MB 的 \code{/dev/twn_fuse}。限制是沒開 \code{STRICT_DEVMEM}，root 仍可自己開 \code{/dev/mem}。
+\end{qashort}
+
+\begin{qashort}{5. 為什麼用 copy\_from\_user？為什麼只收 offset？（第 5 節）}
+user 指標可能沒有映射，或故意指向 kernel。\code{copy_from_user} 先用 \code{access_ok} 檢查範圍，出錯時由 exception table 接住並回傳失敗，我回 \code{-EFAULT}；A53 沒有 PAN，硬體不會擋。只收 offset 是因為 PL 的 DMA 沒經過 SMMU，給什麼位址就寫什麼；driver 檢查對齊和範圍（含溢位）後才加上自己的 DMA 位址。\errChecks{} 項錯誤測試都符合預期。
+\end{qashort}
+
+\begin{qashort}{6. 為什麼用 polling 不用中斷？要改成中斷怎麼做？（第 6 節）}
+因為 bitstream 沒有中斷線：block design 把 \code{pl_ps_irq0} 接常數 0。driver 用 \code{readl_poll_timeout} 每次睡 13–50 µs（hrtimer），3 秒逾時回 \code{-ETIMEDOUT}，板上實測 \timeoutSec{} 秒回來。改中斷要：RTL 加 level 的 irq 輸出、block design 接上、device tree 加 \code{interrupts}、driver 用 \code{devm_request_irq} 加 completion，在 ISR 清掉 done。最大成本是重建 bitstream，timing 餘裕是 0。
+\end{qashort}

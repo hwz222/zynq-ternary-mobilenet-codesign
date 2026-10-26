@@ -1,2 +1,82 @@
+\clearpage
 \section{名詞表}
-\todo{英文術語 → 一句中文說明 → 第一次出現在第幾節}
+
+依英文字母排序（不分大小寫）。「節」是第一次詳細說明的地方，「導」是導讀。
+
+\small
+\begin{xltabular}{\textwidth}{l X c}
+\toprule
+名詞 & 一句話說明 & 節 \\
+\midrule
+\endhead
+\code{access_ok} & 檢查一段位址是否完全落在 user space 範圍內 & 5 \\
+arena & 本講義對「PL 讀寫的那塊 DDR buffer」的稱呼 & 導 \\
+AXI & ARM 定義的晶片內部匯流排，CPU 與 PL、PL 與 DDR 之間都用它 & 導 \\
+barrier & 限制 CPU 記憶體存取先後順序的指令 & 2 \\
+beat & AXI 一次傳輸的資料量；這個設計是 128 bits = 16 bytes & 導 \\
+bit-exact & 逐位元相同：輸出和標準答案的每個 byte 都一樣 & 導 \\
+cache line & cache 管理記憶體的最小單位，A53 上是 64 bytes & 3 \\
+CCI & Cache Coherent Interconnect，會去查 CPU cache 的互連，HPC port 經過它 & 3 \\
+CMA & Contiguous Memory Allocator，開機預留、平時借給一般用途的連續記憶體區 & 3 \\
+coherent（一致） & CPU 和裝置看到的記憶體內容保證相同 & 3 \\
+\code{compatible} & device tree 節點上的硬體名字，格式「製造商,型號」 & 1 \\
+completion & kernel 的同步機制：一方等待，另一方（常是 ISR）呼叫 \code{complete()} 叫醒它 & 6 \\
+\code{container_of} & 由 struct 中某個欄位的位址，算出整個 struct 的位址 & 7 \\
+\code{copy_from_user} & 安全地從 user 記憶體複製到 kernel，失敗時回傳未複製的 byte 數 & 5 \\
+CSR & Control/Status Registers，加速器的控制暫存器 & 導 \\
+\code{dc zva} & 一次把一整條 cache line 清成 0 的指令，Device 記憶體上不允許 & 3 \\
+descriptor table & 描述子表：17 個 block 的設定，app 寫進 CSR、PL 依表執行 & 導 \\
+device tree & 描述硬體有哪些周邊、位址在哪的資料結構，開機時交給 kernel & 1 \\
+Device 記憶體 & 給周邊用的記憶體屬性：不走 cache、不預讀；nG/nR/E 決定能否合併、重排、提早回應 & 2 \\
+\code{devm_*} & device-managed 資源，driver 離開時自動釋放 & 1 \\
+DMA & Direct Memory Access，裝置不經 CPU 直接讀寫記憶體 & 3 \\
+DMA mask & 裝置能定址的位元數，這裡是 40 & 3 \\
+\code{dma_addr_t} & 裝置看到的位址；沒有 IOMMU 時等於實體位址 & 3 \\
+\code{dmb} / \code{dsb} & 兩種 barrier：\code{dmb} 只排順序，\code{dsb} 要等存取真的完成 & 2 \\
+\code{driver_override} & sysfs 檔案，強制指定裝置只能交給哪個 driver & 1 \\
+errno & 系統呼叫失敗時的錯誤碼，例如 \code{EINVAL}、\code{EFAULT} & 5 \\
+exception table & kernel 記錄「這些指令出錯時跳到哪裡修復」的表 & 5 \\
+fixture & 測試輸入加上它的標準答案（golden） & 導 \\
+GIC / SPI & ARM 的中斷控制器 / 它給周邊用的中斷編號 & 6 \\
+HAL & Hardware Abstraction Layer，上層只依賴介面，底下可換實作 & 9 \\
+heatmap & 每個關節一張的位置機率圖，head 的輸出 & 導 \\
+HP / HPC port & PL 存取 DDR 的高速 AXI 埠；HP 不經 CPU cache，HPC 可以經 CCI 保持一致 & 3 \\
+hrtimer & 高解析度計時器，可以精確到 µs & 6 \\
+ioctl & 對裝置檔下指令的系統呼叫 & 5 \\
+IOMMU / SMMU & 讓裝置的 DMA 也經過頁表檢查的硬體；ARM 上叫 SMMU & 5 \\
+\code{ioremap} & 在 kernel 頁表建立對周邊實體位址的映射 & 2 \\
+ISR & Interrupt Service Routine，中斷發生時 kernel 呼叫的 driver 函式 & 6 \\
+jiffy & kernel 的時間刻度，\code{HZ=250} 時是 4 ms & 6 \\
+linear map & kernel 頁表裡把整個 DDR 一對一對應進來的那一段 & 2 \\
+misc device & 主裝置號 10、次裝置號自動分配的字元裝置 & 5 \\
+\code{mmap} & 把裝置或檔案的內容映射進 process 的位址空間 & 4 \\
+MMIO & Memory-Mapped I/O，用讀寫記憶體位址的方式操作暫存器 & 2 \\
+MMU & 把虛擬位址翻譯成實體位址的硬體 & 2 \\
+mutex & 拿不到就睡眠等待的鎖 & 7 \\
+NBLK & 「這一幀跑幾個 block」的暫存器，平常是 17，reset 值也是 17 & 導 \\
+Normal non-cacheable & 一般記憶體屬性但不走 cache；可合併、可非對齊存取 & 3 \\
+oops & kernel 程式出錯時印出錯誤現場並終止目前工作的機制 & 2 \\
+operator & head 裡的一個運算層；head 有四個（op61–op64） & 導 \\
+outer shareable & barrier 的範圍之一：CPU 與其他會存取記憶體的裝置 & 2 \\
+page cache & kernel 快取檔案內容的記憶體 & 3 \\
+page fault & 存取到頁表裡沒有（或權限不符）的位址時發生的例外 & 2 \\
+PAN & Privileged Access Never，ARMv8.1 起的功能，禁止 kernel 直接存取 user 記憶體；A53 沒有 & 5 \\
+PFN & page frame number，實體位址除以頁大小（4096） & 4 \\
+platform device / driver & 不能自動列舉的 SoC 周邊，和它們的 driver & 1 \\
+\code{probe()} / \code{remove()} & driver 接管、放開裝置時被呼叫的函式 & 1 \\
+PS / PL & Zynq 的 CPU 部分 / FPGA 邏輯部分 & 導 \\
+\code{readl_poll_timeout} & 輪詢暫存器直到條件成立或逾時的巨集 & 6 \\
+ring overrun & PL 的列緩衝區被寫滿時仍寫入，或讀到已被覆蓋的列；STATUS bit 16 記錄它 & 8 \\
+SoC & System on Chip，把 CPU 與周邊做在同一顆晶片上 & 1 \\
+spinlock & 拿不到就空轉等待的鎖，拿著時不能睡 & 7 \\
+streaming DMA & 用 cacheable 記憶體，每次傳輸前後手動做 cache 維護 & 3 \\
+sysfs & 把 kernel 物件攤成檔案樹的檔案系統，掛在 \code{/sys} & 8 \\
+TWN / fuse & Ternary Weight Network（三值權重網路）／把一個 block 的三層融合成一次串流 & 導 \\
+uapi header & kernel 和 user space 共用的介面定義檔 & 5 \\
+uevent / udev & kernel 通知 user space「有裝置出現」的訊息／收到後負責載入 module 的程式 & 1 \\
+UIO & Userspace I/O，把裝置的暫存器開給 user space 的通用 driver & 1 \\
+VMA & \code{vm_area_struct}，描述 process 位址空間中一段連續範圍 & 4 \\
+WNS & worst negative slack，timing 最差的路徑還剩多少時間；負的就是不收斂 & 6 \\
+\bottomrule
+\end{xltabular}
+\normalsize

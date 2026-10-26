@@ -1,0 +1,28 @@
+# sha256sum /run/media/mmcblk0p1/system.dtb | cut -c1-16
+564da1539647de7c
+# uptime
+ls: /sys/bus/platform/devices/a0000000.twn_fuse/driver: No such file or directory
+ 16:37:18 up 0 min,  load average: 0.80, 0.22, 0.08
+# tr '\0' '\n' < /sys/bus/platform/devices/a0000000.twn_fuse/of_node/compatible
+wjhuang,twn-fuse-1.0
+# ls -l /sys/bus/platform/devices/a0000000.twn_fuse/driver
+# cat /sys/bus/platform/devices/a0000000.twn_fuse/driver_override
+(null)
+# ls /sys/class/uio
+uio0
+uio1
+uio2
+uio3
+# devmem 0xA000002C 32
+0x00000000
+# insmod twn_fuse.ko
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/driver
+../../../../bus/platform/drivers/twn_fuse
+# dmesg | grep 'twn_fuse ' | tail -1
+[   41.229041] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x0000000050100000, /dev/twn_fuse
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . 2>&1 | grep -aE "^fixture|BIT-EXACT"
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.43 ms  head 5.07 ms  frame 9.51 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.30 ms  head 4.51 ms  frame 8.80 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.26 ms  head 4.59 ms  frame 8.85 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.29 ms  head 4.57 ms  frame 8.86 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==

@@ -1,0 +1,21 @@
+# sha256sum /run/media/mmcblk0p1/system.dtb /run/media/mmcblk0p1/BOOT.BIN | cut -c1-16,65-
+18fff66fcfb7798b  /run/media/mmcblk0p1/system.dtb
+690d87cc5f4b6897  /run/media/mmcblk0p1/BOOT.BIN
+# uptime
+ 16:38:28 up 0 min,  load average: 0.87, 0.25, 0.09
+# tr '\0' '\n' < /sys/bus/platform/devices/a0000000.twn_fuse/of_node/compatible
+generic-uio
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/driver
+../../../../bus/platform/drivers/uio_pdrv_genirq
+# lsmod | grep -c "^twn_fuse"
+0
+# devmem 0xA000002C 32
+0x00000000
+# FUSE_HEAD_PL=1 ./mbv2_fuse_test_uio . 2>&1 | grep -aE "^fixture|BIT-EXACT"
+fixture 0: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.44 ms  head 5.07 ms  frame 9.51 ms
+fixture 1: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.36 ms  head 4.59 ms  frame 8.95 ms
+fixture 2: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.37 ms  head 4.61 ms  frame 8.98 ms
+fixture 3: PASS | final max|diff|=0 | kpts 14/14 | backbone 4.36 ms  head 4.58 ms  frame 8.95 ms
+== FUSED BACKBONE BIT-EXACT vs golden (4 fixtures) ==
+# devmem 0xA000002C 32
+0x00010043

@@ -41,7 +41,9 @@ SHA-256 printed at the end.
 - Files here are read by Linux tools: keep LF line endings (`.gitattributes` enforces it).
 - The accelerator's device-tree node follows the block-design cell name, `fuse_0@a0000000`, exposed
   as a generic UIO device; `sw/app/pl_hal_fuse.c` and `board/deploy.sh` look the UIO up by name
-  (`twn_fuse` or `fuse_0`; older names are accepted as fallbacks).
+  (`twn_fuse` or `fuse_0`; older names are accepted as fallbacks). The kernel driver in
+  [`driver/twn_fuse/`](driver/twn_fuse/README.md) can take the same node instead, at run time
+  (`bind.sh`) or from a device tree whose node says `compatible = "wjhuang,twn-fuse-1.0"`.
 - The FSBL comes from the XSA: a change to `vivado/alinx_ps/ps_config.tcl` needs a new XSA, a new
   `build_linux.sh` run and a new BOOT.BIN.
 - The root file system is an initramfs: nothing written on the board survives a reboot.

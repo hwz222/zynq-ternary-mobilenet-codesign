@@ -1,30 +1,118 @@
 \clearpage
-\section{並行控制：兩把 mutex}
+\section{並行控制：兩把 mutex 與獨占開啟}
+\label{sec:lock}
 
 \begin{oneline}
-\todo{一句話講完這一節}
+同一時間只有一次 \code{open()} 會成功，而在開著的這一份裡，backbone 和 head 各用一把 mutex，同一個引擎的暫存器操作不會被兩個 thread 交錯執行。
 \end{oneline}
 
 \begin{before}
-\todo{v1.0.0 怎麼做，引用 sw/app/pl\_hal\_fuse.c 的實際程式碼}
+v1.0.0 完全沒有鎖，也沒有獨占：
+
+\snip{uio_map_regs}
+
+第 130 行的 \code{open(uio, O_RDWR | O_SYNC)} 誰都能開、開幾次都可以。兩個 app 一起跑，就會互相改寫對方的描述子表和位址；pipeline 該怎麼安排兩個引擎，也完全靠 app 自己遵守順序。
 \end{before}
 
 \begin{tech}
-\todo{用到的 kernel API 與機制}
+\begin{itemize}
+\item \code{struct mutex}、\code{mutex_lock_interruptible()}：可以睡眠的鎖；等鎖時被訊號（例如 Ctrl-C）打斷就回傳 \code{-EINTR}。
+\item \code{test_and_set_bit()} / \code{clear_bit()}：不可分割（atomic）的位元操作，用來實作「只能開一次」。
+\item \code{file_operations.open} / \code{.release}：開檔、最後一次關檔時被呼叫。
+\item \code{container_of()}：已知「某個欄位的位址」，算出「包含它的 struct 的位址」。
+\item \code{.owner = THIS_MODULE}：檔案開著時，module 不能卸載。
+\item \code{suppress_bind_attrs}：不提供 sysfs 的 \code{bind} / \code{unbind}。
+\end{itemize}
 \end{tech}
 
 \begin{gain}
-\todo{具體改善了什麼，能驗證的寫法}
+\begin{itemize}
+\item 第二次 \code{open()} 會得到 \code{-EBUSY}；裝置開著時、以及關掉之後只剩映射時，\code{rmmod} 都被拒絕（兩者都在板上測過，見下）。
+\item 同一個引擎的一整段暫存器操作（例如 \code{BB_RUN} 的「等閒置、清 done、寫位址、START、等 done」）不會被另一個 thread 插進來。
+\item 兩個引擎各一把鎖：兩個 thread 分別驅動兩個引擎時互不阻擋。這是設計上的保證；這個 app 由同一個 thread 依序驅動兩者，量不出差別（見下方「踩過的坑」）。
+\end{itemize}
 \end{gain}
 
 \subsection{實際例子：程式碼與板上輸出}
-\todo{\textbackslash snip 抽出的函式，逐段說明；板上實際 log}
+
+\textbf{獨占開啟。}\code{in_use} 的第 0 位元就是「有人開著」。\code{test_and_set_bit} 一次完成「讀舊值、設成 1」，兩個 process 同時開也只有一個會讀到 0：
+
+\snip{drv_open}
+
+\textbf{從 \code{struct file} 找回 driver 的資料。}\code{misc_open()}（Linux 6.1 \code{drivers/char/misc.c} 第 138 行）把 \code{struct miscdevice} 的位址存進 \code{file->private_data}。這個 \code{miscdevice} 是 \code{struct twn_dev} 裡的一個欄位，\code{container_of} 依欄位在 struct 裡的位置往回推，就得到整個 \code{struct twn_dev}：
+
+\snip{drv_file_to_td}
+\snip{drv_struct}
+
+\textbf{分派與上鎖。}\code{twn_ioctl} 先決定這個指令屬於哪個引擎、要拿哪把鎖，再呼叫對應的函式。\code{STATUS} 只讀暫存器，不拿鎖，所以 backbone 跑到一半時也能查狀態：
+
+\snip{drv_ioctl}
+
+\textbf{app 怎麼讓兩個引擎重疊。}pipeline 的 producer thread 每一輪依序做三件事：啟動 head（處理上一幀）、跑 backbone（這一幀）、等 head（第 517、529、532 行）：
+
+\snip{app_frame_pl}
+
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize,x=10.5mm,y=7mm]
+\draw[-{Stealth[length=2mm]}] (0,0) -- (12,0) node[right]{時間};
+\node[left] at (0,2) {head（PL）};
+\node[left] at (0,1) {backbone（PL）};
+\fill[qabg,draw=qac] (0.3,1.7) rectangle (4.3,2.3); \node at (2.3,2) {head：第 $k-1$ 幀};
+\fill[techbg,draw=techc] (0.5,0.7) rectangle (4.9,1.3); \node at (2.7,1) {backbone：第 $k$ 幀};
+\fill[qabg,draw=qac] (5.3,1.7) rectangle (9.3,2.3); \node at (7.3,2) {head：第 $k$ 幀};
+\fill[techbg,draw=techc] (5.5,0.7) rectangle (9.9,1.3); \node at (7.7,1) {backbone：第 $k+1$ 幀};
+\draw[dashed] (0.3,0) -- (0.3,2.6) node[above,font=\scriptsize]{HD\_START};
+\draw[dashed] (0.5,0) -- (0.5,-0.4) node[below,font=\scriptsize]{BB\_RUN 開始};
+\draw[dashed] (4.9,0) -- (4.9,2.6) node[above,font=\scriptsize]{HD\_WAIT};
+\end{tikzpicture}
+\end{center}
+
+兩個引擎在硬體上同時跑；CPU 這邊則是同一個 thread 依序發出三個 ioctl。
+
+\textbf{板上：重複開啟與卸載都被擋下。}
+
+\boardfile{A2_board_check_uio_dtb.log}{10-10}
+\boardfile{A2_board_check_uio_dtb.log}{31-38}
+
+第二個框的第 3 行，是程式先 \code{mmap}、再 \code{close} 掉 fd、只留下映射時試 \code{rmmod}（\code{twn_errtest hold}）。
+
+\begin{pit}
+\textbf{第一個：sysfs 的 unbind 會繞過所有保護。}一開始 \code{bind.sh} 用 \code{/sys/bus/platform/drivers/twn_fuse/unbind} 把裝置交還給 UIO。後來發現這條路很危險：unbind 會直接呼叫 \code{remove()}，\code{devm_} 的 buffer 隨即被釋放，就算還有 app 把那塊 buffer 映射著也一樣，app 之後寫進去的資料會落在已經還給系統的記憶體上。這是讀程式時發現的風險，沒有實際發生過。
+
+修法是在 driver 加上 \code{.suppress_bind_attrs = true}（第 1 節 \code{twn_driver}），拿掉 \code{bind} / \code{unbind} 這兩個檔案。裝置要離開 driver 只剩 \code{rmmod} 一條路，而 \code{rmmod} 在檔案還開著、或 buffer 還映射著時會被 kernel 拒絕。\code{bind.sh} 也改成用 \code{rmmod} 加 \code{drivers_probe} 切換。
+
+\textbf{第二個：我先前說錯的一件事。}規劃時我說「整個裝置只用一把鎖的話，重疊會消失，fps 會掉」。這對這個 app 不成立：\code{HD_START} 一下就返回，鎖跟著釋放，硬體已經在跑；接著 \code{BB_RUN} 拿鎖、等 backbone；最後 \code{HD_WAIT}。三個呼叫來自同一個 thread、依序執行，所以只用一把鎖，硬體照樣重疊。兩把鎖真正的作用，是當兩個引擎由兩個 thread 分別驅動時（例如另開一個 thread 專門等 head），等其中一個引擎不會擋住另一個。這是設計上的正確性，不是這個 app 量得到的效能差別。
+\end{pit}
 
 \subsection{原理}
-\todo{為什麼這樣做是對的；必要時一張圖}
+
+\textbf{為什麼用 mutex，不用 spinlock。}拿著鎖的時候，driver 會在 \code{readl_poll_timeout} 裡睡眠，一等就是好幾 ms。spinlock 拿著時不能睡（等鎖的 CPU 會一直空轉），所以只能用 mutex：等不到鎖的 thread 會被排程器換下去，把 CPU 讓給別人。
+
+\textbf{為什麼用 \code{_interruptible}，又為什麼回 \code{-ERESTARTSYS}。}一般的 \code{mutex_lock} 等鎖時連 \code{kill} 都叫不醒。\code{mutex_lock_interruptible} 被訊號打斷時回傳 \code{-EINTR}（Linux 6.1 \code{kernel/locking/mutex.c} 第 667 行）。driver 收到之後改回傳 \code{-ERESTARTSYS}，這是 kernel 內部的特殊值：系統呼叫返回 user space 前，kernel 依訊號處理函式有沒有設 \code{SA_RESTART}，決定要自動重做這個 ioctl，還是讓 app 收到 \code{EINTR}。
+
+\textbf{為什麼一次只開一次。}描述子表、base 位址、BB2HD 模式都是整顆加速器共用的狀態。兩個 process 同時用，各自載入自己的表，就會互相蓋掉。讓整個裝置同一時間只有一次 \code{open()} 成功，比替每個開檔維護一份狀態簡單得多，也符合「一顆加速器同一時間只跑一個網路」的實際用法。精確地說，它擋的是第二次 \code{open()}：同一個 process \code{fork()} 出來的子程序、\code{dup()} 出來的 fd，共用同一個開啟的檔案，不會再經過 \code{twn_open()}。
+
+\textbf{rmmod 為什麼會被拒絕。}\code{misc_open} 用 \code{fops_get} 取得 driver 的 \code{file_operations}，因為 \code{.owner = THIS_MODULE}，這一步會把 module 的參考計數加一，檔案完全關閉時才減回去。\code{mmap} 建立的 VMA 也持有這個檔案。所以只要有人開著裝置或映射著 buffer，module 的參考計數就不是 0，\code{rmmod} 回報 \code{Module twn_fuse is in use}（上方板上輸出）。
 
 \subsection{面試會問}
-\todo{本節沒有對應的面試六題；寫可能被追問的一題}
+
+\begin{qa}{你的 driver 怎麼處理並行？為什麼用 mutex 不用 spinlock？}
+兩層。第一層是獨占開啟：\code{open} 用 \code{test_and_set_bit}，同一時間只有一次 open 會成功，因為描述子表和 base 位址是整顆加速器共用的狀態。第二層是 thread：backbone 和 head 各一把 mutex，同一個引擎的一整段暫存器操作不會被另一個 thread 插進來，兩個引擎之間不互相阻擋；只讀的 \code{STATUS} 不拿鎖。用 mutex 是因為拿著鎖時我會在 \code{readl_poll_timeout} 裡睡好幾 ms，spinlock 不能睡。我也拿掉了 sysfs 的 unbind，因為它會在 buffer 還被映射時釋放 buffer；這樣卸載只剩 \code{rmmod}，板上測過裝置開著、或只剩映射時，\code{rmmod} 都被拒絕。
+\end{qa}
 
 \subsection{關鍵函式速查}
-\todo{函式、在哪個檔案第幾行、做什麼}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{struct twn_dev} & \code{twn_fuse.c}:\lineof{drv_struct} & 兩把鎖、\code{in_use}、內嵌的 \code{miscdevice} \\
+\code{file_to_td()} & \code{twn_fuse.c}:\lineof{drv_file_to_td} & \code{container_of} 找回 \code{struct twn_dev} \\
+\code{twn_open()} & \code{twn_fuse.c}:\lineof{drv_open} & 獨占開啟，第二次回 \code{-EBUSY} \\
+\code{twn_ioctl()} & \code{twn_fuse.c}:\lineof{drv_ioctl} & 選鎖、上鎖、分派、解鎖 \\
+\code{mbv2_fuse_frame_pl()} & \code{mbv2_fuse_ps.c}:\lineof{app_frame_pl} & head start → backbone run → head wait \\
+\bottomrule
+\end{tabularx}
+\end{center}

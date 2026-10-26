@@ -1,32 +1,156 @@
 \clearpage
 \section{DMA buffer 與 cache}
+\label{sec:dma}
 
 \begin{oneline}
-\todo{一句話講完這一節}
+PL 讀寫的 DDR buffer 改由 DMA API 配置，kernel 同時給出 CPU 用的虛擬位址和 PL 用的 DMA 位址，並把它映射成 non-cacheable，讓 CPU 和 PL 永遠看到 DDR 裡的同一份資料。
 \end{oneline}
 
 \begin{before}
-\todo{v1.0.0 怎麼做，引用 sw/app/pl\_hal\_fuse.c 的實際程式碼}
+device tree 保留一塊固定的 256 MB，標成 \code{no-map}（kernel 完全不碰，第 8 行）：
+
+\snip[{}]{dt_reserved}
+
+app 再透過 \code{/dev/mem}，用實體位址 \code{0x6000_0000} 把整塊 \code{mmap} 進來：
+
+\snip{uio_arena_init}
+
+問題：
+\begin{itemize}
+\item 第 140 行：位址 \code{0x6000_0000} 寫死在程式（\code{FUSE_ARENA_PA_DEFAULT}）和 device tree 兩個地方，要改就得兩邊一起改。
+\item 第 150 行：一次映射整塊 256 MB，實際只用到大約 5.3 MB（最後一個區段結束在 \code{0x540000}）。
+\item 第 148 行：\code{/dev/mem} 能讀寫\textbf{任何}實體位址。這塊板子的 kernel 沒有開 \code{CONFIG_STRICT_DEVMEM}，所以 root 權限的程式可以改寫整個系統的記憶體。
+\item 映射出來的屬性是 Device-nGnRnE（見「原理」），\code{memset} 會出錯，app 只好自己寫 NEON（ARM 的向量指令）複製函式繞過去。
+\end{itemize}
 \end{before}
 
 \begin{tech}
-\todo{用到的 kernel API 與機制}
+\begin{itemize}
+\item \code{dma_set_mask_and_coherent(dev, DMA_BIT_MASK(40))}：告訴 kernel 這個裝置能定址 40 bits。
+\item \code{dmam_alloc_coherent()}：配一塊實體連續、CPU 與裝置「一致」（coherent）的記憶體，回傳 CPU 位址和 \code{dma_addr_t}；\code{dmam_} 開頭表示 driver 離開時自動歸還。
+\item CMA（Contiguous Memory Allocator）：開機時預留的一塊區域，平時借給一般用途，要配大塊連續記憶體時再收回來。這塊板子預留 256 MB，從 \code{0x5000_0000} 開始。
+\item \code{dma_addr_t}：裝置看到的位址。沒有 IOMMU 時它等於實體位址，但程式不該假設這件事。
+\end{itemize}
 \end{tech}
 
 \begin{gain}
-\todo{具體改善了什麼，能驗證的寫法}
+\begin{itemize}
+\item 位址不再寫死在程式裡：每次載入由 kernel 分配，driver 再把它寫進硬體。
+\item driver 只配 8 MB（module 參數 \code{arena_mb}），app 要求 6 MB（\code{FUSE_ARENA_NEED}）。限制：device tree 那 256 MB 的 \code{no-map} 保留區為了能切回 UIO 仍然留著，kernel 並沒有拿回這 256 MB；要收回得另外刪掉 reserved-memory 節點。
+\item 正常使用路徑上不再需要 \code{/dev/mem}。
+\item CPU 端屬性從 Device 變成 Normal non-cacheable，依 ARM 架構規格可以非對齊存取、可以用 \code{memset}。這一點是規格推得的，app 仍然用原本的 NEON 複製函式，沒有在板上測過 \code{memset}。
+\item 卸載時自動歸還：連續載入 10 次、每次 64 MB（共 640 MB，CMA 只有 256 MB），10 次都成功（下方板上輸出）。
+\end{itemize}
 \end{gain}
 
 \subsection{實際例子：程式碼與板上輸出}
-\todo{\textbackslash snip 抽出的函式，逐段說明；板上實際 log}
+
+\textbf{probe 的第 3 步。}先設 DMA mask，再配 buffer，最後檢查對齊：
+
+\snip{drv_probe_dma}
+
+\begin{itemize}
+\item \code{DMA_BIT_MASK(40)}：CSR 的位址暫存器是 40 bits（高位 word 只用 8 bits），裝置的能力就是這麼大。kernel 配記憶體時會確保位址落在這個範圍內。
+\item \code{dmam_alloc_coherent} 回傳兩個東西：回傳值 \code{td->arena} 是 CPU 位址（kernel 用），\code{&td->arena_dma} 收到 DMA 位址（寫進 PL 的暫存器）。
+\item 64 KB 對齊檢查：app 的 buffer 配置假設各區段 64 KB 對齊（head 的兩個輸入區相隔 \code{0x10000}）。
+\end{itemize}
+
+\textbf{app 怎麼用這塊 buffer。}app 在 buffer 裡的配置是固定的 offset。\code{FUSE_ARENA_NEED}（第 \lineof{app_arena_need} 行）是這次新增的，告訴 driver「我需要 6 MB」；檔案後面還有一個 \code{_Static_assert}，配置超過 6 MB 就編譯失敗：
+
+\snip{app_arena_map}
+
+\textbf{板上：位址從 CMA 來。}開機時 kernel 預留 CMA；driver 載入時從裡面拿 8 MB，DMA 位址是 \code{0x5010_0000}：
+
+\boardfile{A1_fresh_boot_uio_dtb.txt}{11-12}
+\boardfile{A3_driver_state.txt}{14-15}
+
+\textbf{板上：卸載時真的歸還了。}每次載入要 64 MB，連續 10 次共 640 MB，超過 CMA 的 256 MB。如果卸載時沒有歸還，最晚第 5 次（共 320 MB）就會失敗。10 次都成功，而且每次拿到的都是同一個位址：
+
+\boardfile{A3_driver_state.txt}{51-66}
+
+\begin{pit}
+一開始我用 \code{/proc/meminfo} 的 \code{CmaFree} 檢查有沒有漏記憶體，卸載後數字卻沒有回升，看起來像是漏掉了。其實不是：CMA 區域在沒人用的時候，會借給 page cache（kernel 快取檔案內容的記憶體）這類「可搬移」的一般用途，所以 \code{CmaFree} 會隨著讀檔案而變化，不能當作 driver 有沒有歸還的證據。後來改用上面「配超過總量」的方法，才得到能下結論的證據。
+\end{pit}
 
 \subsection{原理}
-\todo{為什麼這樣做是對的；必要時一張圖}
+
+\textbf{為什麼會有 cache 問題。}CPU 讀寫 DDR 時會經過 cache；PL 經過 HP0–HP3 port（PL 存取 DDR 的四個高速 AXI 埠）讀寫 DDR 時，直接到 DDR 控制器，\textbf{不會}去查 CPU 的 cache。
+
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize,
+  b/.style={draw,rounded corners=2pt,align=center,minimum height=8mm},
+  arr/.style={{Stealth[length=2mm]}-{Stealth[length=2mm]},thick}]
+\node[b,fill=kern,text width=22mm] (cpu) {CPU（A53）};
+\node[b,fill=kern,below=5mm of cpu,text width=22mm] (cache) {L1 / L2 cache};
+\node[b,fill=hw,right=26mm of cache,text width=24mm] (ddr) {DDR 控制器\\與 DDR};
+\node[b,fill=hw,above=5mm of ddr,text width=24mm] (pl) {PL 加速器};
+\draw[arr] (cpu)--(cache);
+\draw[arr] (cache)--(ddr);
+\draw[arr] (pl)--node[right]{HP0–3}(ddr);
+\node[align=left,right=2mm of pl,text width=40mm,font=\scriptsize]{HP port 不經過 cache，\\也不通知 CPU 的 cache};
+\end{tikzpicture}
+\end{center}
+
+如果 buffer 在 CPU 端是 cacheable，會出兩種錯：
+\begin{itemize}
+\item CPU 寫的輸入影像可能還停在 cache，沒寫回 DDR，PL 讀到的是舊資料。
+\item PL 寫進 DDR 的輸出，CPU 讀的時候可能命中 cache 裡的舊內容，讀到的是上一幀。
+\end{itemize}
+
+處理方法有三種：
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+做法 & 怎麼做 & 代價 \\
+\midrule
+coherent buffer（這次用的） & \code{dma_alloc_coherent}：CPU 端映射成 non-cacheable，CPU 的讀寫直接到 DDR & CPU 存取比 cacheable 慢；app 只寫輸入、讀輸出，量不大 \\
+streaming DMA & 用一般 cacheable 記憶體；PL 讀之前 \code{dma_sync_single_for_device}（把 cache 寫回 DDR），PL 寫完之後 \code{dma_sync_single_for_cpu}（作廢 cache） & 每一幀都要做 cache 維護，程式比較複雜 \\
+硬體一致性 & 改用 HPC port，PL 的存取經過 CCI（Cache Coherent Interconnect，會去查 CPU cache 的互連）；PL 的 AXI master 要送出 cacheable、shareable 的屬性（AxCACHE、AxPROT 訊號）；device tree 節點加 \code{dma-coherent} & 要改 RTL 與 block design、重建 bitstream \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{kernel 怎麼知道要用 non-cacheable。}kernel 並不知道 HP port 是什麼，它看的是 device tree：節點有 \code{dma-coherent} 屬性，kernel 就把裝置當成 coherent；沒有，就當成 non-coherent（Linux 6.1 \code{drivers/of/device.c} 的 \code{of_dma_is_coherent()} 設定 \code{dev->dma_coherent}）。我們的節點沒有這個屬性，因為 HP port 確實不經過 cache，於是 \code{dma_alloc_coherent} 給的是 non-cacheable 映射。
+
+\textbf{\code{dma_alloc_coherent} 在這塊板子上實際做了什麼。}Linux 6.1、arm64、沒有 IOMMU，走的是 \code{kernel/dma/direct.c}：
+\begin{enumerate}
+\item 大於一頁的配置從 CMA 拿實體連續的頁（\code{kernel/dma/contiguous.c} 第 304 行 \code{dma_alloc_contiguous}）。
+\item 這些頁在 kernel 的線性映射（linear map）裡本來就有一個 cacheable 的位址。因為裝置不是 coherent，先把它們在 cache 裡的內容寫回並作廢（\code{arch_dma_prep_coherent}），之後沒有人再經由那個 cacheable 位址存取它們。
+\item 用 \code{pgprot_dmacoherent} 另外映射一個 Normal non-cacheable 的虛擬位址（\code{arch/arm64/include/asm/pgtable.h} 第 577 行），回傳給 driver。
+\item DMA 位址等於實體位址，存進 \code{td->arena_dma}。
+\end{enumerate}
+
+\textbf{為什麼不用 \code{kmalloc}。}
+\begin{itemize}
+\item \code{kmalloc} 的記憶體在 kernel 的 cacheable 線性映射（linear map）裡，要給 PL 用，就得自己做上表的 streaming DMA。
+\item 大小有上限：這個 kernel 的 \code{CONFIG_ARCH_FORCE_MAX_ORDER=11}、4 KB 頁，一次最多 $2^{10}$ 頁 = 4 MB，不夠 6 MB。
+\item 它不會給你 \code{dma_addr_t}。在有 IOMMU 或位址偏移的系統上，「實體位址」不等於「裝置看到的位址」，只有 DMA API 知道正確的值。
+\end{itemize}
+
+\textbf{為什麼不用 \code{/dev/mem}。}它沒有「配置」這回事，只是把任意實體位址開給 user space，所以要另外在 device tree 保留記憶體。它也是安全漏洞：誰能開 \code{/dev/mem}，誰就能改 kernel 的記憶體。它映射出來的屬性取決於位址：對 \code{no-map} 的區域，arm64 的 \code{phys_mem_access_prot}（\code{arch/arm64/mm/mmu.c} 第 97 行）回傳 \code{pgprot_noncached}，也就是 Device-nGnRnE。Device 記憶體不允許非對齊存取，也不允許 \code{dc zva}（一次把一整條 cache line，也就是 cache 管理記憶體的最小單位、A53 上是 64 bytes，清成 0 的指令），而 C 函式庫的 \code{memset} 正會用到它，所以 v1.0.0 不能用 \code{memset}。
 
 \subsection{面試會問}
-\begin{qa}{DMA buffer：為什麼不用 kmalloc、也不用 /dev/mem？HP port 不是 coherent，cache 怎麼處理？}
-\todo{30 秒版本的回答}
+
+\begin{qa}{為什麼不用 kmalloc、也不用 /dev/mem？HP port 不是 coherent，cache 怎麼處理？}
+我用 \code{dma_alloc_coherent}，它一次給我 CPU 位址和裝置用的 DMA 位址。不用 \code{kmalloc}，是因為它是 cacheable 的、最大只有 4 MB，也不給 DMA 位址；不用 \code{/dev/mem}，是因為它能讀寫整個實體記憶體，位址還得在 device tree 寫死。HP port 不會去查 CPU 的 cache，所以如果 buffer 是 cacheable，CPU 寫的輸入可能還在 cache 裡、PL 讀到舊資料，CPU 也可能讀到 cache 裡上一幀的輸出。device tree 節點沒有 \code{dma-coherent}，kernel 就把這個裝置當成 non-coherent，\code{dma_alloc_coherent} 會把 buffer 映射成 non-cacheable，CPU 的讀寫直接到 DDR。另外兩個選擇：cacheable buffer 配 \code{dma_sync_*} 的 streaming DMA，或改用 HPC port 讓硬體經過 CCI 保證一致性，但後者要改 RTL 和 block design。
 \end{qa}
 
 \subsection{關鍵函式速查}
-\todo{函式、在哪個檔案第幾行、做什麼}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+probe 第 3 步 & \code{twn_fuse.c}:\lineof{drv_probe_dma} & 設 40-bit mask、配 buffer、檢查對齊 \\
+\code{dmam_alloc_coherent} & kernel & 配 coherent buffer，回傳 CPU 位址與 DMA 位址，driver 離開時自動歸還 \\
+\code{FUSE_ARENA_NEED} & \code{mbv2_fuse_ps.c}:\lineof{app_arena_need} & app 需要的 buffer 大小（6 MB） \\
+\code{dma_alloc_contiguous} & kernel \code{kernel/dma/contiguous.c}:304 & 從 CMA 拿實體連續頁 \\
+\code{pgprot_dmacoherent} & kernel \code{arch/arm64/include/asm/pgtable.h}:577 & Normal non-cacheable 屬性 \\
+\code{phys_mem_access_prot} & kernel \code{arch/arm64/mm/mmu.c}:97 & \code{/dev/mem} 的映射屬性 \\
+\bottomrule
+\end{tabularx}
+\end{center}

@@ -1004,5 +1004,44 @@
     "wpws_ns": 0.583,
     "failing_endpoints": 0,
     "note": "the first routing of the recipe ends about 30 ps below zero slack; the post-route recovery in vivado/build_bd_fuse.tcl brings it to 0.000 ns, so the design has no timing margin"
+  },
+  "linux_driver_twn_fuse_20261026": {
+    "current": true,
+    "date": "2026-10-27",
+    "ruler": "linux/driver/twn_fuse/test/board_check.sh on one boot: mbv2_fuse_test, the 4 fixtures of deploy_probe_tern_dc32_20261012, FUSE_HEAD_PL=1 and 0, UIO backend (build/arm) and driver backend (build/arm-drv) built from the same source tree; test/twn_errtest timeout (14 checks: 12 refusals, 2 successes); rmmod while open and while only mapped; five unload/reload cycles with the fixtures; throughput: mbv2_fuse_pipe 120 frames, FUSE_BB2HD=1, FUSE_HEAD_PL=1, three runs per backend, UIO runs first, launched in one ssh command and not polled; board clock 240 MHz",
+    "build": "BOOT.BIN 690d87cc5f4b6897 (bitstream 52b400785924efe0), kernel 6.1.30-xilinx-v2023.2 (Image 8650b8be272df8ee); system.dtb 18fff66fcfb7798b (generic-uio) and patched 564da1539647de7c (wjhuang,twn-fuse-1.0); twn_fuse.ko 8b3649080da3254d; mbv2_fuse_test uio d504069a492e5519 / drv 16ac0677d4d3c74b, mbv2_fuse_pipe uio f9decbf6769215b8 / drv bc786727bf30a6e9, twn_errtest 0e9a45caed1ba20a; data and fixtures as deploy_probe_tern_dc32_20261012; branch linux-driver",
+    "source": "results/raw/linux_driver_20261026/ (README.md lists every file)",
+    "measured_by": "make -C linux/driver/twn_fuse && make -C linux/driver/twn_fuse test; bash board/build_apps.sh; HAL=drv bash board/build_apps.sh; copy to the board as in linux/driver/twn_fuse/README.md; sh board_check.sh",
+    "bit_exact_fixtures": "4/4 for both backends and both head placements, on both device trees; again after the refused table; and in each of five unload/reload cycles",
+    "error_path_checks": "14/14 as expected (12 refusals, 2 successes) on both device trees",
+    "timeout_s": 3.01,
+    "rmmod_while_open": "refused (Module twn_fuse is in use)",
+    "rmmod_while_only_mapped": "refused (Module twn_fuse is in use)",
+    "buffer_release": "10 of 10 reloads with a 64 MB buffer (640 MB in all, CMA 256 MB), same DMA address 0x50100000",
+    "fps_runs_uio_original_dtb": [
+      230.13,
+      230.22,
+      229.78
+    ],
+    "fps_mean_uio_original_dtb": 230.04,
+    "fps_runs_drv_original_dtb": [
+      232.05,
+      232.13,
+      231.44
+    ],
+    "fps_mean_drv_original_dtb": 231.87,
+    "fps_runs_uio_patched_dtb": [
+      229.59,
+      229.23,
+      229.13
+    ],
+    "fps_mean_uio_patched_dtb": 229.32,
+    "fps_runs_drv_patched_dtb": [
+      230.83,
+      232.17,
+      231.74
+    ],
+    "fps_mean_drv_patched_dtb": 231.58,
+    "note": "The driver path is not slower. The 0.8-1.0 % difference is not attributed: the driver path changes three things at once (polling in the kernel with usleep_range instead of nanosleep in the app; the CPU mapping of the buffer, Normal non-cacheable instead of Device-nGnRnE; the buffer moves from the 0x6000_0000 reserved region to CMA at 0x5010_0000). The headline 228.7 fps stays the UIO number of thesis_model_probe_tern_dc32_board_20261012. STATUS bit 16 (ring overrun, sticky) is 0 after boot and 1 after a UIO-only run with the driver never loaded (C1_rollback_to_uio_dtb.txt): a property of the bitstream, not of the driver; outputs stay bit-exact; cause not investigated."
   }
 }

@@ -1,0 +1,46 @@
+== 2026-10-26 16:35 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 690d87cc5f4b6897  twn_fuse.ko 8b3649080da3254d
+== 1. fixtures, both backends
+a0000000.twn_fuse -> uio_pdrv_genirq
+  mbv2_fuse_test_uio FUSE_HEAD_PL=1: 4/4 fixtures bit-exact
+  mbv2_fuse_test_uio FUSE_HEAD_PL=0: 4/4 fixtures bit-exact
+a0000000.twn_fuse -> twn_fuse
+  mbv2_fuse_test_drv FUSE_HEAD_PL=1: 4/4 fixtures bit-exact
+  mbv2_fuse_test_drv FUSE_HEAD_PL=0: 4/4 fixtures bit-exact
+== 2. refusals and timeout
+PASS second open of the device (one owner at a time)      -> Device or resource busy
+PASS STATUS                                               -> ok
+     arena 8388608 bytes, CTRL 00000000 STATUS 00010043
+PASS mmap the whole buffer                                -> ok
+PASS mmap one page more than the buffer                   -> Invalid argument
+PASS mmap at a non-zero offset                            -> Invalid argument
+PASS SET_BASES, weights at the end of the buffer          -> Invalid argument
+PASS SET_BASES, offset not 16-byte aligned                -> Invalid argument
+PASS BB_RUN, input offset 1 TB                            -> Invalid argument
+PASS HD_COMMIT, output runs one beat past the end         -> Invalid argument
+PASS STATUS into an unmapped pointer                      -> Bad address
+PASS SET_TABLE whose words pointer is unmapped            -> Bad address
+PASS an ioctl number the driver does not know             -> Inappropriate ioctl for device
+PASS SET_TABLE that the PL's check refuses                -> Invalid argument
+PASS BB_RUN with no valid table                           -> Connection timed out
+     returned after 3.01 s
+PASS: 0 check(s) failed
+[   40.792677] twn_fuse a0000000.twn_fuse: descriptor table refused: error 1 at block 0
+[   43.816668] twn_fuse a0000000.twn_fuse: frame timed out: CTRL 00000000 STATUS 000100c2
+  mbv2_fuse_test_drv FUSE_HEAD_PL=1: 4/4 fixtures bit-exact
+  mbv2_fuse_test_drv FUSE_HEAD_PL=0: 4/4 fixtures bit-exact
+== 3. unload while open, while only mapped, then five unload/reload cycles
+  rmmod while open: refused (rmmod: ERROR: Module twn_fuse is in use)
+  rmmod while only mapped: refused (rmmod: ERROR: Module twn_fuse is in use)
+  cycle 1: 4/4 fixtures bit-exact
+  cycle 2: 4/4 fixtures bit-exact
+  cycle 3: 4/4 fixtures bit-exact
+  cycle 4: 4/4 fixtures bit-exact
+  cycle 5: 4/4 fixtures bit-exact
+== 4. pipeline throughput (120 frames, FUSE_BB2HD=1)
+  uio run 1: === fused cross-frame pipeline: 120 frames in 521.4 ms = 4.35 ms/frame = 230.13 fps ===
+  uio run 2: === fused cross-frame pipeline: 120 frames in 521.3 ms = 4.34 ms/frame = 230.22 fps ===
+  uio run 3: === fused cross-frame pipeline: 120 frames in 522.2 ms = 4.35 ms/frame = 229.78 fps ===
+  drv run 1: === fused cross-frame pipeline: 120 frames in 517.1 ms = 4.31 ms/frame = 232.05 fps ===
+  drv run 2: === fused cross-frame pipeline: 120 frames in 517.0 ms = 4.31 ms/frame = 232.13 fps ===
+  drv run 3: === fused cross-frame pipeline: 120 frames in 518.5 ms = 4.32 ms/frame = 231.44 fps ===
+BOARD CHECK: PASS

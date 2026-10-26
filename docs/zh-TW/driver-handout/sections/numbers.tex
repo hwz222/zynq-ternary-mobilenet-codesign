@@ -1,0 +1,17 @@
+% 講義裡會重複出現的量測數字只寫在這裡一次，來源都是 results/raw/linux_driver_20261026/。
+% 改數字只改這個檔案。
+\newcommand{\errChecks}{14}          % twn_errtest timeout 的檢查項數（A2/B2 第 2 步，14 行 PASS）
+\newcommand{\errRefusals}{12}        % 其中該被拒絕的項數（另 2 項該成功）
+\newcommand{\timeoutSec}{3.01}       % A2/B2 第 25 行
+% 吞吐量：A2_board_check_uio_dtb.log 第 40-45 行（原本的 dtb，這是 v1.0.0 發佈的設定）
+\newcommand{\fpsUioRuns}{230.13、230.22、229.78}
+\newcommand{\fpsDrvRuns}{232.05、232.13、231.44}
+\newcommand{\fpsUioMean}{230.04}
+\newcommand{\fpsDrvMean}{231.87}
+% 同一套量測在改過 compatible 的 dtb 下：B2_board_check_patched_dtb.log 第 40-45 行
+\newcommand{\fpsUioRunsB}{229.59、229.23、229.13}
+\newcommand{\fpsDrvRunsB}{230.83、232.17、231.74}
+\newcommand{\fpsUioMeanB}{229.32}
+\newcommand{\fpsDrvMeanB}{231.58}
+% 一幀之後的 sysfs：A3_driver_state.txt 第 20 行
+\newcommand{\cyclesTotal}{990,917}

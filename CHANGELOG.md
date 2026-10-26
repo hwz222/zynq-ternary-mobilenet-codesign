@@ -6,12 +6,26 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased] - planned for v1.1
 
+### Added
+
+- `linux/driver/twn_fuse/`: a Linux platform driver for the accelerator, replacing the UIO +
+  `/dev/mem` access path (which is kept): registers mapped only in the kernel, an 8 MB DMA buffer
+  from the DMA API that is the only thing user space can `mmap`, nine ioctls taking range-checked
+  offsets instead of physical addresses, kernel-side polling with a 3 s timeout, sysfs counters,
+  one process at a time. Tools: `bind.sh` (switch between UIO and the driver without a reboot),
+  `patch_dtb.sh`, `test/twn_errtest.c`, `test/board_check.sh`.
+- `sw/app/pl_hal_fuse_drv.c`: the apps on the driver, selected with `HAL=drv` in
+  `board/build_apps.sh`; register-free helpers moved unchanged into `sw/app/pl_hal_fuse_enc.c`.
+- `docs/zh-TW/driver-handout/`: a study handout in Traditional Chinese that explains each technique
+  with the driver's own code and board output.
+
+### Changed
+
+- `sw/app/mbv2_fuse_ps.c` asks for the 6 MB its buffer map needs (`FUSE_ARENA_NEED`, checked at
+  compile time) instead of the whole 256 MB reserved region.
+
 ### Planned
 
-- A Linux platform driver (`linux/driver/twn_fuse`) that replaces the UIO + `/dev/mem` access path:
-  DMA-API buffer, `mmap` of that buffer only, ioctl control with offset checks, kernel-side polling
-  with timeout, sysfs counters; a second app backend for it; a study handout in Traditional Chinese
-  (`docs/zh-TW/driver-handout`). In development on branch `linux-driver`.
 - A ready-to-boot root file system image with a documented default password that must be changed at
   first login.
 - Synthetic (non-person) test fixtures, so that board verification does not need an MPII download.

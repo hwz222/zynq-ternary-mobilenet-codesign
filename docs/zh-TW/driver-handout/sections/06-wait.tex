@@ -1,32 +1,148 @@
 \clearpage
-\section{等待完成：polling、timeout 與預留的中斷路徑}
+\section{等待完成：polling、timeout 與中斷}
+\label{sec:wait}
 
 \begin{oneline}
-\todo{一句話講完這一節}
+這顆 bitstream 沒有中斷線，所以 driver 在 kernel 裡每隔 13 到 50 µs 讀一次 done 位元，最多等 3 秒，逾時回傳 \code{-ETIMEDOUT}。
 \end{oneline}
 
 \begin{before}
-\todo{v1.0.0 怎麼做，引用 sw/app/pl\_hal\_fuse.c 的實際程式碼}
+app 在 user space 自己做完整個流程：清掉殘留的 done、等 busy 結束、寫位址、寫 START，再自己用 \code{nanosleep} 輪詢：
+
+\snip{uio_run_frame}
+
+這段邏輯本身是對的（driver 版本照搬了它的順序），問題在於它放在 app 裡：
+\begin{itemize}
+\item 每個用加速器的 app 都得複製這段，少一步就出錯。例如漏了第 247 行清殘留的 done，下一次輪詢會立刻「完成」，讀到的全是錯的。
+\item 第 243 行與第 271 行：逾時直接 \code{exit(1)}，呼叫者沒有機會處理。
+\end{itemize}
 \end{before}
 
 \begin{tech}
-\todo{用到的 kernel API 與機制}
+\begin{itemize}
+\item \code{readl_poll_timeout(addr, val, cond, sleep_us, timeout_us)}：kernel 的輪詢巨集，重複「讀暫存器、檢查條件、睡一下」，直到條件成立或逾時。
+\item \code{usleep_range()}：以 hrtimer（高解析度計時器）為基礎的睡眠，可睡幾十 µs。
+\item \code{ktime_get_ns()}：單調遞增的時鐘，用來量耗時。
+\item \code{platform_get_irq_optional()}：查 device tree 節點有沒有中斷；沒有的話回傳錯誤碼，但不印錯誤訊息。
+\end{itemize}
 \end{tech}
 
 \begin{gain}
-\todo{具體改善了什麼，能驗證的寫法}
+\begin{itemize}
+\item 啟動與等待的整套順序只有一份，在 kernel 裡。
+\item 逾時時 driver 回傳 \code{-ETIMEDOUT}，並在 \code{dmesg} 印出當時的暫存器值；呼叫端可以自己決定怎麼處理（\code{twn_errtest} 就是這樣測的）。之後重新載入描述子表就能繼續用，不必重開機（板上輸出見下）。目前的 HAL 為了不改 \code{fuse_run_frame()} 的介面，收到錯誤仍然 \code{exit(1)}（第 9 節）。
+\item 吞吐量沒有變差：同一顆 bitstream 上，pipeline 從 \fpsUioMean{} fps 變成 \fpsDrvMean{} fps（原因見第 10 節，不歸功於這一節）。
+\end{itemize}
 \end{gain}
 
 \subsection{實際例子：程式碼與板上輸出}
-\todo{\textbackslash snip 抽出的函式，逐段說明；板上實際 log}
+
+\textbf{等待函式。}driver 有兩個地方等硬體：這個 \code{wait_bit()}（等引擎的 busy 或 done，3 秒逾時），以及 \code{twn_set_table()} 裡等描述子表檢查完成（第 \lineof{drv_table_poll} 行，每 10 µs 讀一次，100 ms 逾時）：
+
+\snip{drv_wait_bit}
+
+\textbf{跑一個 backbone frame。}順序和 v1.0.0 完全一樣，只是錯誤改用回傳值表示：
+
+\snip{drv_bb_run}
+
+\begin{enumerate}
+\item 先等 busy 變 0：PL 在忙時寫進去的 START 會被丟掉，不會排隊。
+\item 清 done：START 不會清 done，殘留的 done 會讓下一步的等待立刻結束。
+\item 寫兩個位址，再寫 START。\code{writel} 的 barrier 保證 app 寫進 buffer 的資料先到 DDR（第 2 節）。
+\item 等 done，清 done，讀六個 cycle counter，連同耗時一起交回 app。
+\end{enumerate}
+
+\textbf{head 的啟動與等待分成兩個指令。}因為 app 要在兩者之間讓 backbone 跑下一幀（第 7 節）：
+
+\snip{drv_hd_start}
+\snip{drv_hd_wait}
+
+\textbf{板上：逾時真的在 3 秒回來。}測試程式先載入一張 PL 會拒絕的描述子表，PL 因此會忽略 START，done 永遠不會來。框裡第 5、6 行是 driver 同時印在 \code{dmesg} 的訊息：
+
+\boardfile{A2_board_check_uio_dtb.log}{23-30}
+
+\code{Connection timed out} 是 \code{ETIMEDOUT} 的標準字串。兩行 \code{dmesg} 的時間差是 3.02 秒（40.79 到 43.82）。最後兩行是緊接著跑的一般 app：它重新載入正確的表，4 張 fixture 照樣 4/4 bit-exact。
 
 \subsection{原理}
-\todo{為什麼這樣做是對的；必要時一張圖}
+
+\textbf{\code{readl_poll_timeout} 展開後的樣子。}Linux 6.1 的 \code{include/linux/iopoll.h} 第 36 行：
+
+\begin{lstlisting}[numbers=none,xleftmargin=0pt,title={\scriptsize\ttfamily include/linux/iopoll.h : 36--58（Linux 6.1，節錄；兩個行尾註解是我加的）}]
+	ktime_t __timeout = ktime_add_us(ktime_get(), __timeout_us);
+	might_sleep_if((__sleep_us) != 0);
+	for (;;) {
+		(val) = op(args);                    /* readl() */
+		if (cond)
+			break;
+		if (__timeout_us && ktime_compare(ktime_get(), __timeout) > 0) {
+			(val) = op(args);            /* one last read */
+			break;
+		}
+		if (__sleep_us)
+			usleep_range((__sleep_us >> 2) + 1, __sleep_us);
+	}
+	(cond) ? 0 : -ETIMEDOUT;
+\end{lstlisting}
+
+\begin{itemize}
+\item \code{POLL_US} 是 50，所以每次睡 \code{usleep_range(13, 50)}：至少 13 µs、最多 50 µs，讓 kernel 把時間相近的計時器合併起來一起叫醒。
+\item 逾時之後「再讀一次」：避免「睡過頭的那一刻其實已經完成」被誤判成逾時。
+\item 為什麼不用 \code{msleep(1)}：這個 kernel 的 \code{CONFIG_HZ=250}，\code{msleep} 以 jiffy（kernel 的時間刻度，這裡是 4 ms）為單位，\code{msleep(1)} 至少睡 4 ms，等於白白多等一整幀。\code{usleep_range} 用 hrtimer，才能睡幾十 µs。
+\item 為什麼不 busy-wait（完全不睡）：這個 kernel 是 \code{CONFIG_PREEMPT_NONE}，kernel 程式不主動讓出 CPU 就不會被換下。在系統呼叫裡空轉 4 ms，會白白占住一顆 CPU 核心，排在同一顆核心上的 thread（例如 pipeline 的另一個 thread）就沒得跑。
+\end{itemize}
+
+\textbf{為什麼用 polling，不用中斷。}不是不想，是硬體沒有：
+\begin{itemize}
+\item block design（\code{vivado/build_bd_fuse.tcl} 第 211–213 行）把 PS 的中斷輸入 \code{pl_ps_irq0} 接到常數 0。
+\item RTL 的 \code{twn_csr.v} 第 266 行雖然有 \code{irq_en} 暫存器，但它只能寫進去再讀回來，沒有接到任何輸出。
+\end{itemize}
+效能上的代價也不大：一幀大約 4.4 ms，每 13–50 µs 醒來讀一次暫存器，CPU 大部分時間都在睡。
+
+\textbf{要改成中斷，要做這些事。}先解釋三個名詞：ISR（Interrupt Service Routine）是中斷發生時 kernel 呼叫的 driver 函式；completion 是 kernel 的一種「等某件事完成」的同步機制，一邊 \code{wait_for_completion}，另一邊（通常是 ISR）\code{complete()} 叫醒它；GIC 是 ARM 的中斷控制器，SPI（Shared Peripheral Interrupt）是它給周邊用的中斷編號。
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+層級 & 改動 \\
+\midrule
+RTL \code{twn_csr.v} & 新增輸出 \code{irq = (irq_en & ap_done) | (hd_irq_en & hd_done)}，經過一級 flip-flop；level-high，沿用現有「寫入清 done」來清除。陷阱：第 358 行每次寫 CTRL 都會把 bit 2 存進 \code{irq_en}，而 driver 寫 START（\code{0x1}）和清 done（\code{0x2}）時 bit 2 是 0，會把中斷關掉；要嘛 driver 每次寫 CTRL 都帶上 bit 2，要嘛把 \code{irq_en} 改成獨立的暫存器。head 的 \code{hd_irq_en} 目前不存在，要新增 \\
+IP 頂層與打包 & \code{interrupt} 埠接到 IP 頂層 \code{twn_fuse_layer}；\code{package_fuse_ip.tcl} 宣告成中斷介面 \\
+block design & 拿掉常數 0，接上 \code{fuse_0/interrupt → pl_ps_irq0}，重建 bitstream \\
+device tree & PetaLinux 自動產生 \code{interrupts = <0 89 4>}（GIC SPI 89，level-high）；暫存器排列改了，\code{compatible} 升成 \code{-1.1} \\
+driver & \code{devm_request_irq()}；ISR 讀 CTRL 和 HD\_CTRL，清掉 done，呼叫 \code{complete()}；等待改用 \code{wait_for_completion_timeout()} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+兩個要注意的地方：
+\begin{itemize}
+\item level 觸發的中斷一定要在 ISR 裡清掉來源，否則一離開 ISR 又會立刻觸發。
+\item 真正的風險在重建 bitstream：這顆設計在 240 MHz 下的 timing 餘裕（WNS，worst negative slack，最差路徑還剩多少時間）是 0.000 ns，任何 RTL 改動都可能讓 timing 不收斂，而且每次 build 大約一小時。
+\end{itemize}
+
+driver 已經在 probe 時呼叫 \code{platform_get_irq_optional}：將來的 bitstream 若有中斷，driver 會在 \code{dmesg} 提示，但仍然繼續輪詢。中斷版本的程式要等有硬體可以測試時才寫。
 
 \subsection{面試會問}
-\begin{qa}{timeout：為什麼用 polling 不用中斷？如果要改成中斷，要怎麼改？}
-\todo{30 秒版本的回答}
+
+\begin{qa}{為什麼用 polling 不用中斷？如果要改成中斷，要怎麼改？}
+因為這顆 bitstream 沒有中斷線：block design 把 \code{pl_ps_irq0} 接到常數 0，RTL 的 \code{irq_en} 也只是個能讀回的暫存器。所以 driver 用 \code{readl_poll_timeout} 在 kernel 裡輪詢，每次睡 13 到 50 µs，用的是 hrtimer；一幀約 4.4 ms，CPU 大部分時間在睡，3 秒逾時回 \code{-ETIMEDOUT}，板上實測 \timeoutSec{} 秒回來。我不用 \code{msleep}，因為 HZ 是 250，最少睡 4 ms；也不 busy-wait，因為 kernel 是 non-preemptive，會占住一顆核心。要改成中斷：RTL 把 done 和致能位元做成 level 的 irq 輸出，block design 接到 \code{pl_ps_irq0}，device tree 會多出 \code{interrupts}，driver 用 \code{devm_request_irq} 註冊 ISR，在 ISR 清掉 done、\code{complete()}，等待改成 \code{wait_for_completion_timeout}。最大的成本是重建 bitstream，因為 timing 餘裕是 0。
 \end{qa}
 
 \subsection{關鍵函式速查}
-\todo{函式、在哪個檔案第幾行、做什麼}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{wait_bit()} & \code{twn_fuse.c}:\lineof{drv_wait_bit} & 等引擎：\code{readl_poll_timeout}，50 µs、3 s \\
+表格檢查的等待 & \code{twn_fuse.c}:\lineof{drv_table_poll} & 等 \code{ST_CHECKED}：10 µs、100 ms \\
+\code{twn_bb_run()} & \code{twn_fuse.c}:\lineof{drv_bb_run} & 等閒置、清 done、寫位址、START、等 done \\
+\code{twn_hd_start()} & \code{twn_fuse.c}:\lineof{drv_hd_start} & head 忙就回 \code{-EBUSY}，否則啟動 \\
+\code{twn_hd_wait()} & \code{twn_fuse.c}:\lineof{drv_hd_wait} & 等 head 完成並清 done \\
+\code{readl_poll_timeout} & kernel \code{include/linux/iopoll.h}:155 & 讀、檢查、\code{usleep_range}，直到成立或逾時 \\
+\bottomrule
+\end{tabularx}
+\end{center}

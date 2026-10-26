@@ -1,2 +1,57 @@
+\clearpage
 \section{如何重現}
-\todo{編譯 driver、上板載入、跑驗證的實際指令}
+
+以下指令都在 repo 根目錄執行。主機端在 WSL（PetaLinux 2023.2 與它的 SDK），板子端用 Git Bash 的 \code{plink} / \code{pscp} 連線。
+
+\textbf{1. 編譯 driver、測試程式與兩版 app（WSL）}
+
+\begin{cmdline}
+cd linux/driver/twn_fuse
+make prepare        # once: copy the PetaLinux kernel build dir and run modules_prepare
+make                # twn_fuse.ko
+make test           # test/twn_errtest
+cd ../../..
+bash board/build_apps.sh            # build/arm      (HAL=uio)
+HAL=drv bash board/build_apps.sh    # build/arm-drv  (HAL=drv)
+modinfo linux/driver/twn_fuse/twn_fuse.ko | grep vermagic   # must equal `uname -r` on the board
+\end{cmdline}
+
+\textbf{2. 放到板子上（同一個目錄）}
+
+兩版 app 編出來的檔名相同，複製到板子時要改名，加上 \code{_uio} 與 \code{_drv}，\code{board_check.sh} 找的是改名後的檔案：
+
+\begin{cmdline}
+linux/driver/twn_fuse/{twn_fuse.ko, bind.sh, test/twn_errtest, test/board_check.sh}
+build/arm/mbv2_fuse_test      -> mbv2_fuse_test_uio
+build/arm/mbv2_fuse_pipe      -> mbv2_fuse_pipe_uio
+build/arm-drv/mbv2_fuse_test  -> mbv2_fuse_test_drv
+build/arm-drv/mbv2_fuse_pipe  -> mbv2_fuse_pipe_drv
+data/fuse_weights.bin  data/model_mbv2.bin  data/model_mbv2_packed.bin
+golden/fix_0.bin ... golden/fix_3.bin      # regenerate from MPII, docs/QUICKSTART.md
+\end{cmdline}
+
+\textbf{3. 板上檢查}
+
+\begin{cmdline}
+sh board_check.sh            # prints BOARD CHECK: PASS only if every check passed
+sh bind.sh drv ./twn_fuse.ko # or switch by hand
+sh bind.sh uio
+\end{cmdline}
+
+\textbf{4. 只靠 compatible 綁定（可回退）}
+
+\begin{cmdline}
+sh linux/driver/twn_fuse/patch_dtb.sh system.dtb system_twn_fuse.dtb   # host, needs fdtput
+# on the card: keep system.dtb as system_uio.dtb, copy system_twn_fuse.dtb over system.dtb, reboot
+insmod twn_fuse.ko           # binds by compatible, no driver_override
+# to go back: copy system_uio.dtb over system.dtb, reboot
+\end{cmdline}
+
+\textbf{5. 重建這份講義}
+
+\begin{cmdline}
+cd docs/zh-TW/driver-handout
+latexmk                      # runs extract.py first; output build/handout.pdf
+\end{cmdline}
+
+這次的板上紀錄放在 \code{results/raw/linux_driver_20261026/}（各檔的用途見該資料夾的 \code{README.md}），數字整理在 \code{results/board_results.json} 的 \code{linux_driver_twn_fuse_20261026} 這一筆。
