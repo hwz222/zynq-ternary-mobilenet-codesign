@@ -11,6 +11,7 @@ are release assets; an image built with your own password must not be published.
 |---|---|
 | `build_linux.sh` | creates a PetaLinux project outside the repository from the XSA, applies `project-spec/`, builds, and copies the eight boot files to `build/linux/boot` and `build/linux/sd` |
 | `boot.cmd` | the U-Boot script: loads `Image`, the initramfs `rootfs.cpio.gz.u-boot` and `system.dtb` from the FAT partition, then `booti`; compiled into `boot.scr` by `build_linux.sh` |
+| `device-tree/` | a read-only snapshot of the v1.1 release's device tree: the sources PetaLinux generated from the XSA, the released `system.dtb` decompiled, and the script that takes the snapshot; not used by the build |
 | `project-spec/` | only the hand-written parts on top of a stock `zynqMP` PetaLinux project: kernel arguments (`configs/config.user`), kernel options (`recipes-kernel`: `STRICT_DEVMEM`, `IO_STRICT_DEVMEM`, `ARM_SMMU`), the kernel driver's recipe (`recipes-modules/twn-fuse`, loaded at boot), device tree (`system-user.dtsi`: the accelerator's node for the driver, the SMMU and its stream IDs), image packages (`petalinuxbsp.conf`), a static-IP service, the first-login password change, an sshd setting |
 
 ## How to run
@@ -38,7 +39,8 @@ SHA-256 printed at the end.
   `twn-v1.1`, marked expired, so the first login (serial console or ssh) must set a new one, and ssh
   commands, scp and sftp are refused until then (the release image is built this way).
 - Put in `project-spec/` only files a person edited; never commit generated parts (hardware
-  description, `.Xil/`, logs).
+  description, `.Xil/`, logs) there. The one exception is `device-tree/`, a snapshot kept for reading,
+  outside `project-spec/` so the build never sees it.
 - Files here are read by Linux tools: keep LF line endings (`.gitattributes` enforces it).
 - The accelerator's device-tree node is `twn_fuse@a0000000` with the label `fuse_0` (the block-design
   cell name). From v1.1 `system-user.dtsi` sets `compatible = "wjhuang,twn-fuse-1.1"`, so the

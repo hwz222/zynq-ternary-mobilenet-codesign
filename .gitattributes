@@ -17,3 +17,4 @@ Image       binary
 # Everything under linux/ is read by Linux tools: LF (listed last so it wins over *.cmd)
 linux/boot.cmd text eol=lf
 linux/project-spec/** text eol=lf
+linux/device-tree/** text eol=lf

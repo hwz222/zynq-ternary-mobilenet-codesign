@@ -24,6 +24,10 @@ All notable changes to this project are recorded here. The format follows
 - `results/raw/linux_driver_v11_20261027/`: `H10_driver_state.log` (the released image) and
   `I1_driver_state_nosmmu.log`, `I2_boot_state_nosmmu.log` (the released image with the SMMU off),
   `S8_pmu_ddr_reserved.log` (Vivado: the top 1 MB of DDR is reserved by the PMU).
+- `linux/device-tree/`: the v1.1 release's device tree for reading: the sources PetaLinux generated
+  from the XSA (`system-top.dts`, `zynqmp.dtsi`, `pl.dtsi`, ...), the released `system.dtb`
+  decompiled, a README that follows the accelerator's node through them, and `snapshot.sh`, which
+  takes the snapshot from a PetaLinux project. Not used by the build.
 
 ## [1.1.0] - 2026-10-27
 

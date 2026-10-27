@@ -109,3 +109,19 @@ p.44 的 242--246 行）行號接續、沒有漏行或重複；48 個紀錄框�
 | C36 | 第 14 章速查表寫「打包、strip、掃描」，順序和正文不同 | 改成 strip、掃描、打包 |
 
 修改後重建：99 頁，沒有 Overfull，沒有紅字「紀錄待補」。
+
+## 追加審查（2026-10-27）：device tree 的快照
+
+**範圍**：作者應讀者要求新增的 `linux/device-tree/`（PetaLinux 從 v1.1 XSA 產生的六個原始檔、發佈的 `system.dtb` 反編譯、
+README、`snapshot.sh`），以及第 1 章新加的「device tree 的檔案從哪裡來」一段。技術審稿人重新反編譯發佈的 dtb，結果和
+`system.dts` 完全相同；`generated/` 的六個檔和 PetaLinux 專案裡的同名檔逐位元相同；XSA、bitstream、dtb 的雜湊與發佈資產一致；
+README 引用的行號、phandle、`PL0_REF 71` 都查證正確。
+
+| 嚴重程度 | 問題 | 處理 |
+|---|---|---|
+| 必改 | README 說 kernel 只替 `status = "okay"` 的節點建裝置；kernel 實際上把沒有 `status`、或 `"ok"` 的節點也當成啟用，只跳過其他值。產生的 `fuse_0` 本來就沒有 `status` | 改正，並說明 `system-user.dtsi` 的 `"okay"` 只是寫明 |
+| 建議 | README 說 `system-top.dts` 會 include 其他所有檔並「加上」CPU；`system-conf.dtsi` 其實是 `system-user.dtsi` 第 1 行 include 的，CPU 是刪掉兩顆 | 改正 |
+| 建議 | 「Linux IRQ 55」是開機時才編的號碼，換 dtb 就可能不同；`clocks` 一欄把 `clk_ignore_unused` 寫成定論；`clocks` 與 `iommus` 其實也讓 kernel 建立 supplier 連結 | 三處改正 |
+| 建議 | 第 1 章新段落漏列 `zynqmp-clk-ccf.dtsi`；末句容易讓人以為 `system-user.dtsi` 也在 `linux/device-tree/` | 補上，並寫明它在 `linux/project-spec/` |
+
+修改後重建：99 頁。
