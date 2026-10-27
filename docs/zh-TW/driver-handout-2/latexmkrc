@@ -1,7 +1,0 @@
-# latexmk settings for handout 2: XeLaTeX, outputs in build/, code snippets refreshed first
-# (by handout 1's extract.py, with this handout's snippet list).
-$pdf_mode = 5;          # xelatex
-$out_dir  = 'build';
-$aux_dir  = 'build';
-my $py = $ENV{PYTHON} || 'python';
-system("$py ../driver-handout/extract.py snippets.txt build/snippets") == 0 or die "extract.py failed\n";

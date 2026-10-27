@@ -1,17 +1,64 @@
-% 講義裡會重複出現的量測數字只寫在這裡一次，來源都是 results/raw/linux_driver_20261026/。
-% 改數字只改這個檔案。
-\newcommand{\errChecks}{14}          % twn_errtest timeout 的檢查項數（A2/B2 第 2 步，14 行 PASS）
-\newcommand{\errRefusals}{12}        % 其中該被拒絕的項數（另 2 項該成功）
-\newcommand{\timeoutSec}{3.01}       % A2/B2 第 25 行
-% 吞吐量：A2_board_check_uio_dtb.log 第 40-45 行（原本的 dtb，這是 v1.0.0 發佈的設定）
-\newcommand{\fpsUioRuns}{230.13、230.22、229.78}
-\newcommand{\fpsDrvRuns}{232.05、232.13、231.44}
+% 講義裡會重複出現的量測數字只寫在這裡一次；每一個都寫明出處（紀錄檔與行號）。改數字只改這個檔案。
+% 紀錄檔的資料夾：A、B、C 在 results/raw/linux_driver_20261026/，其餘在 results/raw/linux_driver_v11_20261027/。
+%
+% ---- 開機組 A：v1.0.0 的開機檔，driver v1.0（8b3649080da3254d），輪詢。只用來和 v1.0.0 比較
+% 吞吐量：A2_board_check_uio_dtb.log 第 40-42 行（UIO 230.13、230.22、229.78）與第 43-45 行
+% （driver v1.0 232.05、232.13、231.44）
 \newcommand{\fpsUioMean}{230.04}
 \newcommand{\fpsDrvMean}{231.87}
-% 同一套量測在改過 compatible 的 dtb 下：B2_board_check_patched_dtb.log 第 40-45 行
-\newcommand{\fpsUioRunsB}{229.59、229.23、229.13}
-\newcommand{\fpsDrvRunsB}{230.83、232.17、231.74}
-\newcommand{\fpsUioMeanB}{229.32}
-\newcommand{\fpsDrvMeanB}{231.58}
-% 一幀之後的 sysfs：A3_driver_state.txt 第 20 行
-\newcommand{\cyclesTotal}{990,917}
+%
+% ---- 開機組 D：v1.0.0 的開機檔（BOOT.BIN 690d87cc5f4b6897、system.dtb 18fff66fcfb7798b），
+%      v1.1 的 twn_fuse.ko（5f77eacd80e62272），只能輪詢
+% fps A/B，每組 6 次（兩輪、順序相反）：D1_ab_measure.log 第 28-31 行
+\newcommand{\abUio}{228.94}
+\newcommand{\abUioSix}{229.09}
+\newcommand{\abDrvDev}{228.83}
+\newcommand{\abDrvNc}{231.53}
+% pipeline「寫輸入」的時間，每次執行（120 幀）印出最後一幀的值，各 3 次：D6_stage_times.log
+% 第 4、7、10 行（Normal non-cacheable 0.10、0.09、0.09）與第 14、17、20 行（map_device=1 的 Device
+% 映射 0.15、0.14、0.14）
+\newcommand{\splitNcIn}{0.09--0.10}
+\newcommand{\splitDevIn}{0.14--0.15}
+% v1.0.0 開機時的 MemTotal：D5_boot_state.log 第 27 行（1773764 kB）；發佈映像：H3_boot_state.log 第 17 行
+% （2035396 kB）。差 261632 kB = 255.5 MB
+\newcommand{\memGainMB}{255.5}
+%
+% ---- 開機組 E：發佈的開機檔，候選版 rootfs（twn_fuse.ko 3d1bbe778a4a9d4b）
+% 開機檔的雜湊：E1_boot_state.log 第 1 行（BOOT.BIN、system.dtb）
+\newcommand{\relBoot}{5d226057efc8760b}
+\newcommand{\relDtb}{bc4255b1c54ae27e}
+% ioctl 成本與中斷／輪詢：E3_bench.log 第 7-10 行（中斷）、第 20-23 行（use_irq=0）
+\newcommand{\ioctlUs}{1.62}
+\newcommand{\bbSysUs}{3.3}
+\newcommand{\irqWaitUs}{14.0}
+\newcommand{\pollWaitUs}{39.3}
+\newcommand{\irqCpuUs}{10.7}
+\newcommand{\pollCpuUs}{465.8}
+% SMMU 開與關，pipeline 三次的平均：E2_board_check.log 第 37-39 行（232.55、232.60、232.59）
+% 與開機組 G 的 G2_board_check.log 第 37-39 行（232.67、232.35、231.49）
+\newcommand{\smmuOnFps}{232.58}
+\newcommand{\smmuOffFps}{232.17}
+%
+% ---- 開機組 H：發佈的 v1.1 映像（twn_fuse.ko aec4477e2c520faf）
+% rootfs 與板上工具包的雜湊：board_hashes_H.txt 第 27、28 行
+\newcommand{\relRootfs}{96b9e56733ad36a9}
+\newcommand{\relKit}{3a4eb0997028ba0e}
+% board check：H4_board_check.log 第 7-21 行（14 項檢查，12 項該拒絕、2 項該成功），第 22 行（逾時），
+% 第 37-39 行（吞吐量）
+\newcommand{\errChecks}{14}
+\newcommand{\errRefusals}{12}
+\newcommand{\timeoutSec}{3.11}
+\newcommand{\relFpsA}{232.22}
+\newcommand{\relFpsB}{232.39}
+\newcommand{\relFpsC}{232.21}
+\newcommand{\relFpsMean}{232.27}
+% 同一次開機交替三輪：H7_irq_vs_poll_fps.log 第 5、13、21 行（中斷 233.84、232.83、232.71）
+% 與第 9、17、25 行（輪詢 231.33、231.27、231.19）
+\newcommand{\hIrqFps}{233.13}
+\newcommand{\hPollFps}{231.26}
+% 一幀之後的 sysfs：H10_driver_state.log 第 29 行
+\newcommand{\cyclesTotal}{990,937}
+%
+% ---- S：最終 bitstream（11b4d88f583b8e23）的 timing：S4_timing_impl_fuse_v11.rpt 第 142 行
+\newcommand{\wnsNs}{0.000}
+\newcommand{\whsNs}{0.008}

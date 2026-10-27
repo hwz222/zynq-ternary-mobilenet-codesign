@@ -20,6 +20,9 @@
 #   sh v11_check.sh irqfps      pipeline fps with the interrupt and with use_irq=0, same boot
 #   sh v11_check.sh devmem      what /dev/mem still reaches: memory outside System RAM, and the
 #                               registers while the driver is unloaded (reads only)
+#   sh v11_check.sh state       the loaded driver: module info, binding, claimed registers, device
+#                               file, buffer, sysfs after one frame, a running app's mappings,
+#                               ten reloads with a 64 MB buffer
 cd "$(dirname "$0")" || exit 1
 x() { echo "# $*"; sh -c "$*" 2>&1; }
 ko() {   # the module this boot uses: the file given to bind.sh, or the one installed in the image
@@ -146,6 +149,21 @@ devmem)
     x "rmmod twn_fuse; grep -c twn_fuse /proc/iomem; devmem 0xa0000008 32; echo exit \$?"
     x "insmod $(ko); devmem 0xa0000008 32; echo exit \$?"
     x "devmem 0x7ff00000 32; echo exit \$?" ;;   # the top 1 MB of DDR, outside /memory
+state)
+    S=/sys/bus/platform/devices/a0000000.twn_fuse
+    x "modinfo $(ko) | grep -E '^(license|alias|vermagic|parm)'"
+    x "readlink $S/driver"
+    x "grep -i a0000000 /proc/iomem"
+    x "ls -l /dev/twn_fuse; cat /sys/class/misc/twn_fuse/dev"
+    x "dmesg | grep -i 'cma: reserved'; grep -E 'CmaTotal|CmaFree' /proc/meminfo"
+    x "dmesg | grep 'twn_fuse a0000000' | tail -1"
+    x "FUSE_HEAD_PL=1 ./mbv2_fuse_test_drv . > /dev/null 2>&1"
+    x "for a in nblk status cycles_total cycles_array cycles_dw cycles_stall cycles_idle_pre cycles_idle_post; do printf '%-18s %s\n' \$a \"\$(cat $S/\$a)\"; done"
+    x "ls $S"
+    x "FUSE_BB2HD=1 FUSE_HEAD_PL=1 ./mbv2_fuse_pipe_drv . 3000 0 > /dev/null 2>&1 & sleep 2; pid=\$(pidof mbv2_fuse_pipe_drv); grep -E 'twn_fuse|uio|/dev/mem' /proc/\$pid/maps; ls -l /proc/\$pid/fd | grep -E 'twn|uio|mem'; wait"
+    x "ok=0; for i in 1 2 3 4 5 6 7 8 9 10; do rmmod twn_fuse && insmod $(ko) arena_mb=64 && [ -e /dev/twn_fuse ] && ok=\$((ok+1)); done; echo loaded \$ok of 10"
+    x "dmesg | grep 'twn_fuse a0000000' | tail -2"
+    x "rmmod twn_fuse && insmod $(ko) && dmesg | grep 'twn_fuse a0000000' | tail -1" ;;
 *)
-    sed -n '2,22p' "$0"; exit 2 ;;
+    sed -n '2,25p' "$0"; exit 2 ;;
 esac

@@ -4,6 +4,27 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `docs/zh-TW/driver-handout/`: the two study handouts are merged into one book about v1.1 (99 pages,
+  14 chapters by topic, current code throughout; older code only in the "before" boxes, pinned to
+  `3bdd485` or `7615324`; board logs printed with their own line numbers), after two review rounds.
+  `docs/zh-TW/driver-handout-2/` is removed; both old volumes stay in tag `v1.1.0`.
+- Comments only: `sw/app/pl_hal_fuse_drv.c` (`fuse_run_frame()` no longer says the driver always
+  polls) and `linux/driver/twn_fuse/test/board_check.sh` (the v1.1 image still has `/dev/mem`, which
+  refuses System RAM).
+
+### Added
+
+- `linux/driver/twn_fuse/test/v11_check.sh state`: the loaded driver's module info, binding, claimed
+  registers, device file, buffer, sysfs after one frame, a running app's mappings, ten reloads with a
+  64 MB buffer.
+- `results/raw/linux_driver_v11_20261027/`: `H10_driver_state.log` (the released image) and
+  `I1_driver_state_nosmmu.log`, `I2_boot_state_nosmmu.log` (the released image with the SMMU off),
+  `S8_pmu_ddr_reserved.log` (Vivado: the top 1 MB of DDR is reserved by the PMU).
+
 ## [1.1.0] - 2026-10-27
 
 The accelerator under a Linux kernel driver, on a ready-to-boot image.

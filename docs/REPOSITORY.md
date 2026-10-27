@@ -43,7 +43,7 @@ assumptions) and [`docs/VERIFICATION.md`](VERIFICATION.md) (the gates and what e
 | [`train/`](../train/README.md) | training, quantisation and export code, one workspace per task |
 | [`tools/`](../tools/README.md) | weight packing, descriptor-table and DDR-map generators, the release fetcher, other host utilities |
 | [`results/`](../results/README.md) | measured numbers with their provenance (JSON) and the raw evidence they cite |
-| [`docs/`](./) | [`QUICKSTART.md`](QUICKSTART.md), [`DESIGN.md`](DESIGN.md), [`REBUILD.md`](REBUILD.md), [`VERIFICATION.md`](VERIFICATION.md), [`RESULTS.md`](RESULTS.md), [`DATASETS.md`](DATASETS.md), this page, `figures/`; `zh-TW/`: two study handouts on the kernel driver (Traditional Chinese, LaTeX) |
+| [`docs/`](./) | [`QUICKSTART.md`](QUICKSTART.md), [`DESIGN.md`](DESIGN.md), [`REBUILD.md`](REBUILD.md), [`VERIFICATION.md`](VERIFICATION.md), [`RESULTS.md`](RESULTS.md), [`DATASETS.md`](DATASETS.md), this page, `figures/`; `zh-TW/`: the study handout on the kernel driver (Traditional Chinese, LaTeX) |
 | `artifacts/`, `build/` | created locally: release assets and build outputs (ignored by git) |
 
 ## Glossary

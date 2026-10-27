@@ -1,0 +1,112 @@
+\clearpage
+\section{Device tree、probe 與 binding：kernel 怎麼找到 driver}
+\label{sec:probe}
+
+\begin{oneline}
+kernel 拿 device tree 節點的 \code{compatible} 字串去比對每個 driver 的比對表，對上了就呼叫那個 driver 的 \code{probe()} 接管硬體；binding 則把「這個節點該長什麼樣」寫成可以檢查的規格。
+\end{oneline}
+
+\begin{before}
+PetaLinux 從 Vivado 匯出的硬體描述自動產生節點。v1.0.0 在 \code{system-user.dtsi} 把它的 \code{compatible} 改寫成 \code{"generic-uio"}：
+
+\snip[{}]{v100_dt_uio_node}
+
+開機參數 \code{uio_pdrv_genirq.of_id=generic-uio} 再讓 UIO driver 認這個字串。UIO driver 不知道這是什麼硬體，只把節點的位址範圍開成 \code{/dev/uio4}；app 自己去 \code{/sys/class/uio/} 找名字對的編號，再 \code{mmap} 進來：
+
+\snip{v100_uio_hal_init}
+
+問題：\code{"generic-uio"} 描述的是「要交給哪個 driver」，不是「這是什麼硬體」，而 device tree 只該描述硬體；要靠開機參數配合；kernel 對這顆硬體一無所知，不檢查、不配置資源，也不知道誰在用它。節點該有哪些屬性，也沒有寫在任何地方。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item \code{struct platform_driver}：SoC（把 CPU 與周邊做在同一顆晶片上）周邊的 driver 型別。這類周邊不在 PCI、USB 這種能自動列舉的匯流排上，要靠 device tree 告訴 kernel 它們在哪裡。
+\item \code{struct of_device_id} 比對表（\code{of_match_table}）與 \code{MODULE_DEVICE_TABLE(of, ...)}：列出認得的 \code{compatible} 字串，並寫進 module 的資訊，讓系統知道哪個 module 該被自動載入（第 14 章）。
+\item \code{probe()}／\code{remove()} 與 \code{devm_*}（device-managed）系列：資源跟著裝置走，driver 離開或 probe 失敗時自動釋放。
+\item \textbf{binding}：用 dt-schema 格式（JSON Schema 寫成的 YAML）描述節點，\code{wjhuang,twn-fuse.yaml}。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item 硬體由自己的名字 \code{"wjhuang,twn-fuse-1.1"} 認領；字串尾端的版本號讓有中斷的新硬體和沒有中斷的舊硬體各自對到正確的處理方式。
+\item \code{probe()} 時就檢查硬體、配置記憶體、申請中斷、建立 \code{/dev/twn_fuse}，結果寫進 \code{dmesg}，不必等 app 跑起來才發現問題。
+\item 節點的規格寫成檔案，並拿 PetaLinux 實際產生的 \code{system.dtb} 來比對；比對時發現 PetaLinux 多產生了 \code{interrupt-names}，事先沒有人知道。
+\end{itemize}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{比對表和 driver 宣告。}比對表有兩筆：\code{-1.1} 是有中斷的硬體（第 6 章），\code{-1.0} 是 v1.0.0 那顆沒有中斷的硬體，最後一筆空的表示結束。\code{struct platform_driver} 把 probe、remove、比對表與 sysfs 屬性（第 8 章）綁在一起；\code{suppress_bind_attrs} 的理由在第 7 章：
+
+\snip{drv_of_match}
+\snip{drv_driver}
+
+最後一行 \code{module_platform_driver(twn_driver);} 展開後就是 module 的 \code{init} 與 \code{exit}：載入時 \code{platform_driver_register()}，卸載時 \code{platform_driver_unregister()}。
+
+\textbf{probe：接管硬體的五個步驟。}\code{probe()} 收到一個 \code{struct platform_device}，裡面已經有由 \code{reg} 轉成的位址範圍，以及指向 device tree 節點的指標（中斷要等第 4 步才從節點解析出來）。每一步失敗就回傳錯誤碼，kernel 放棄綁定並收回 \code{devm_} 配過的東西：
+
+\snip{drv_probe}
+
+第 1 步把暫存器映射進 kernel、第 2 步讀 NBLK 確認是這顆硬體（第 2 章），第 3 步配 DMA buffer（第 3 章），第 4 步申請中斷（第 6 章），第 5 步註冊 \code{/dev/twn_fuse}（第 5 章），最後建立 debugfs（第 8 章）。\code{devm_kzalloc} 配的 \code{struct twn_dev} 用 \code{platform_set_drvdata} 掛在裝置上，之後 \code{remove()} 與 sysfs 用 \code{platform_get_drvdata}／\code{dev_get_drvdata} 拿回來。
+
+\textbf{remove：移除 debugfs 與裝置檔、關掉中斷致能，其餘交給 \code{devm_}。}
+
+\snip{drv_remove}
+
+\textbf{板上：module 帶著比對字串與參數。}\code{modinfo} 印出的 \code{alias} 就是 \code{MODULE_DEVICE_TABLE} 產生的，兩個版本各兩筆；\code{parm} 是三個 module parameter：
+
+\boardfile{H10_driver_state.log}{1-11}
+
+\textbf{板上：開機後已經綁好。}發佈映像的 \code{system-user.dtsi} 把節點改成 driver 認得的字串（\code{iommus} 是第 11 章的 SMMU）：
+
+\snip[{}]{dtsi_fuse0}
+
+開機第 4.8 秒 probe 成功，裝置的 \code{driver} 連結指向 \code{twn_fuse}。開機參數裡還留著 \code{uio_pdrv_genirq.of_id=generic-uio}，但已經沒有節點寫 \code{generic-uio}，UIO 不會接管任何東西：
+
+\boardfile{H3_boot_state.log}{1-13}
+
+\textbf{binding：節點的規格。}一定要有 \code{compatible} 和 \code{reg}；用 \code{if}／\code{then}／\code{else} 規定 \code{-1.1} 一定要有中斷、\code{-1.0} 不准有；\code{additionalProperties: false} 表示沒列出的屬性一律不准：
+
+\snip[{}]{yaml_rules}
+
+\code{test/binding_check.py} 把 PetaLinux 產生的 \code{system.dtb} 反組譯，找出加速器的節點，逐一檢查屬性都有被描述，也檢查 binding 的 \code{compatible} 和 driver 的比對表一致：
+
+\boardfile[：節點原文與每一項檢查]{S3_binding_check.log}{1-3,23-45}
+
+\subsection{原理}
+
+\textbf{從開機到 probe。}U-Boot（開機載入程式）把 \code{system.dtb} 放進記憶體交給 kernel；kernel 把它展開成一棵節點樹，\code{amba_pl} 底下每個節點建成一個 \code{platform_device}，名字是「位址.節點名」（\code{a0000000.twn_fuse}），\code{reg} 變成記憶體資源。\code{interrupts} 這時還留在節點上：driver 呼叫 \code{platform_get_irq_optional()} 時，kernel 才用 \code{of_irq_get()} 把它翻成 Linux 的中斷號碼；中斷控制器還沒準備好，就回 \code{-EPROBE_DEFER}（第 6 章）。driver 註冊時，platform bus 拿它和每個還沒有 driver 的裝置比對，比對函式是 \code{drivers/base/platform.c} 的 \code{platform_match()}，順序是：裝置設了 \code{driver_override} 就只比 driver 名字；否則比 device tree 的 \code{compatible} 與 \code{of_match_table}；接著是 ACPI、\code{id_table}，最後比裝置名稱。比對成功就呼叫 \code{probe()}，回傳 0 才算綁定成功。
+
+\textbf{\code{compatible} 的格式與版本號。}格式是 \code{"製造商,型號"}，逗號前是 vendor prefix（代表廠商或作者）。Linux 在 \code{vendor-prefixes.yaml} 登記合法的前綴；\code{wjhuang} 不在表上，自己用沒問題，送進 mainline（Linus Torvalds 維護的官方 kernel 原始碼樹）才需要登記。結尾的版本號在這個專案真的用上了：加了中斷的 bitstream 是 \code{-1.1}；舊的 driver 只認得 \code{-1.0}，就不會去等一個它不知道的中斷。
+
+\textbf{\code{devm_} 為什麼好用。}每一筆 \code{devm_*} 配置都登記在裝置上，driver 離開或 \code{probe()} 中途失敗時，kernel 按相反順序全部釋放。所以 \code{probe()} 每一步失敗只要 \code{return} 錯誤碼，不用寫一串 \code{goto} 收拾。
+
+\textbf{binding 檢查的是什麼。}device tree 是資料，不是程式：寫錯一個屬性名稱，\code{dtc} 照樣編過，開機後 driver 才在 \code{probe()} 裡找不到東西。\code{dtc} 不看 binding，要另外跑 \code{make dtbs_check}（或本專案的 \code{binding_check.py}）才能在開機前抓到。\code{status}、\code{phandle}、\code{interrupt-parent} 是每個節點都能有的通用屬性，由 dt-schema 的核心規格描述，個別 binding 不必列。kernel 官方的 \code{make dt_binding_check} 會逐條驗證屬性的格式，這次沒有跑，原因與補法在第 13 章。
+
+\textbf{一個沒處理的限制：PL 的時脈。}節點有 \code{clocks = <&zynqmp_clk 71>}（PL 的 240 MHz 時脈），但 \code{probe()} 沒有取用它。現在能運作，推測是因為開機參數有 \code{clk_ignore_unused}，kernel 不會關掉「沒有 driver 宣告在用」的時脈（沒有試過拿掉它；時脈 driver 從 PMU firmware 拿到的旗標也可能讓這個時脈本來就不被關）。若 PL 時脈被關掉，之後讀暫存器會讓 AXI 匯流排卡住。正確做法是在 \code{probe()} 用 \code{devm_clk_get_enabled()} 宣告使用；這次沒有做。
+
+\subsection{面試會問}
+
+\begin{qa}{compatible 字串怎麼讓 kernel 找到你的 driver？你怎麼確定節點寫對了？}
+開機時 kernel 把 device tree 展開，PL 底下每個節點變成一個 platform device，\code{reg} 變成它的記憶體資源，中斷等 probe 時才從節點解析。我的 driver 有一張 \code{of_match_table}，module 載入時向 platform bus 註冊，bus 用 \code{platform_match()} 比對：先看 \code{driver_override}，再比 compatible。對上了就呼叫我的 \code{probe()}：ioremap 暫存器、配 DMA buffer、申請中斷、註冊 \code{/dev/twn_fuse}，全部用 \code{devm_}，失敗時自動收回。compatible 帶版本號，加了中斷的硬體是 \code{-1.1}。節點的規格我寫成 dt-schema 的 binding，規定 \code{-1.1} 一定要有中斷，並拿 PetaLinux 實際產生的 dtb 去比對，因此發現它多產生了 \code{interrupt-names}。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{twn_of_match} & \code{twn_fuse.c}:\lineof{drv_of_match} & 比對表：\code{-1.1} 與 \code{-1.0} \\
+\code{twn_driver} & \code{twn_fuse.c}:\lineof{drv_driver} & 把 probe、remove、比對表、sysfs 屬性綁在一起 \\
+\code{twn_probe()} & \code{twn_fuse.c}:\lineof{drv_probe} & 接管硬體的五個步驟 \\
+\code{twn_remove()} & \code{twn_fuse.c}:\lineof{drv_remove} & 移除 debugfs 與裝置檔、關中斷致能，其餘交給 \code{devm_} \\
+\code{&fuse_0} & \code{system-user.dtsi}:\lineof{dtsi_fuse0} & 發佈映像的節點：compatible 與 \code{iommus} \\
+\code{required}、\code{allOf} & \code{wjhuang,twn-fuse.yaml}:\lineof{yaml_rules} & binding 的必要屬性與依版本的規則 \\
+\code{platform_match()} & kernel \code{drivers/base/platform.c} & 比對順序：override、compatible、ACPI、id table、名稱 \\
+\bottomrule
+\end{tabularx}
+\end{center}

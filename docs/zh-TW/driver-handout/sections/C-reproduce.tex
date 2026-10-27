@@ -1,57 +1,105 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{如何重現}
 
-以下指令都在 repo 根目錄執行。主機端在 WSL（PetaLinux 2023.2 與它的 SDK），板子端用 Git Bash 的 \code{plink} / \code{pscp} 連線。
+指令都在 repo 根目錄執行：Vivado 與 PC 上的模擬在 Windows，PetaLinux、driver 與 app 的編譯在 WSL，連板子用 Git Bash 的 \code{plink} / \code{pscp}（\code{board/deploy.sh}）。每一步後面的括號是它產生的紀錄檔。
 
-\textbf{1. 編譯 driver、測試程式與兩版 app（WSL）}
-
-\begin{cmdline}
-cd linux/driver/twn_fuse
-make prepare        # once: copy the PetaLinux kernel build dir and run modules_prepare
-make                # twn_fuse.ko
-make test           # test/twn_errtest
-cd ../../..
-bash board/build_apps.sh            # build/arm      (HAL=uio)
-HAL=drv bash board/build_apps.sh    # build/arm-drv  (HAL=drv)
-modinfo linux/driver/twn_fuse/twn_fuse.ko | grep vermagic   # must equal `uname -r` on the board
-\end{cmdline}
-
-\textbf{2. 放到板子上（同一個目錄）}
-
-兩版 app 編出來的檔名相同，複製到板子時要改名，加上 \code{_uio} 與 \code{_drv}，\code{board_check.sh} 找的是改名後的檔案：
+\textbf{1. RTL 的 gate 與 bitstream（Windows）}
 
 \begin{cmdline}
-linux/driver/twn_fuse/{twn_fuse.ko, bind.sh, test/twn_errtest, test/board_check.sh}
-build/arm/mbv2_fuse_test      -> mbv2_fuse_test_uio
-build/arm/mbv2_fuse_pipe      -> mbv2_fuse_pipe_uio
-build/arm-drv/mbv2_fuse_test  -> mbv2_fuse_test_drv
-build/arm-drv/mbv2_fuse_pipe  -> mbv2_fuse_pipe_drv
-data/fuse_weights.bin  data/model_mbv2.bin  data/model_mbv2_packed.bin
-golden/fix_0.bin ... golden/fix_3.bin      # regenerate from MPII, docs/QUICKSTART.md
+powershell -File rtl\fuse\sim\run_csr_irq.ps1      (S1: interrupt unit gate)
+powershell -File rtl\fuse\sim\run_hd_int.ps1       (S2: head integration gate)
+vivado\build.cmd                                    (S4: timing and utilization reports)
 \end{cmdline}
 
-\textbf{3. 板上檢查}
+\textbf{2. Linux 映像與開機檔（WSL）}
 
 \begin{cmdline}
-sh board_check.sh            # prints BOARD CHECK: PASS only if every check passed
-sh bind.sh drv ./twn_fuse.ko # or switch by hand
-sh bind.sh uio
+bash linux/build_linux.sh          # no BOARD_PW: the published default password, expired
+bash board/make_boot.sh build/system_fuse_ternpose.bit build/BOOT.BIN
+python3 linux/driver/twn_fuse/test/binding_check.py <kernel-source> build/linux/sd/system.dtb   (S3)
 \end{cmdline}
 
-\textbf{4. 只靠 compatible 綁定（可回退）}
+\textbf{3. app、測試程式與板上工具包（WSL）}
 
 \begin{cmdline}
-sh linux/driver/twn_fuse/patch_dtb.sh system.dtb system_twn_fuse.dtb   # host, needs fdtput
-# on the card: keep system.dtb as system_uio.dtb, copy system_twn_fuse.dtb over system.dtb, reboot
-insmod twn_fuse.ko           # binds by compatible, no driver_override
-# to go back: copy system_uio.dtb over system.dtb, reboot
+bash board/build_apps.sh                       # HAL=drv (default): build/arm-drv
+HAL=uio bash board/build_apps.sh               # the UIO apps, for boot D only
+make -C linux/driver/twn_fuse prepare all test # twn_fuse.ko (boot D), twn_errtest, twn_bench
+bash board/make_kit.sh                         # build/twn_board_kit.tar.gz
+make -C linux/driver/twn_fuse clean; make -C linux/driver/twn_fuse W=1                  (S6)
+<kernel-source>/scripts/checkpatch.pl --no-tree --strict -f twn_fuse.c twn_fuse_ioctl.h  (S6)
 \end{cmdline}
 
-\textbf{5. 重建這份講義}
+\textbf{4. 開機組 D（v1.0.0 的開機檔，D1--D6）}
+
+把 v1.0.0 的五個開機檔放上 SD 卡開機，複製 \code{twn_fuse.ko}、兩版 app（改名為 \code{_uio}、\code{_drv}）、\code{bind.sh}、\code{twn_bench}、\code{ab_measure.sh}、\code{v11_check.sh} 與 \code{data/}、\code{golden/}（\code{syn/} 放合成 fixture），然後：
+
+\begin{cmdline}
+sh v11_check.sh ab          (D1)     sh v11_check.sh bench      (D2)
+sh v11_check.sh debugfs     (D3)     sh v11_check.sh synthetic  (D4)
+sh v11_check.sh boot        (D5)     sh v11_check.sh split      (D6)
+\end{cmdline}
+
+\textbf{5. 開機組 E 與 H（v1.1 映像，E0--E9、H0--H10）}
+
+現在的原始碼建出的是開機組 H 的 rootfs（root 密碼過期）；開機組 E 的 rootfs 是 commit \code{b11c465} 之前的版本，其他開機檔兩組相同。\code{BOARD_PW} 是板子目前的 root 密碼：
+
+\begin{cmdline}
+bash board/deploy.sh pin
+bash board/deploy.sh pushlinux build/BOOT.BIN build/linux/sd
+# right after the reboot, before anyone logs in, from a Linux host:
+bash linux/driver/twn_fuse/test/pw_expired_ssh.sh                                        (H1)
+bash linux/driver/twn_fuse/test/pw_expired_ssh.sh 192.168.10.2 <new password>             (H9, after a reboot)
+python linux/driver/twn_fuse/test/first_login_serial.py COM14 <new password> H2.log      (H2)
+export BOARD_PW=<new password>
+# on the board: tar xzf twn_board_kit.tar.gz && cd twn_board_kit
+sha256sum -c SHA256SUMS (E0, H0)   sh v11_check.sh boot (E1, H3)   sh board_check.sh (E2, H4)
+sh v11_check.sh bench (E3)   sh v11_check.sh debugfs (E4)   sh v11_check.sh synthetic (E5, H5)
+sh v11_check.sh irqcount (E6)   sh v11_check.sh smmu (E8, H6)   sh v11_check.sh irqfps (H7)
+sh v11_check.sh devmem (H8, one of its reads is outside System RAM)
+sh v11_check.sh state (H10)
+\end{cmdline}
+
+E2m 與 H4m 是同一個 \code{board_check.sh}，換成四張 MPII fixture（不在工具包裡）。E7 是候選版 rootfs 在序列埠（115200 baud）上的互動登入：在第一個 \code{New password:} 提示按 Ctrl-C，再輸入空的新密碼與不同的確認密碼，最後設定新密碼。H1、H2 是用與上面兩個腳本相同的步驟產生的（兩個腳本是事後從當時的暫存腳本整理進 repo 的，紀錄第 1 行的說明文字略有不同）。S7 是在發佈檔的資料夾執行 \code{python tools/scan_release_paths.py}（找發佈檔裡的建置路徑）。S8 是第 1 步建置時 Vivado 的 block design 訊息：\code{grep -n "PSU-0" vivado/build_bd_fuse_v11.log}。
+
+\textbf{6. 開機組 F（找 stream ID，F0--F1）}
+
+開機組 F 的 \code{BOOT.BIN}（\code{18a066f87cfbad8d}）和開機組 E 的 \code{BOOT.BIN} 帶著同一顆 bitstream，但是另一次打包的檔案；kernel 與 rootfs 是第一次建出的 v1.1 版本。要看到 F0 的 global fault，\code{system.dtb} 只能登記當時推算的三個 ID（F0 用的 dtb 是 \code{4889daa18dd6a320}）；再把 \code{boot.scr} 換成 \code{bootargs}（U-Boot 傳給 kernel 的命令列）多一個 \code{arm_smmu.disable_bypass=1} 的版本：在 \code{linux/boot.cmd} 的 \code{bootargs} 加上這個參數，再用 U-Boot 的 \code{mkimage} 工具編成 \code{boot.scr}（指令與 \code{linux/build_linux.sh} 第 5 步相同）。這樣沒有登記的 stream ID 就會被 SMMU 擋下並回報：
+
+\begin{cmdline}
+ph=$(fdtget -t x system.dtb /axi/smmu@fd800000 phandle)       # on the host
+cp system.dtb system_f0.dtb
+fdtput -t x system_f0.dtb /amba_pl@0/twn_fuse@a0000000 iommus $ph e80 $ph 1280 $ph 1680
+# boot with system_f0.dtb as system.dtb, then on the board:
+dmesg | grep -o "GFSYNR1 0x[0-9a-f]*" | sort | uniq -c         (F0: the unlisted IDs)
+# back on the host, the measured IDs; boot with system_smmu.dtb as system.dtb:
+sh linux/driver/twn_fuse/smmu_dtb.sh system.dtb system_smmu.dtb
+sh v11_check.sh smmu                                               (F1)
+\end{cmdline}
+
+\textbf{7. 開機組 G 與 I（關掉 SMMU 的比較，G1--G4、I1--I2）}
+
+\begin{cmdline}
+cp system.dtb system_nosmmu.dtb       # on the host
+fdtput -t s system_nosmmu.dtb /axi/smmu@fd800000 status disabled
+fdtput -d system_nosmmu.dtb /amba_pl@0/twn_fuse@a0000000 iommus
+# copy it over system.dtb on the card (keep the original), reboot, then as in step 5:
+sh v11_check.sh boot (G1)   sh board_check.sh (G2)   sh v11_check.sh bench (G3)   sh v11_check.sh debugfs (G4)
+# the same dtb with the released files (boot I):
+sh v11_check.sh state (I1)   sh v11_check.sh boot (I2)
+\end{cmdline}
+
+\textbf{8. 開機組 A、B、C（driver v1.0）}
+
+這三組是 driver v1.0（commit \code{7615324}）在 v1.0.0 開機檔上的紀錄，這份講義只用它們呈現 v1.0.0 的狀態，以及和 driver v1.0 比較。重現要在 commit \code{7615324} 的 worktree 裡，用它的 driver、app（那時 \code{HAL} 預設是 \code{uio}）、\code{board_check.sh} 與 \code{patch_dtb.sh}，照那個 commit 的講義附錄 C（\code{docs/zh-TW/driver-handout/sections/C-reproduce.tex}）做。
+
+\textbf{9. 重建這份講義}
 
 \begin{cmdline}
 cd docs/zh-TW/driver-handout
 latexmk                      # runs extract.py first; output build/handout.pdf
 \end{cmdline}
 
-這次的板上紀錄放在 \code{results/raw/linux_driver_20261026/}（各檔的用途見該資料夾的 \code{README.md}），數字整理在 \code{results/board_results.json} 的 \code{linux_driver_twn_fuse_20261026} 這一筆。
+板上紀錄各檔的用途見 \code{results/raw/linux_driver_v11_20261027/README.md} 與 \code{results/raw/linux_driver_20261026/README.md}；數字整理在 \code{results/board_results.json} 的 \code{linux_driver_twn_fuse_v11_20261027} 與 \code{linux_driver_twn_fuse_20261026}。
+
+\textbf{回退。}開始前先 \code{deploy.sh pin}（保存目前的 \code{BOOT.BIN}）；\code{pushlinux} 會把被換掉的檔案保存在卡上的 \code{previous_linux/}。板子開不起來時，可以在序列埠攔下 U-Boot（開機載入程式，負責從 SD 卡讀 kernel、device tree 與 rootfs），用 \code{fatload} 與 \code{fatwrite} 把保存的檔案寫回。

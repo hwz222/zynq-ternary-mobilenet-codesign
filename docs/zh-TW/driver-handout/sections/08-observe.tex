@@ -1,0 +1,120 @@
+\needspace{20\baselineskip}
+\section{看得見硬體：sysfs 與 debugfs}
+\label{sec:observe}
+
+\begin{oneline}
+給人和腳本看的狀態（六個 cycle counter、STATUS、NBLK）放 sysfs，一個檔案一個值、\code{cat} 就能看；只給開發者的除錯工具（暫存器傾印、短幀、中斷計數、SMMU 測試）放 debugfs，不讓 app 依賴。
+\end{oneline}
+
+\begin{before}[原本怎麼做（v1.0.0 的 UIO 版本，與 driver v1.0）]
+v1.0.0 的 counter 只能由 app 在跑完一幀後經 \code{/dev/uio4} 讀；沒有 app 在跑時，想看硬體狀態得另外寫程式或用 \code{devmem}。UIO 版本的除錯功能（只跑前 n 個 block 的「短幀」、像素相位的觀察位元、陣列的第一個輸出）都是 app 直接寫暫存器。driver v1.0 不讓 app 碰暫存器，這三個函式就失效了：
+
+\snip{v10_hal_stubs}
+
+\code{fuse_set_nblk()} 至少印訊息、回傳 $-1$；另外兩個安靜地回傳 0，呼叫的人分不出「硬體讀到 0」和「功能不存在」，比直接失敗更容易誤導。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item sysfs：\code{DEVICE_ATTR_RO(name)} 宣告唯讀屬性，讀檔時呼叫 \code{name_show()}；\code{sysfs_emit()} 保證輸出不超過一頁；\code{ATTRIBUTE_GROUPS()} 加 \code{driver.dev_groups}，讓 driver core 在綁定後自動建檔、解除前移除。
+\item debugfs：掛在 \code{/sys/kernel/debug}，只有 root 能讀寫，格式不保證穩定。\code{debugfs_create_regset32()} 一次印出一張暫存器表；\code{DEFINE_DEBUGFS_ATTRIBUTE()} 加 \code{debugfs_create_file_unsafe()} 做可寫的數字檔；\code{debugfs_create_u32()} 把一個變數開成唯讀檔；\code{debugfs_remove_recursive()} 整個目錄一起移除。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item driver 綁定期間，任何時候都能 \code{cat} 硬體狀態，不用開裝置；檔案的建立與移除交給 driver core，和 probe／remove 沒有先後的競爭。
+\item 短幀回來了，而且比 UIO 安全：寫 \code{nblk} 檢查 1 到 17（寫 99 被拒絕），並拿 backbone 的鎖，不會在一幀進行到一半時改掉 NBLK。
+\item 多了兩個工具：\code{irq_count}（ISR 處理了幾次，第 6 章用它驗證沒有空中斷）與 \code{dma_fault}（故意越界讀取，第 11 章測 SMMU）。
+\end{itemize}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{sysfs：一個巨集產生一個屬性。}\code{TWN_REG_ATTR(name, off, fmt)} 展開成一個 \code{name_show()}（讀一個暫存器、照格式印出）加上 \code{DEVICE_ATTR_RO(name)}；用它宣告八個屬性，列成表交給第 1 章 \code{twn_driver} 的 \code{.dev_groups}：
+
+\snip{drv_reg_attr}
+\snip{drv_reg_attr_use}
+\snip{drv_attrs}
+
+\textbf{板上：跑完一幀後讀出來。}
+
+\boardfile{H10_driver_state.log}{25-34}
+
+PL 時脈 240 MHz。\code{cycles_total} 是 17 個 block 執行期間的 cycle 總和（block 之間的空檔不算），\cyclesTotal{} cycles 約 4.13 ms，是 START 到 done 的下限；\code{cycles_array} 佔 98.5\%，三值運算陣列幾乎一直在工作；\code{cycles_stall} 只有 167，記憶體幾乎沒有讓運算停下來。\code{status} 的欄位：
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+位元 & 名稱 & 這次的值與意思 \\
+\midrule
+0、1 & \code{d_valid}、\code{tab_checked} & 1、1：描述子表通過檢查、檢查已經跑過 \\
+6:2 & \code{cur_block} & 16：最後執行的 block（0 到 16） \\
+10:7、15:11 & \code{err_code}、\code{err_block} & 0、0：表格沒有錯 \\
+16 & \code{ovr_sticky} & 1：見下段 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+STATUS bit 16 是 ring overrun 的黏著旗標：PL 裡某個列緩衝區在滿的時候被寫入，就會設成 1（只記錄、不停機），只有 PL reset 會清掉。它是 bitstream 本身在正常執行時就會設起來的，和 driver 無關：v1.0.0 時期回退到原本的 dtb、driver 完全沒載入，只用 UIO 版本跑 4 張 fixture，跑之前是 0、跑完變成 \code{0x00010043}，輸出照樣逐位元正確：
+
+\boardfile{C1_rollback_to_uio_dtb.txt}{10-21}
+
+原因還沒查明，記錄在 \code{results/board_results.json}，留待之後追查。
+
+\textbf{debugfs：建立目錄與檔案。}probe 的最後一步呼叫 \code{twn_debugfs_init()}；\code{regs} 背後是一張「名字、offset」的表，可以寫的 \code{nblk} 在寫入時檢查範圍、拿 backbone 的鎖：
+
+\snip{drv_debugfs_init}
+\snip{drv_nblk_set}
+
+\textbf{app 這一側。}HAL 用 \code{fopen}／\code{fgets} 讀 \code{regs}、找出某個名字的那一行；設定短幀就是寫 \code{nblk} 再讀回確認：
+
+\snip{hal_dbg_reg}
+\snip{hal_set_nblk}
+
+\textbf{板上。}\code{IRQ = 0x00000003} 表示兩個中斷致能都打開了：
+
+\boardfile{E4_debugfs.log}{4-25}
+
+接著用短幀跑一次，再試一個不合法的值：
+
+\boardfile{E4_debugfs.log}{26-36}
+
+\code{PIX_NZ} 與 \code{CAP0}--\code{CAP3} 都是 0：這兩組觀察邏輯只在 RTL 用 \code{FUSE_OBS} 編譯時才會建出來，發佈的 bitstream 沒有，暫存器固定讀到 0。debugfs 只是讓它們讀得到。
+
+\subsection{原理}
+
+\textbf{這些檔案的 read／write 是誰寫的。}app 讀 \code{regs}、寫 \code{nblk}，底層確實是 \code{read()}／\code{write()} 系統呼叫，但那組 file operations 是 kernel 產生的：\code{regs} 由 \code{debugfs_create_regset32()} 處理，只用到 driver 給的名字與 offset 表；\code{nblk} 由 \code{DEFINE_DEBUGFS_ATTRIBUTE()} 展開，寫入時才呼叫 driver 的 \code{twn_nblk_set()}；sysfs 的屬性檔讀取時呼叫 driver 的 \code{show()}。「文字轉數字、處理 offset 與長度、\code{copy_to_user}」這些瑣事都由 kernel 做，driver 只寫取值與設值。這也是 \code{/dev/twn_fuse} 不需要自己的 \code{.read}／\code{.write} 的原因之一（第 5 章）。
+
+\textbf{為什麼用 \code{.dev_groups}，不在 \code{probe()} 裡自己建檔。}driver core 在 \code{probe()} 成功之後才建立 \code{dev_groups} 的檔案，在呼叫 \code{remove()} 之前先移除，所以 \code{show()} 被呼叫時，\code{dev_get_drvdata()} 一定拿得到 probe 設好的資料。
+
+\textbf{為什麼除錯工具放 debugfs。}各種介面怎麼選在第 5 章。sysfs 的檔案一旦給人用，改格式就是改了 ABI（給使用者的介面約定）；除錯工具不希望 app 依賴，所以放 debugfs：kernel 文件說它「不打算當成給 user space 的穩定 ABI」（\code{Documentation/filesystems/debugfs.rst}），同時也提醒最好還是當成要長期維護的介面來設計。
+
+\textbf{為什麼用 \code{_unsafe} 版本。}\code{debugfs_create_file()} 每次讀寫都多包一層保護，防止檔案被移除後還被呼叫；\code{DEFINE_DEBUGFS_ATTRIBUTE()} 產生的 file operations 自己已經處理了這件事，所以搭配 \code{debugfs_create_file_unsafe()} 避免重複保護（\code{fs/debugfs/inode.c} 的註解）。
+
+\textbf{為什麼寫 \code{nblk} 要拿鎖。}NBLK 決定 PL 這一幀要跑幾個 block，一幀進行中被改，PL 的 sequencer 可能在中途看到不同的值。\code{TWN_IOC_BB_RUN} 從頭到尾都拿著 \code{bb_lock}，所以只要沒有發生過逾時，拿到鎖就表示沒有幀在跑；逾時的 ioctl 會釋放鎖，但 RTL 沒有中止功能，PL 若其實還在跑，這個保證就不成立。
+
+\subsection{面試會問}
+
+\begin{qa}{除了 ioctl，你怎麼讓人看到硬體狀態、怎麼提供除錯功能？}
+狀態用 sysfs：六個 cycle counter、STATUS、NBLK 各是一個唯讀檔，一個巨集產生 \code{show} 加 \code{DEVICE_ATTR_RO}，再用 \code{ATTRIBUTE_GROUPS} 交給 platform driver 的 \code{.dev_groups}，driver core 在 probe 成功後建檔、remove 前移除。板上跑完一幀，\code{cat cycles_total} 是約 99 萬個 cycle、4.13 ms，運算陣列忙碌 98.5\%。除錯工具放 debugfs，不讓 app 依賴：\code{debugfs_create_regset32()} 一次印出暫存器；可寫的 \code{nblk} 用 \code{DEFINE_DEBUGFS_ATTRIBUTE()}，寫入時檢查範圍、拿 backbone 的 mutex，所以比 UIO 時代直接寫暫存器安全。這些檔案的 read／write 都由 kernel 提供，我只寫取值與設值的函式。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{TWN_REG_ATTR} & \code{twn_fuse.c}:\lineof{drv_reg_attr} & 一個巨集產生 \code{show()} 與 \code{DEVICE_ATTR_RO} \\
+\code{twn_attrs[]} & \code{twn_fuse.c}:\lineof{drv_attrs} & 八個 sysfs 屬性與 \code{ATTRIBUTE_GROUPS(twn)} \\
+\code{twn_debugfs_init()} & \code{twn_fuse.c}:\lineof{drv_debugfs_init} & 建 debugfs 目錄與四個檔案 \\
+\code{twn_nblk_set()} & \code{twn_fuse.c}:\lineof{drv_nblk_set} & 範圍檢查、拿鎖、寫 NBLK \\
+\code{dbg_reg()} & \code{pl_hal_fuse_drv.c}:\lineof{hal_dbg_reg} & app 從 \code{regs} 讀一個暫存器 \\
+\code{fuse_set_nblk()} & \code{pl_hal_fuse_drv.c}:\lineof{hal_set_nblk} & app 設定短幀 \\
+\bottomrule
+\end{tabularx}
+\end{center}

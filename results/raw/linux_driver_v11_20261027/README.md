@@ -3,7 +3,7 @@
 Raw output of the v1.1 checks. A line starting with `# ` is the command that was run; the first
 line of each board log names the date (UTC), the kernel and the boot files (hashes: first 16 hex
 digits of SHA-256). Summary of the numbers: `results/board_results.json`, entry
-`linux_driver_twn_fuse_v11_20261027`. The study handout `docs/zh-TW/driver-handout-2/` quotes these
+`linux_driver_twn_fuse_v11_20261027`. The study handout `docs/zh-TW/driver-handout/` quotes these
 files line by line.
 
 The first letter of a file name is where it was taken:
@@ -16,6 +16,7 @@ The first letter of a file name is where it was taken:
 | H | the released image: boot E's boot files with the root file system `96b9e56733ad36a9` (root password expired at build; `twn_fuse.ko` `aec4477e2c520faf` with two probe error paths fixed) and the release kit `3a4eb0997028ba0e` | the released files; the expired password; interrupt vs polling fps on one boot; what `/dev/mem` still reaches |
 | F | the final bitstream (BOOT.BIN `18a066f87cfbad8d`) with the first v1.1 kernel and root file system, the SMMU enabled in system.dtb, `arm_smmu.disable_bypass=1` on the command line | finding the SMMU stream IDs |
 | G | boot E with `system_nosmmu.dtb` (`6ceadb90b64b6a98`) | the same checks with the SMMU off, for comparison |
+| I | boot H with `system_nosmmu.dtb` (`6ceadb90b64b6a98`) | the released driver with the SMMU off: where the buffer comes from |
 
 | file | what it shows |
 |---|---|
@@ -25,6 +26,7 @@ The first letter of a file name is where it was taken:
 | `S4_build_timing.log`, `S4_timing_impl_fuse_v11.rpt`, `S4_util_impl_fuse_v11.rpt` | the final bitstream's build: WNS 0.000 ns, WHS +0.008 ns at 240 MHz after the post-route recovery; utilization (host and paths replaced by placeholders) |
 | `S6_static_checks.log` | `make W=1` against the release kernel's build tree (the v1.1 PetaLinux project) and `checkpatch.pl --strict -f` on `twn_fuse.c` and `twn_fuse_ioctl.h`: no warnings (the header had one WARNING and one CHECK before review round 1 of handout 2) |
 | `S7_release_path_scan.log` | `tools/scan_release_paths.py` on the release files, archives opened: no path of the build machine; 8 in an unstripped app (positive control, only the count kept) |
+| `S8_pmu_ddr_reserved.log` | the final bitstream's block-design build (`vivado/build.cmd`, `FUSE_TAG=v11`): Vivado reports that DDR `0x7ff00000`-`0x7fffffff` is reserved by the PMU, the 1 MB that `/dev/mem` still reads in `H8_devmem.log` (the build log itself is not in the repository) |
 | `D1_ab_measure.log` | fps of four arms, 6 runs each: UIO 228.94, UIO elsewhere 229.09, driver with a Device mapping 228.83, driver 231.53 |
 | `D2_bench.log` | `twn_bench`: ioctl 1.63 us, backbone frame time split, CPU store/load bandwidth on the buffer in both mappings |
 | `D3_debugfs.log` | debugfs files, short frame, refused value, `dma_fault` without the SMMU (unnoticed) |
@@ -55,7 +57,10 @@ The first letter of a file name is where it was taken:
 | `H7_irq_vs_poll_fps.log` | three rounds alternating the interrupt and `use_irq=0`: 233.84 / 232.83 / 232.71 fps against 231.33 / 231.27 / 231.19 fps |
 | `H8_devmem.log` | `/dev/mem` refuses System RAM and the held registers; it still reads 0x7ff00000 (DDR outside System RAM) and the registers after `rmmod` |
 | `H9_ssh_first_login.log` | after a reboot of boot H: the same refusals as H1, then a first login over ssh with a terminal sets a new password (the script saw no shell prompt it recognised within 30 s), and an ssh command with the new password runs |
+| `H10_driver_state.log` | `v11_check.sh state` on the released image (2026-10-27, after a reboot of boot H): module info, binding, claimed registers, `/dev/twn_fuse`, CMA, the buffer at IOVA `0xffff800000`, sysfs after one frame (`cycles_total` 990937), a running app's mappings, ten reloads with a 64 MB buffer |
 | `board_hashes_H.txt` | the files on the board for boot H |
+| `I1_driver_state_nosmmu.log` | the same with the SMMU off: the buffer at `0x6a100000` inside CMA (from `0x6a000000`), ten reloads of 64 MB (640 MB in total, more than the 256 MB CMA) |
+| `I2_boot_state_nosmmu.log` | the boot state with the SMMU off |
 | `first_bitstream/` | the first v1.1 bitstream (Secure AXI masters), superseded; its own README |
 
 H1 and H2 were produced by the steps that are now `linux/driver/twn_fuse/test/pw_expired_ssh.sh` and

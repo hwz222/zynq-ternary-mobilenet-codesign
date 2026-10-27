@@ -4,39 +4,68 @@
 
 \subsection*{這份講義在講什麼}
 
-這是 \code{twn_fuse} driver 的開發筆記。這個 Linux kernel driver 管理 FPGA 上的三值（ternary，權重只有 $-1$、0、$+1$）MobileNetV2 加速器。
+這是 \code{twn_fuse} driver 的開發筆記。這個 Linux kernel driver 管理 FPGA 上的三值（ternary，權重只有 $-1$、0、$+1$）MobileNetV2 加速器，跑在 ALINX AXU2CGB 開發板（Zynq UltraScale+ XCZU2CG）上。專案經過三代：
 
-v1.0.0 的做法是 \textbf{UIO 加上 \code{/dev/mem}}：控制暫存器和 DDR 記憶體都直接開放給 app，app 自己寫暫存器、自己等硬體做完。這次改成 \textbf{kernel driver}：kernel 管暫存器、管記憶體、管操作順序，app 只能透過一組固定的介面使用加速器。
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+版本 & 程式碼 & 做法 \\
+\midrule
+v1.0.0 & commit \code{3bdd485} & \textbf{UIO 加上 \code{/dev/mem}}：控制暫存器和 DDR 都直接開放給 app，app 自己寫暫存器、自己等硬體做完；device tree 為它保留 256 MB \\
+driver v1.0 & commit \code{7615324} & 最早的 kernel driver：kernel 管暫存器、DMA buffer 和操作順序，app 只能用 \code{ioctl} 與 \code{mmap}；但只能輪詢、要手動 \code{insmod}，和 UIO、\code{/dev/mem} 並存，PL 的 DMA 沒有隔離 \\
+v1.1（發佈） & tag \code{v1.1.0}（之後只改了文件、註解與測試腳本） & 補上中斷、開機自動載入、限制 \code{/dev/mem}、SMMU、debugfs、binding，並發佈可以直接開機的映像 \\
+\bottomrule
+\end{tabularx}
+\end{center}
 
-講義按 driver 用到的技術分成十節。每一節都回答三件事：原本怎麼做、用了什麼技術、改善了什麼；接著用實際寫好的程式碼和板上跑出來的輸出，說明怎麼做以及背後的原理。面試常問的六個問題，在第 1 到第 6 節各有一個約 1 分鐘的完整回答，附錄 B 另有可以直接講出口的 30 秒版本。
+講義只講現在的 v1.1：每一章的程式碼都是現行版本；舊版本只出現在「原本怎麼做」的框裡，用來說明改了什麼。driver v1.0 這個中間版本，只在它和 v1.1 不同、而且差別有教學價值的地方出現（例如輪詢改中斷、除錯函式失效）。
 
 \subsection*{怎麼讀}
 
-每一節固定八個部分，順序不變：
+每一章都有這八個部分，順序不變；實際例子較長的章拆成幾個小節：
 
 \begin{center}
 \small
 \begin{tabularx}{0.95\textwidth}{>{\bfseries}l X}
 \toprule
-一句話 & 讀完這一句，就知道這節在講什麼 \\
-原本怎麼做 & v1.0.0 的寫法，以及問題出在哪幾行（\colorbox{oldbg}{橘色框}） \\
-用了什麼技術 & 這一節用到的 kernel API 與機制（\colorbox{techbg}{藍色框}） \\
+一句話 & 讀完這一句，就知道這章在講什麼 \\
+原本怎麼做 & 舊的寫法，以及問題出在哪裡（\colorbox{oldbg}{橘色框}）；框的標題寫明是 v1.0.0 還是 driver v1.0 \\
+用了什麼技術 & 這一章用到的 kernel API 與機制（\colorbox{techbg}{藍色框}） \\
 改善了什麼 & 具體、可以在板上驗證的改變；沒在板上驗證的會註明（\colorbox{gainbg}{綠色框}） \\
-實際例子 & driver 的實際程式碼，加上板上的實際輸出（黑底） \\
+實際例子 & 實際的程式碼，加上板上的實際輸出（黑底） \\
 原理 & 為什麼這樣做是對的；引用 Linux 6.1 的原始碼 \\
 面試會問 & 約 1 分鐘的完整回答（\colorbox{qabg}{紫色框}）；30 秒版本在附錄 B \\
-關鍵函式速查 & 函式、在哪個檔案第幾行、做什麼 \\
+關鍵函式速查 & 名稱、在哪個檔案第幾行、做什麼 \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-有些節另外有\colorbox{pitbg}{紅色框}的「踩過的坑」，記錄開發時真的出過的錯。
+有些章另外有\colorbox{pitbg}{紅色框}的「踩過的坑」，記錄開發時真的出過的錯。
 
-\textbf{程式碼都是真的。}每段程式碼都由 \code{extract.py} 從 repo 的實際檔案抽出，框上方是檔名和真實行號，不是手抄的。v1.0.0 的程式碼取自發佈 v1.0.0 的 commit \code{3bdd485}，或是 driver 版本仍然保留、內容沒有改的 UIO 實作。
+\textbf{程式碼都是真的。}每段程式碼都由 \code{extract.py} 從 repo 的實際檔案抽出，框上方是檔名和真實行號，不是手抄的。舊版本的程式碼直接從 git 取出，框上方的檔名後面標著 \code{@ v1.0.0 (3bdd485)} 或 \code{@ driver v1.0 (7615324)}；沒有這個標記的就是現行版本。
 
-\textbf{板上輸出也是真的。}黑框直接從 \code{results/raw/linux_driver_20261026/} 的紀錄檔讀出原文，框上方是檔名與行號。行首是 \texttt{\#} 加一個空格的那一行，是執行的指令本身。這些輸出都來自 2026-10-27 在 ALINX AXU2CGB 開發板上的同一輪執行：\code{BOOT.BIN} 的 SHA-256 前 16 個十六進位字元是 \code{690d87cc5f4b6897}，bitstream 是 \code{52b400785924efe0}，kernel 是 \code{6.1.30-xilinx-v2023.2}。
+\textbf{紀錄也是真的。}黑框直接從 \code{results/raw/} 底下的紀錄檔讀出原文，框上方是檔名、行號與開機組，框左邊的灰色數字是紀錄檔的行號。行首是 \texttt{\#} 加一個空格的那一行，在板上紀錄裡是執行的指令；例外是 S 檔與 H1、H2、H9 裡的幾行說明文字（例如實際按了哪些鍵），以及 D5 第 37 行 \texttt{\# CONFIG\_STRICT\_DEVMEM is not set}（kernel 設定檔本身的內容）。板上紀錄的時間是 UTC（台灣時間減 8 小時）；大多數紀錄的第 1 行是日期與開機檔的雜湊。雜湊都是 SHA-256 的前 16 個十六進位字元。紀錄依「開機組」（一組開機檔，可以開機很多次）分類，檔名的第一個字母就是開機組：
 
-全部讀完大約 6 到 7 小時，一天讀得完。每節大約 30 到 40 分鐘，第 1 到第 6 節是核心，第 7 到第 10 節較短。
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{c X}
+\toprule
+代號 & 開機檔與用途 \\
+\midrule
+A、B、C & v1.0.0 的開機檔（\code{BOOT.BIN} \code{690d87cc5f4b6897}），手動載入 driver v1.0（\code{8b3649080da3254d}）。A 是原本的 \code{system.dtb}，B 把節點的 \code{compatible} 改成 driver 的字串，C 是回退。紀錄在 \code{results/raw/linux_driver_20261026/}；這份講義只用它們呈現 v1.0.0 的狀態，以及和 driver v1.0 比較 \\
+D & v1.0.0 的開機檔（有 UIO 與 \code{/dev/mem}、沒有中斷線），手動載入 v1.1 的 driver 程式，只能輪詢。A/B 實驗、CPU 存取 buffer 的速度、pipeline 各階段的時間、v1.0.0 開機時的狀態都在這裡量 \\
+E & 發佈的開機檔（\code{BOOT.BIN} \texttt{\relBoot}、\code{system.dtb} \texttt{\relDtb}：有中斷、SMMU 打開），搭配發佈前的候選版 rootfs（\code{8c54689ab21fe45c}）；它的 driver 和發佈版只差兩個 probe 失敗路徑，改密碼的方式也不同（第 14 章） \\
+F & 找 SMMU stream ID 用的診斷組：最終的 bitstream 另一次打包的 \code{BOOT.BIN}（\code{18a066f87cfbad8d}），搭配第一次建出的 v1.1 kernel 與 rootfs，開機參數多一個 \code{arm_smmu.disable_bypass=1}；\code{system.dtb} 在 F0 只登記推算的三個 stream ID（\code{4889daa18dd6a320}），在 F1 登記量到的四個（\code{1c39e2e7a20bd5a1}）（第 11 章） \\
+G & 開機組 E，只把 \code{system.dtb} 換成關掉 SMMU 的版本 \\
+H & \textbf{發佈的 v1.1 映像}：開機檔與 E 相同，rootfs \texttt{\relRootfs}，板上工具包 \texttt{\relKit} \\
+I & 開機組 H，只把 \code{system.dtb} 換成關掉 SMMU 的版本（\code{6ceadb90b64b6a98}） \\
+S & PC 上的模擬、檢查與 bitstream 建置 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+D 到 I 與 S 的紀錄在 \code{results/raw/linux_driver_v11_20261027/}；那裡的 \code{first_bitstream/} 子目錄是第一版 v1.1 bitstream 的紀錄，因為 SMMU 的問題（第 11 章）而被取代。
 
 \subsection*{先認識幾個名字}
 
@@ -44,16 +73,18 @@ v1.0.0 的做法是 \textbf{UIO 加上 \code{/dev/mem}}：控制暫存器和 DDR
 \small
 \begin{tabularx}{0.95\textwidth}{>{\bfseries}l X}
 \toprule
-PS / PL & Zynq 晶片的兩半。PS（Processing System）是兩顆 Cortex-A53 CPU，跑 Linux；PL（Programmable Logic）是 FPGA 邏輯，放加速器 \\
+PS / PL & Zynq 晶片的兩半。PS（Processing System）是 Cortex-A53 CPU，跑 Linux；PL（Programmable Logic）是 FPGA 邏輯，放加速器 \\
 AXI、beat & AXI 是 ARM 定義的晶片內部匯流排。PL 存取 DDR 時一次搬一個 beat；這個設計的資料寬度是 128 bits，所以一個 beat 是 16 bytes \\
-CSR & Control/Status Registers，加速器的控制暫存器，共 64 KB，實體位址 \code{0xA000_0000}。CPU 經 AXI 讀寫它們 \\
-arena & 這份講義對「PL 讀寫的那塊 DDR 記憶體」的稱呼：權重、輸入影像、中間結果、輸出都放在這裡 \\
-backbone / head & PL 裡兩個獨立的運算引擎。backbone 跑網路主體的 17 個 block；head 跑最後四個 operator（運算層，程式裡叫 op61 到 op64），輸出 heatmap（每個關節一張的位置機率圖）。兩者各有自己的 start、busy、done 位元 \\
-描述子表 & descriptor table：17 個 block 各 16 個 32-bit word 的設定（形狀、權重位置、輸入輸出位置），由 app 寫進 CSR，PL 依表執行 \\
+HP 埠 & PL 存取 DDR 的高效能 AXI 埠，加速器用四個（HP0 到 HP3） \\
+CSR & Control/Status Registers，加速器的控制暫存器，共 64 KB，實體位址 \code{0xA000_0000} \\
+arena、buffer & PL 讀寫的那塊 DDR：權重、輸入影像、中間結果、輸出都放在這裡。v1.0.0 叫 arena（256 MB 保留區），driver 版本是 driver 配的 8 MB DMA buffer \\
+backbone / head & PL 裡兩個獨立的運算引擎。backbone 跑網路主體的 17 個 block；head 跑最後四個 operator（運算層），輸出 heatmap（每個關節一張的位置機率圖）。兩者各有自己的 start、busy、done 位元 \\
+描述子表 & descriptor table：17 個 block 各 16 個 32-bit word 的設定（形狀、權重位置、輸入輸出位置），由 app 提供、經 driver 寫進 CSR，PL 依表執行 \\
 NBLK & 「這一幀要跑幾個 block」的暫存器，平常是 17 \\
 BB2HD & 一個模式：backbone 的最後一個 block 直接把結果寫進 head 的輸入區，省掉 CPU 搬資料 \\
 fixture & 四張測試輸入，各附一份 golden（標準答案）輸出 \\
-\code{FUSE_HEAD_PL}、\code{FUSE_BB2HD} & 測試程式的兩個環境變數：\code{FUSE_HEAD_PL=1} 時 head 在 PL 上跑，\code{=0} 時在 CPU 上跑；\code{FUSE_BB2HD=1} 時開啟上面的 BB2HD 模式 \\
+pipeline & 量吞吐量用的 app \code{mbv2_fuse_pipe}：一個 producer thread 驅動 PL，讓 backbone 跑第 $k$ 幀時 head 同時跑第 $k-1$ 幀（第 7 章）；\code{mbv2_fuse_test} 則依序跑 4 張 fixture，每張跑完就逐位元比對 \\
+\code{FUSE_HEAD_PL}、\code{FUSE_BB2HD} & 測試程式的兩個環境變數：\code{FUSE_HEAD_PL=1} 時 head 在 PL 上跑，\code{=0} 時在 CPU 上跑；\code{FUSE_BB2HD=1} 時開啟 BB2HD 模式 \\
 bit-exact & 逐位元相同：輸出和 golden 的每一個 byte 都一樣，最大差值是 0 \\
 \code{twn_fuse} & 加速器的 IP 名稱：TWN 是 Ternary Weight Network（三值權重網路），fuse 是「把一個 block 的三層融合成一次串流」 \\
 \bottomrule
@@ -62,68 +93,100 @@ bit-exact & 逐位元相同：輸出和 golden 的每一個 byte 都一樣，最
 
 \subsection*{整體架構：改了什麼}
 
-圖~\ref{fig:arch} 左邊是 v1.0.0，右邊是這次的 driver 版本。差別在誰碰硬體：左邊是 app 透過兩個 kernel 提供的裝置檔，自己去碰暫存器和實體記憶體；右邊只有 driver 碰硬體。
+圖~\ref{fig:arch} 左邊是 v1.0.0，右邊是 v1.1。差別在誰碰硬體、PL 能碰到哪裡：左邊是 app 透過兩個裝置檔自己去碰暫存器和實體記憶體，PL 拿實體位址存取 DDR；右邊只有 driver 碰暫存器，app 只映射得到 driver 配的 buffer，PL 的存取經過 SMMU。
 
 \begin{figure}[h]
 \centering
 \begin{tikzpicture}[font=\footnotesize,
   box/.style={draw,rounded corners=2pt,align=center,minimum height=8mm,inner sep=3pt},
   arr/.style={-{Stealth[length=2mm]},thick}]
-% ---- left: UIO ----
-\node[box,fill=user,minimum width=50mm] (appL) at (0,0) {app\\\code{pl_hal_fuse.c}};
-\node[box,fill=kern,text width=22mm,below=14mm of appL.south west,anchor=north west] (uio) {\code{uio_pdrv_genirq}\\→ \code{/dev/uio4}};
-\node[box,fill=kern,text width=22mm,below=14mm of appL.south east,anchor=north east] (mem) {\code{mem.c}\\→ \code{/dev/mem}};
+% ---- left: v1.0.0 ----
+\node[box,fill=user,minimum width=52mm] (appL) at (0,0) {app\\\code{pl_hal_fuse.c}};
+\node[box,fill=kern,text width=22mm,below=12mm of appL.south west,anchor=north west] (uio) {\code{uio_pdrv_genirq}\\→ \code{/dev/uio4}};
+\node[box,fill=kern,text width=22mm,below=12mm of appL.south east,anchor=north east] (mem) {\code{mem.c}\\→ \code{/dev/mem}};
 \node[box,fill=hw,text width=22mm,below=8mm of uio] (csrL) {CSR\\0xA000\_0000};
-\node[box,fill=hw,text width=22mm,below=8mm of mem] (ddrL) {DDR 256 MB\\0x6000\_0000};
+\node[box,fill=hw,text width=22mm,below=8mm of mem] (ddrL) {DDR 保留區\\256 MB};
 \draw[arr,oldc] (appL.south -| uio) -- node[left,pos=0.45]{mmap} (uio);
 \draw[arr,oldc] (appL.south -| mem) -- node[right,pos=0.45]{mmap} (mem);
-\draw[arr,oldc] (uio) -- node[left]{app 直接讀寫} (csrL);
-\draw[arr,oldc] (mem) -- node[right]{app 直接讀寫} (ddrL);
+\draw[arr,oldc] (uio) -- node[left,align=right]{app\\直接讀寫} (csrL);
+\draw[arr,oldc] (mem) -- node[right,align=left]{app\\直接讀寫} (ddrL);
+\draw[arr,oldc,dashed] (csrL) -- node[below,align=center]{PL 用實體位址} (ddrL);
 \node[above=1mm of appL,font=\small\bfseries] {v1.0.0：UIO + /dev/mem};
-% ---- right: driver ----
-\node[box,fill=user,minimum width=50mm] (appR) at (66mm,0) {app\\\code{pl_hal_fuse_drv.c}};
-\node[box,fill=kern,minimum width=50mm,below=14mm of appR] (kR) {kernel：\code{twn_fuse.ko}\\ioremap、DMA buffer、ioctl};
-\node[box,fill=hw,text width=22mm,below=8mm of kR.south west,anchor=north west] (csrR) {CSR\\0xA000\_0000};
-\node[box,fill=hw,text width=22mm,below=8mm of kR.south east,anchor=north east] (ddrR) {DDR 8 MB\\由 CMA 配置};
-\draw[arr,techc] (appR) -- node[right,pos=0.45,align=left]{ioctl\\mmap（只有 buffer）} (kR);
-\draw[arr,techc] (kR.south -| csrR) -- node[left]{readl/writel} (csrR);
-\draw[arr,techc] (kR.south -| ddrR) -- node[right]{DMA API} (ddrR);
-\node[above=1mm of appR,font=\small\bfseries] {這次：kernel driver};
+% ---- right: v1.1 ----
+\node[box,fill=user,minimum width=56mm] (appR) at (70mm,0) {app\\\code{pl_hal_fuse_drv.c}};
+\node[box,fill=kern,minimum width=56mm,below=12mm of appR] (kR) {kernel：\code{twn_fuse.ko}\\ioremap、DMA API、ioctl、ISR};
+\node[box,fill=hw,text width=20mm,below=8mm of kR.south west,anchor=north west] (csrR) {CSR\\0xA000\_0000};
+\node[box,fill=kern,text width=10mm,below=8mm of kR.south] (smmu) {SMMU};
+\node[box,fill=hw,text width=18mm,below=8mm of kR.south east,anchor=north east] (ddrR) {DDR\\8 MB buffer};
+\draw[arr,techc] ([xshift=-6mm]appR.south) -- node[left,pos=0.45]{ioctl} ([xshift=-6mm]kR.north);
+\draw[arr,techc] ([xshift=6mm]appR.south) -- node[right,pos=0.45]{mmap（只有 buffer）} ([xshift=6mm]kR.north);
+\draw[arr,techc] ([xshift=-4mm]kR.south -| csrR) -- node[left]{writel} ([xshift=-4mm]csrR.north);
+\draw[arr,gainc] ([xshift=4mm]csrR.north) -- node[right]{IRQ} ([xshift=4mm]kR.south -| csrR);
+\draw[arr,techc] (csrR) -- (smmu);
+\draw[arr,techc] (smmu) -- node[below,font=\scriptsize]{IOVA} (ddrR);
+\node[above=1mm of appR,font=\small\bfseries] {v1.1：kernel driver};
 \end{tikzpicture}
-\caption{誰碰硬體。左：app 經兩個裝置檔，自己映射暫存器與整塊實體記憶體。右：只有 driver 碰暫存器，app 只映射得到 driver 配給它的 buffer。}
+\caption{誰碰硬體、PL 能碰到哪裡。左：app 經兩個裝置檔，自己映射暫存器與整塊保留區，PL 拿實體位址存取 DDR。右：只有 driver 碰暫存器，硬體做完用中斷通知；app 只映射得到 driver 配給它的 buffer；PL 的存取經 SMMU 轉換，只到得了這塊 buffer。}
 \label{fig:arch}
 \end{figure}
 
-注意右圖說的是「正常使用時」的路徑。這個 kernel 沒有開 \code{CONFIG_STRICT_DEVMEM}，root 權限的程式仍然可以自己去開 \code{/dev/mem}，driver 擋不住（第 4 節）。
+右圖的「只有 driver」有邊界：\code{/dev/mem} 仍能映射「不是 System RAM、也沒有 driver 佔用」的位址，例如 root 卸載 driver 之後的加速器暫存器（第 10 章）；SMMU 擋不住 Secure 交易與沒登記的 stream ID（第 11 章）。
 
-\subsection*{一個 frame 在 driver 版本裡怎麼走}
+\subsection*{一幀在 v1.1 裡怎麼走}
 
 \begin{enumerate}
-\item app 把輸入影像寫進 \code{mmap} 得到的 buffer（第 4 節）。
-\item app 呼叫 \code{ioctl(fd, TWN_IOC_BB_RUN, &r)}，\code{r} 裡只有兩個 offset：輸入在 buffer 的哪裡、輸出要寫到哪裡（第 5 節）。
-\item kernel 用 \code{copy_from_user} 把 \code{r} 複製進來，檢查 offset 在 buffer 範圍內（第 5 節）。
-\item driver 等 backbone 閒下來、清掉上一次的 done，把「buffer 的 DMA 位址 + offset」寫進位址暫存器，再寫 START（第 2、6 節）。
-\item driver 用 \code{readl_poll_timeout} 每隔幾十 µs 讀一次 done 位元，最多等 3 秒（第 6 節）。
-\item done 之後，driver 清掉 done、讀六個 cycle counter，用 \code{copy_to_user} 把結果交回 app（第 5、8 節）。
+\item app 把輸入影像寫進 \code{mmap} 得到的 buffer（第 4、9 章）。
+\item app 呼叫 \code{ioctl(fd, TWN_IOC_BB_RUN, &r)}，\code{r} 裡只有 offset：輸入在 buffer 的哪裡、輸出要寫到哪裡（第 5 章）。
+\item driver 先拿 backbone 的 mutex（第 7 章），再用 \code{copy_from_user} 把 \code{r} 複製進來，檢查 offset 在 buffer 範圍內（第 5 章）。
+\item driver 等 backbone 閒下來、清掉上一次的 done、重設 completion，把「buffer 的 DMA 位址 + offset」寫進位址暫存器，再寫 START；\code{writel} 前面的 barrier 保證剛寫的影像比 START 先被 PL 看到（第 2、6 章）。
+\item driver 在 completion 上睡，最多等 3 秒（第 6 章）。
+\item PL 經 SMMU 讀寫 buffer（第 11 章）；做完拉起中斷，ISR 清掉 done、喚醒 driver（第 6 章）。
+\item driver 讀六個 cycle counter，用 \code{copy_to_user} 交回 app（第 5、8 章）。
 \item app 直接從 buffer 讀輸出。
 \end{enumerate}
 
 \subsection*{結果總覽}
 
-同一顆 bitstream、同一次開機，兩種存取方式都在板上跑過（詳見第 10 節）：
-
+\needspace{16\baselineskip}
+發佈映像（開機組 H）上量到的，比較的對象寫在括號裡：
+\nopagebreak
 \begin{center}
 \small
-\begin{tabularx}{\textwidth}{X l X}
+\begin{tabularx}{\textwidth}{X l l}
 \toprule
-檢查 & UIO 版本（v1.0.0） & driver 版本 \\
+項目 & 結果 & 章 \\
 \midrule
-4 張 fixture，head 在 PL 與在 CPU & 4/4、4/4 bit-exact & 4/4、4/4 bit-exact \\
-錯誤路徑（\errChecks{} 項：\errRefusals{} 項該拒絕、2 項該成功） & 沒有這些檢查 & \errChecks/\errChecks{} 符合預期 \\
-卸載與重新載入 & 不適用 & 開著或只剩映射時拒絕 rmmod；5 次重載都 4/4 \\
-pipeline 吞吐量（120 frames，3 次平均） & \fpsUioMean{} fps & \fpsDrvMean{} fps \\
+4 張 fixture，head 在 PL／在 CPU & 4/4、4/4 bit-exact & 13 \\
+錯誤路徑（\errChecks{} 項：\errRefusals{} 項該拒絕、2 項該成功） & \errChecks/\errChecks{} 符合預期 & 5、13 \\
+pipeline 吞吐量（120 幀，3 次平均） & \relFpsMean{} fps & 13 \\
+每幀 CPU 時間（中斷，對照輪詢，開機組 E） & \irqCpuUs{} µs 對 \pollCpuUs{} µs & 6 \\
+吞吐量（中斷，對照同一次開機的輪詢） & \hIrqFps{} 對 \hPollFps{} fps & 6 \\
+CPU 寫 buffer（Normal non-cacheable，對照 Device 映射，開機組 D） & 寫輸入 \splitNcIn{} 對 \splitDevIn{} ms（每次執行的最後一幀） & 3 \\
+kernel 可用記憶體（對照 v1.0.0） & 多約 \memGainMB{} MB & 10 \\
+\code{/dev/mem} 讀 System RAM、driver 的暫存器 & 拒絕 & 10 \\
+PL 越界讀取（SMMU 開，對照關） & context fault（關掉時沒有察覺） & 11 \\
+bitstream timing（240 MHz） & WNS \wnsNs{} ns、WHS +\whsNs{} ns & 12 \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-吞吐量多了 0.8\%（另一次開機是 1.0\%），但原因分不出來，因為 driver 版本同時改了好幾件事（第 10 節）。這份講義不把它當成 driver 的效能改善。
+同一個設定的吞吐量，不同次執行之間會差到約 1 fps（例如上表兩列都是同一次開機、中斷模式，平均差 0.86 fps；原因沒有查）。所以中斷與輪詢只拿同一次開機、交替執行的三輪來比（第 6 章）。
+
+\subsection*{章節}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{c X}
+\toprule
+章 & 內容 \\
+\midrule
+1--4 & 基礎：kernel 怎麼找到 driver（probe、binding）、怎麼碰暫存器（MMIO、barrier）、DMA buffer 與記憶體屬性、把 buffer 交給 app（mmap） \\
+5--7 & 介面與同步：ioctl、中斷、鎖 \\
+8--9 & 周邊：sysfs 與 debugfs、app 端的 HAL 與攝影機輸入 \\
+10--11 & 隔離：限制 \code{/dev/mem}、SMMU \\
+12--14 & 工程：timing closure、驗證與靜態檢查、進映像與發佈 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+全部讀完大約 8 到 10 小時。第 1 到 6 章是核心，面試最常問；第 10、11 章是安全性；第 12 章偏硬體，只關心 driver 可以跳過。

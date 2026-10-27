@@ -118,7 +118,7 @@ void fuse_read_arr_cap(uint32_t out[4]) {
 }
 
 uint64_t fuse_run_frame(uint64_t in_pa, uint64_t out_pa, int yield_wait) {
-    (void)yield_wait;                   /* the driver always sleeps between polls */
+    (void)yield_wait;                   /* the driver sleeps until done: interrupt or polling */
     struct twn_bb_run r = { .in_off = in_pa, .out_off = out_pa };
     if (xioctl(TWN_IOC_BB_RUN, &r, "BB_RUN")) exit(1);
     memcpy(g_cycles, r.cycles, sizeof g_cycles);

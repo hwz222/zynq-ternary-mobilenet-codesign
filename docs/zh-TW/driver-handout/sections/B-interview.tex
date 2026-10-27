@@ -1,28 +1,60 @@
-\clearpage
-\section{面試六題：30 秒版本}
+\needspace{20\baselineskip}
+\section{面試題：30 秒版本}
 
-每題先講結論，再講一個這個專案裡的實際數字或證據。完整版在括號中的章節。
+每題先講結論，再講一個板上的數字或證據。完整版在括號中的章節。
 
-\begin{qashort}{1. compatible 字串怎麼讓 kernel 找到 driver、呼叫 probe？（第 1 節）}
-開機時 device tree 的每個 PL 節點被建成 platform device。我的 driver 在 \code{of_match_table} 放了 \code{"wjhuang,twn-fuse-1.0"}，註冊時 platform bus 用 \code{platform_match()} 比對：有 \code{driver_override} 就只比 driver 名字，否則比 compatible。對上了就呼叫 \code{probe()}，我在裡面映射暫存器、配 DMA buffer、建 \code{/dev/twn_fuse}。兩條路我都在板上驗證過。
+\begin{qashort}{1. compatible 字串怎麼讓 kernel 找到 driver、呼叫 probe？（第 1 章）}
+開機時 device tree 的每個 PL 節點被建成 platform device。driver 的 \code{of_match_table} 放了 \code{"wjhuang,twn-fuse-1.1"} 與 \code{-1.0}，註冊時 platform bus 用 \code{platform_match()} 比對：有 \code{driver_override} 就只比 driver 名字，否則比 compatible。對上了就呼叫 \code{probe()}：映射暫存器、配 DMA buffer、申請中斷、建 \code{/dev/twn_fuse}，全部用 \code{devm_}。版本號讓舊 driver 不會去等新硬體才有的中斷。
 \end{qashort}
 
-\begin{qashort}{2. 為什麼要 ioremap，不能直接用指標存取 0xA000\_0000？（第 2 節）}
-開了 MMU 之後指標都是虛擬位址，\code{0xA0000000} 當成虛擬位址屬於 user 那一半，kernel 頁表也沒有周邊的對應，直接存取會 page fault。\code{ioremap} 建一筆 Device-nGnRE 屬性的頁表：不走 cache、不合併、不重排。我用 \code{readl} / \code{writel} 存取，\code{writel} 寫入前有 \code{dma_wmb}，保證 app 寫進 DDR 的輸入在 START 之前就讓 PL 看得到。
+\begin{qashort}{2. 為什麼要 ioremap？readl／writel 和 barrier 是什麼？（第 2 章）}
+開了 MMU 之後指標都是虛擬位址，kernel 頁表裡沒有周邊，直接存取會 page fault。\code{ioremap} 建一筆 Device 屬性的頁表：不走 cache、不合併、不重排。存取用 \code{readl}／\code{writel}：\code{writel} 寫入前有 \code{dma_wmb}，app 寫進 DDR 的輸入一定比 START 先讓 PL 看到；\code{readl} 之後有 \code{dma_rmb}，讀到 done 之後讀輸出不會被提前。
 \end{qashort}
 
-\begin{qashort}{3. 為什麼不用 kmalloc 或 /dev/mem？HP port 不 coherent，cache 怎麼辦？（第 3 節）}
-我用 \code{dma_alloc_coherent}，它同時給 CPU 位址和 DMA 位址。\code{kmalloc} 是 cacheable、最大 4 MB、不給 DMA 位址；\code{/dev/mem} 能讀寫全部實體記憶體，位址還得寫死。HP port 不查 CPU cache，device tree 也沒寫 \code{dma-coherent}，所以 kernel 把 buffer 映射成 non-cacheable，CPU 直接讀寫 DDR。另外兩個選擇是 streaming DMA 加 \code{dma_sync_*}，或改用 HPC port 做硬體一致性。
+\begin{qashort}{3. DMA buffer 怎麼配？為什麼 driver 版本比較快？（第 3 章）}
+\code{dma_alloc_coherent} 同時給 CPU 位址和 DMA 位址；不用 \code{kmalloc}（cacheable、最大 4 MB、不給 DMA 位址），也不用 \code{/dev/mem}。HP 埠不查 CPU cache，kernel 把 buffer 映射成 non-cacheable。快的原因用四組 A/B 實驗把記憶體屬性單獨拆出來：「CPU 端屬性從 Device 改成 Normal non-cacheable」這一步有差，\abDrvDev{} 到 \abDrvNc{} fps，因為寫入可以合併，寫輸入從 \splitDevIn{} 降到 \splitNcIn{} ms（每次執行的最後一幀）。
 \end{qashort}
 
-\begin{qashort}{4. app 為什麼只看得到 buffer，看不到暫存器？（第 4 節）}
-app 的頁表由 kernel 決定。driver 的 \code{.mmap} 只用 \code{dma_mmap_coherent} 映射那塊 buffer，並檢查長度和 offset；暫存器只在 kernel 裡 ioremap。板上 \code{/proc/<pid>/maps}：UIO 版本有 256 MB 的 \code{/dev/mem} 和 64 KB 的 \code{/dev/uio4}，driver 版本只有 8 MB 的 \code{/dev/twn_fuse}。限制是沒開 \code{STRICT_DEVMEM}，root 仍可自己開 \code{/dev/mem}。
+\begin{qashort}{4. app 為什麼只看得到 buffer？為什麼用 mmap 不用 read／write？（第 4 章）}
+app 的頁表由 kernel 決定。driver 的 \code{.mmap} 只用 \code{dma_mmap_coherent} 映射那塊 buffer，檢查長度與 offset；暫存器只在 kernel 裡 ioremap。執行中的 app 的 \code{maps} 只有 8 MB 的 \code{/dev/twn_fuse}。每幀幾百 KB 的資料用 \code{read}／\code{write} 要多複製兩次，mmap 讓 app 和 PL 看同一塊記憶體。
 \end{qashort}
 
-\begin{qashort}{5. 為什麼用 copy\_from\_user？為什麼只收 offset？（第 5 節）}
-user 指標可能沒有映射，或故意指向 kernel。\code{copy_from_user} 先用 \code{access_ok} 檢查範圍，出錯時由 exception table 接住並回傳失敗，我回 \code{-EFAULT}；A53 沒有 PAN，硬體不會擋。只收 offset 是因為 PL 的 DMA 沒經過 SMMU，給什麼位址就寫什麼；driver 檢查對齊和範圍（含溢位）後才加上自己的 DMA 位址。\errChecks{} 項錯誤測試都符合預期。
+\begin{qashort}{5. ioctl 和其他介面怎麼選？（第 5 章）}
+依資料性質選：大量資料用 mmap 零複製；對裝置的動作和結構化參數用 ioctl，\code{_IOWR} 把方向和大小編進指令碼；給人看的狀態用 sysfs，除錯用 debugfs。所以 file operations 只有 open、release、mmap、unlocked\_ioctl。一次 ioctl \ioctlUs{} µs，跑一幀的系統呼叫、複製加讀回 counter 合計 \bbSysUs{} µs，介面不是瓶頸。
 \end{qashort}
 
-\begin{qashort}{6. 為什麼用 polling 不用中斷？要改成中斷怎麼做？（第 6 節）}
-因為 bitstream 沒有中斷線：block design 把 \code{pl_ps_irq0} 接常數 0。driver 用 \code{readl_poll_timeout} 每次睡 13–50 µs（hrtimer），3 秒逾時回 \code{-ETIMEDOUT}，板上實測 \timeoutSec{} 秒回來。改中斷要：RTL 加 level 的 irq 輸出、block design 接上、device tree 加 \code{interrupts}、driver 用 \code{devm_request_irq} 加 completion，在 ISR 清掉 done。最大成本是重建 bitstream，timing 餘裕是 0。
+\begin{qashort}{6. 為什麼用 copy\_from\_user？有了 SMMU 為什麼還只收 offset？（第 5、11 章）}
+user 指標可能沒有映射，或故意指向 kernel；\code{copy_from_user} 先用 \code{access_ok} 檢查範圍，出錯時由 exception table 接住，我回 \code{-EFAULT}；A53 沒有 PAN，硬體不會擋。只收 offset、檢查對齊與範圍（含溢位）再加上 DMA 位址，是第一道防線；SMMU 只擋得住帶著登記過的 stream ID 的 Non-secure 交易，也不管 buffer 內部寫到哪一區。\errChecks{} 項錯誤測試都符合預期。
+\end{qashort}
+
+\begin{qashort}{7. 怎麼把輪詢改成中斷？（第 6 章）}
+RTL 加一個暫存器輸出的 level 中斷，等於致能 AND done，致能放在獨立暫存器，免得被 START 寫掉；IP 宣告成 interrupt 介面，接 \code{pl_ps_irq0}，device tree 是 SPI 89。driver 用 \code{devm_request_irq}，ISR 清 done、\code{complete()}，返回前讀回一次確保清除到達；\code{reinit_completion} 放在 START 之前。1000 幀剛好 1000 次中斷；只切換 \code{use_irq} 比較，每幀 CPU 時間從 \pollCpuUs{} 降到 \irqCpuUs{} µs；另一次開機交替量三輪，吞吐量從 \hPollFps{} 變成 \hIrqFps{} fps。
+\end{qashort}
+
+\begin{qashort}{8. 怎麼處理並行？為什麼用 mutex 不用 spinlock？（第 7 章）}
+兩層：\code{open} 用 \code{test_and_set_bit} 讓同一時間只有一次 open 成功，因為描述子表與 base 位址是整顆加速器共用的狀態；backbone 和 head 各一把 mutex，同一個引擎的暫存器操作不被插隊。拿著鎖時會睡在 completion 上好幾 ms，spinlock 不能睡。也拿掉了 sysfs 的 unbind，因為它會在 buffer 還被映射時釋放 buffer。
+\end{qashort}
+
+\begin{qashort}{9. 狀態和除錯功能怎麼給？（第 8 章）}
+狀態放 sysfs：六個 cycle counter、STATUS、NBLK 各一個唯讀檔，交給 \code{.dev_groups}，driver core 在 probe 後建檔、remove 前移除；跑完一幀 \code{cycles_total} 約 99 萬 cycles。除錯放 debugfs，不當 ABI：\code{debugfs_create_regset32} 印暫存器，可寫的 \code{nblk} 檢查範圍、拿 backbone 的鎖，寫 99 回 \code{EINVAL}。
+\end{qashort}
+
+\begin{qashort}{10. 為什麼限制 /dev/mem？（第 10 章）}
+它把整個實體位址開給 root。driver 用 DMA API 配 buffer、只 mmap buffer，app 不再需要 \code{/dev/mem}，256 MB 保留區也拿掉了。\code{STRICT_DEVMEM} 擋 System RAM，\code{IO_STRICT_DEVMEM} 擋 driver 佔用中的暫存器；板上 \code{devmem} 都回 \code{Operation not permitted}。邊界也講得出來：不是 System RAM、也沒有 driver 佔用的位址都還能映射，例如卸載 driver 後的暫存器、DDR 最上面 1 MB 的 PMU 保留區。
+\end{qashort}
+
+\begin{qashort}{11. SMMU 怎麼讓 PL 只能碰自己的 buffer？（第 11 章）}
+device tree 打開 SMMU，給四個 HP 埠登記 stream ID；DMA API 自動把 buffer 映射到 IOVA，越界讀取變成 context fault。第一次失敗是因為 AXI master 送的是 Secure 交易，Linux 只設定 Non-secure 那一側；改成 AxPROT[1] = 1 才生效。另外三個埠的 ID 我推算錯了兩個，用 \code{disable_bypass} 讓 SMMU 回報才量出來。限制：發佈的 kernel 對沒登記的 stream ID 是 bypass。
+\end{qashort}
+
+\begin{qashort}{12. 改了 RTL 之後 timing 收不了怎麼辦？（第 12 章）}
+先固定配方，只動 RTL。建置腳本在 route 後若 WNS 小於 0，自動跑 \code{phys_opt_design}，不行再重新 route。把 AxPROT[1] 從 0 改成 1，只改常數，route 完卻是 $-$0.032 ns，靠 route 後的 \code{phys_opt_design}（strategy 內建一次、建置腳本再兩次）補到 0。備案是確認 Vivado 對同樣的輸入給出同樣的結果，重現上一版收斂的設計，再用 ECO 只改那幾根常數 pin；最後沒有用到。
+\end{qashort}
+
+\begin{qashort}{13. 怎麼證明 driver 是對的？（第 13 章）}
+fixture 在兩種 head 擺法都和 golden 逐位元相同；\errChecks{} 項錯誤路徑回傳預期的錯誤碼，逾時 \timeoutSec{} 秒回來；裝置開著或只剩映射時 \code{rmmod} 被拒，5 次重載都 4/4；SMMU 關掉時 10 次各配 64 MB、總量超過 CMA，證明 buffer 有歸還。\code{W=1} 與 \code{checkpatch --strict} 0 個警告；\code{dt_binding_check} 與 sparse 沒跑，我會說明原因和補法。
+\end{qashort}
+
+\begin{qashort}{14. driver 怎麼進映像？發佈映像怎麼處理密碼？（第 14 章）}
+Yocto 的 module recipe：\code{inherit module} 用映像自己的 kernel 樹編，vermagic 一定對；\code{KERNEL_MODULE_AUTOLOAD} 讓 systemd 開機載入，udev 也會依 modalias 載入；device tree 的 \code{compatible} 改成 driver 的字串。密碼用公開的預設值，建置時就用 \code{passwd-expire} 讓它過期，所以第一次登入一定要改；改之前 ssh 帶指令與 scp 都被拒絕。fixture 換成公式產生的合成圖，發佈檔沒有個人資料。
 \end{qashort}

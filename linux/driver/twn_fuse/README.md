@@ -128,6 +128,5 @@ the `clk_ignore_unused` boot argument.
 is MIT so that Apache-2.0 user-space code can include it. The rest of this directory follows the
 repository's Apache-2.0 license.
 
-Study handouts in Traditional Chinese that explain each technique with this code:
-[`docs/zh-TW/driver-handout/`](../../../docs/zh-TW/driver-handout/) (v1.0) and
-[`docs/zh-TW/driver-handout-2/`](../../../docs/zh-TW/driver-handout-2/) (v1.1).
+A study handout in Traditional Chinese explains each technique with this code:
+[`docs/zh-TW/driver-handout/`](../../../docs/zh-TW/driver-handout/).

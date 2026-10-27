@@ -1,4 +1,4 @@
-% twn_fuse Linux driver 開發講義（繁體中文）。建置：在本資料夾執行 latexmk，輸出 build/handout.pdf。
+% twn_fuse Linux driver 開發講義（v1.1，繁體中文）。建置：在本資料夾執行 latexmk，輸出 build/handout.pdf。
 \documentclass[11pt,a4paper]{article}
 \usepackage[top=20mm,bottom=20mm,left=20mm,right=20mm,headheight=14pt]{geometry}
 \usepackage{fontspec}
@@ -29,6 +29,8 @@
 \usepackage{fancyhdr}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
+\usepackage{needspace}
+\usepackage{etoolbox}
 
 \definecolor{ink}{HTML}{1F3A5F}
 \definecolor{oldc}{HTML}{8A5A00}   \definecolor{oldbg}{HTML}{FFF6E5}
@@ -43,6 +45,19 @@
 \titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
 \titlespacing*{\section}{0pt}{0.6em}{0.6em}
 \titlespacing*{\subsection}{0pt}{0.9em}{0.35em}
+% 小節標題下面至少要放得下 8 行，標題才不會單獨留在頁底
+\pretocmd{\subsection}{\needspace{8\baselineskip}}{}{}
+% 版面是 raggedbottom：頁底留白不算代價，所以任何負的 penalty 都會被當成最佳斷點，整頁後面的
+% 內容只要放不下一個不可拆的框，就退回到那裡換頁、留下大片空白。標準的 \needspace 會先放一個
+% \penalty-100，章節標題本身也有 \@secpenalty（-300）；兩者都拿掉，只在真的放不下時才強制換頁。
+% 量剩餘空間之前先放一個 \penalty0：page builder 只在遇到斷點時才換頁，前一個不可拆的框（紀錄框）
+% 若已經超出這一頁，\pagetotal 還是舊頁加上它的高度；先讓它把舊頁送出，量到的才是新的一頁。
+\makeatletter
+\@secpenalty=0
+\renewcommand{\needspace}[1]{\par\penalty\z@\begingroup\setlength{\dimen@}{#1}%
+  \dimen@ii\pagegoal\advance\dimen@ii-\pagetotal
+  \ifdim\dimen@>\dimen@ii\ifdim\dimen@ii>\z@\vfil\fi\penalty-\@M\fi\endgroup}
+\makeatother
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -52,10 +67,11 @@
 \renewcommand{\headrulewidth}{0.3pt}
 \renewcommand{\sectionmark}[1]{\markboth{\thesection\ #1}{}}
 
-% ---- 每一節固定的框 ----
+% ---- 每一章固定的框 ----
 \newtcolorbox{oneline}{colback=ink!6,colframe=ink,boxrule=0.6pt,arc=1mm,left=2mm,right=2mm,
   fontupper=\bfseries,before skip=0.4em,after skip=0.6em}
-\newtcolorbox{before}{colback=oldbg,colframe=oldc,title={原本怎麼做（v1.0.0 的 UIO 版本）},
+% 「原本」可能是 v1.0.0 的 UIO 寫法，也可能是 driver v1.0；框的標題寫清楚是哪一個
+\newtcolorbox{before}[1][原本怎麼做（v1.0.0 的 UIO 版本）]{colback=oldbg,colframe=oldc,title={#1},
   fonttitle=\bfseries,boxrule=0.6pt,arc=1mm,breakable}
 \newtcolorbox{tech}{colback=techbg,colframe=techc,title={用了什麼技術},fonttitle=\bfseries,
   boxrule=0.6pt,arc=1mm,breakable}
@@ -76,23 +92,100 @@
   keywordstyle=\color{techc}\bfseries,commentstyle=\color{gray!90!black}\itshape,
   stringstyle=\color{oldc},captionpos=t,aboveskip=0.5em,belowskip=0.5em,
   morekeywords={u32,u64,size_t,bool,dma_addr_t,__u32,__u64,uint32_t,uint64_t}}
-% \snip[語言]{標籤}：印出 build/snippets/<標籤>.c，標題是「檔案 : 起始行–結束行」
+% \snip[語言]{標籤}：印出 build/snippets/<標籤>.c，標題是「檔案 : 起始行–結束行」（舊版本的程式
+% 另外標出 commit）。開始一個程式框之前，估計這一頁還放得下幾行程式（一行約 0.75 個內文行距，
+% 從建出的 PDF 量的，略為保守；標題與框另算 3 行；行數用 extract.py 算好的 \snipvis，太長而折行的
+% 算兩行）。框放不下而會被拆開時，若留在這一頁的少於 6 行就先換頁；若跑到下一頁的少於 5 行，
+% 短的框先換頁，長的框（換頁會空下 25 行以上）則自己在倒數第 5 行之前拆開，下一頁至少有 5 行。
+% 其他情形照常拆開。在框裡面（\ifinner）不檢查：框自己決定怎麼分頁。
+\newcount\sniplines
+\newcount\snipfit
+\newcount\snipcut   % > 0：這一頁只印前 \snipcut 行，其餘換頁再印
 \newcommand{\snip}[2][C]{%
   \input{build/snippets/#2.tex}%
-  \lstinputlisting[language=#1,firstnumber=\snipfirst,
-    title={\scriptsize\ttfamily\snippath\ :\ \snipfirst--\sniplast}]{build/snippets/#2.c}}
-% 板上實際輸出：\boardfile[說明]{檔名}{起-迄行} 直接從 results/raw/linux_driver_20261026/ 讀出原文，
-% 不手抄；行首「# 」是腳本印出的指令本身
-\lstdefinestyle{board}{language={},numbers=none,xleftmargin=0pt,
+  \sniplines=\snipvis\relax \snipcut=0
+  \par\ifinner\else
+    \penalty0 % 同 \needspace：先讓已經超出的舊頁送出，再量
+    \dimen0=\pagegoal \advance\dimen0 by -\pagetotal
+    \ifdim\dimen0>3\baselineskip
+      \snipfit=\numexpr\dimexpr\dimen0-3\baselineskip\relax/\dimexpr\baselineskip*75/100\relax\relax
+      \ifnum\snipfit<\sniplines
+        \ifnum\numexpr\sniplines-\snipfit\relax<5
+          \ifnum\snipfit<25 \vfil\penalty-10000
+          \else \snipcut=\numexpr\sniplast-\snipfirst+1-5\relax \fi
+        \else\ifnum\snipfit<6 \vfil\penalty-10000\fi\fi
+      \fi
+    \else\ifdim\dimen0>0pt \vfil\penalty-10000\fi\fi
+  \fi
+  \ifnum\snipcut>0
+    \lstinputlisting[language=#1,firstnumber=\snipfirst,lastline=\the\snipcut,
+      title={\scriptsize\ttfamily\snippath\ :\ \snipfirst--\sniplast}]{build/snippets/#2.c}%
+    \par\vfil\penalty-10000
+    \lstinputlisting[language=#1,firstline=\the\numexpr\snipcut+1\relax,
+      firstnumber=\the\numexpr\snipfirst+\snipcut\relax,aboveskip=0pt]{build/snippets/#2.c}%
+  \else
+    \lstinputlisting[language=#1,firstnumber=\snipfirst,
+      title={\scriptsize\ttfamily\snippath\ :\ \snipfirst--\sniplast}]{build/snippets/#2.c}%
+  \fi}
+% 段落的最後一兩行不單獨留到下一頁（紀錄框前面的引言常常只剩一行跟著框走）
+\widowpenalties 3 10000 10000 150
+
+% ---- 板上與模擬的實際輸出 ----
+% \boardfile[說明]{檔名}{起-迄行}：直接從 results/raw/ 讀出紀錄原文，不手抄。檔名的第一個字母就是
+% 導讀表格裡的開機組：A、B、C 與 dtb_diff 在 linux_driver_20261026/（driver v1.0 那一輪），其餘
+% （D–I、S、first_bitstream/）在 linux_driver_v11_20261027/。標題自動帶上開機組。框左邊的灰色數字
+% 是紀錄檔本身的行號，正文用「第 N 行」引用的就是它。listings 的 linerange 遇到跳行時會接著
+% 往下編號，所以行號範圍裡的每一段（以逗號分開）各印成一個緊接著的框，從那一段的起始行號編起。
+\lstdefinestyle{board}{language={},numbers=left,numberstyle=\tiny\color{gray},numbersep=4pt,
+  xleftmargin=0pt,belowskip=0pt,
   basicstyle=\ttfamily\scriptsize\color{white},backgroundcolor=\color{black!82},
   rulecolor=\color{black!82}}
-\newcommand{\logdir}{../../../results/raw/linux_driver_20261026}
-% 每個框都不超過 25 行，放進 minipage 讓它不會跨頁斷開
+\ExplSyntaxOn
+\seq_new:N \l__board_seq
+\tl_new:N \l__board_first_tl
+\tl_new:N \l__board_last_tl
+\bool_new:N \l__board_first_bool
+\cs_new_protected:Npn \__board_titled:nnn #1#2#3
+  { \lstinputlisting[style=board,firstline=#1,lastline=#2,firstnumber=#1,title={#3}]{\boardpath} }
+\cs_new_protected:Npn \__board_cont:nn #1#2
+  { \lstinputlisting[style=board,firstline=#1,lastline=#2,firstnumber=#1,aboveskip=0pt]{\boardpath} }
+\cs_generate_variant:Nn \__board_titled:nnn { VVn }
+\cs_generate_variant:Nn \__board_cont:nn { VV }
+% \boardranges{起-迄,起-迄,...}{標題}：每一段一個框，只有第一個帶標題
+\NewDocumentCommand \boardranges { m m }
+  {
+    \bool_set_true:N \l__board_first_bool
+    \clist_map_inline:nn {#1}
+      {
+        \seq_set_split:Nnn \l__board_seq { - } {##1}
+        \tl_set:Ne \l__board_first_tl { \seq_item:Nn \l__board_seq { 1 } }
+        \tl_set:Ne \l__board_last_tl { \seq_item:Nn \l__board_seq { -1 } }
+        \bool_if:NTF \l__board_first_bool
+          {
+            \__board_titled:VVn \l__board_first_tl \l__board_last_tl {#2}
+            \bool_set_false:N \l__board_first_bool
+          }
+          { \__board_cont:VV \l__board_first_tl \l__board_last_tl }
+      }
+  }
+\ExplSyntaxOff
+\newcommand{\rawdir}{../../../results/raw}
+\newcommand{\logsub}[1]{\logsubi#1\relax}
+\def\logsubi#1#2\relax{\if#1Alinux_driver_20261026\else\if#1Blinux_driver_20261026\else
+  \if#1Clinux_driver_20261026\else\if#1dlinux_driver_20261026\else
+  linux_driver_v11_20261027\fi\fi\fi\fi}
+\newcommand{\whereof}[1]{\whereofi#1\relax}
+\def\whereofi#1#2\relax{\if#1S（PC）\else\if#1d（PC）\else\if#1f（第一版 v1.1 bitstream）\else
+  （開機組 #1）\fi\fi\fi}
+% 每個框都不超過 25 行，放進 minipage 讓它不會跨頁斷開；框前面不准換頁，放不下時前一段的最後
+% 幾行會跟著框一起移到下一頁，引言才不會和框分開。紀錄檔不存在時印出紅字，交付前不可以有
 \newcommand{\boardfile}[3][]{%
-  \par\noindent\begin{minipage}{\linewidth}%
-  \lstinputlisting[style=board,linerange={#3},
-    title={\scriptsize\ttfamily results/raw/linux\_driver\_20261026/\detokenize{#2}\ :\ #3\normalfont #1}]{\logdir/#2}%
-  \end{minipage}\par}
+  \edef\boardsub{\logsub{#2}}%
+  \edef\boardpath{\rawdir/\boardsub/#2}%
+  \IfFileExists{\boardpath}{%
+  \par\nopagebreak\noindent\begin{minipage}{\linewidth}%
+  \boardranges{#3}{\scriptsize\ttfamily results/raw/\expandafter\detokenize\expandafter{\boardsub}/\detokenize{#2}\ :\ #3\normalfont\whereof{#2}#1}%
+  \end{minipage}\par}{\par\noindent\textcolor{red}{（紀錄待補：\detokenize{#2} #3）}\par}}
 \lstnewenvironment{cmdline}{\lstset{language=bash,numbers=none,xleftmargin=0pt,
   basicstyle=\ttfamily\footnotesize}}{}
 
@@ -111,8 +204,8 @@
 % \lineof{標籤}：該段程式碼在原始檔的起始行號（給速查表用，跟著程式碼自動更新）
 \newcommand{\lineof}[1]{\begingroup\input{build/snippets/#1.tex}\snipfirst\endgroup}
 
-\title{\bfseries twn\_fuse Linux platform driver 開發講義\\[0.3em]
-  \large 從 UIO 到 kernel driver：每一項技術、每一行關鍵程式}
+\title{\bfseries twn\_fuse Linux driver 開發講義\\[0.3em]
+  \large 從 UIO 到 kernel driver：probe、DMA、ioctl、中斷、記憶體隔離與發佈（v1.1）}
 \author{Wei-Jhe Huang}
 \date{2026 年 10 月 27 日}
 \renewcommand{\contentsname}{目錄}
@@ -122,20 +215,26 @@
 \begin{document}
 \maketitle
 \thispagestyle{empty}
-\tableofcontents
+% 每一章的小節都是同樣的八個部分，目錄只列章
+\setcounter{tocdepth}{1}
+{\setlength{\parskip}{0pt}\tableofcontents}
 \clearpage
 
 \input{sections/00-intro}
-\input{sections/01-dt-probe}
+\input{sections/01-probe}
 \input{sections/02-mmio}
 \input{sections/03-dma}
 \input{sections/04-mmap}
 \input{sections/05-ioctl}
-\input{sections/06-wait}
+\input{sections/06-irq}
 \input{sections/07-lock}
-\input{sections/08-sysfs}
-\input{sections/09-hal}
-\input{sections/10-verify}
+\input{sections/08-observe}
+\input{sections/09-app}
+\input{sections/10-devmem}
+\input{sections/11-smmu}
+\input{sections/12-timing}
+\input{sections/13-verify}
+\input{sections/14-release}
 \appendix
 \input{sections/A-glossary}
 \input{sections/B-interview}

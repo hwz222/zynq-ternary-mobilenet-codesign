@@ -1,125 +1,109 @@
-\clearpage
-\section{ioctl：控制介面、copy\_from\_user 與 offset}
+\needspace{20\baselineskip}
+\section{file operations 與 ioctl：控制介面、copy\_from\_user 與 offset}
 \label{sec:ioctl}
 
 \begin{oneline}
-app 透過 ioctl 下指令，kernel 一律用 \code{copy_from_user} 取參數，而 DDR 位址只收 buffer 內的 offset，由 driver 檢查範圍後再加上 buffer 的 DMA 位址寫進硬體。
+\code{/dev/twn_fuse} 只實作 \code{open}、\code{release}、\code{mmap}、\code{unlocked_ioctl} 四個 file operation：資料走 mmap，指令走 ioctl，參數一律用 \code{copy_from_user} 取，DDR 位址只收 buffer 內的 offset。
 \end{oneline}
 
 \begin{before}
-app 自己寫暫存器，寫進去的位址是實體位址（\code{g_arena_pa + OFF_IN} 這種算法）。第 80–81 行的 \code{wr64()} 直接把它拆成兩個 word 寫進 PL：
-
-\snip{uio_wr_rd}
-
-PL 拿到什麼位址就讀寫什麼位址，不經過任何權限檢查。只要 app 算錯一個位址，或被惡意修改，PL 就會去改寫 kernel 或其他程式的記憶體。
+app 自己寫暫存器，寫進去的是實體位址（\code{g_arena_pa + OFF_IN} 這種算法）。\code{wr64()} 直接把它拆成兩個 word 寫進 PL（第 2 章「原本怎麼做」的 \code{pl_hal_fuse.c} 第 80 行）。PL 拿到什麼位址就讀寫什麼位址，不經過任何檢查；app 算錯一個位址，或被惡意修改，PL 就會改寫 kernel 或其他程式的記憶體。每個 app 也都要自己記住「先等 idle、清 done、寫位址、再寫 START」的順序。
 \end{before}
 
 \begin{tech}
 \begin{itemize}
-\item misc device：主裝置號固定是 10、次裝置號自動分配的字元裝置，一個 \code{misc_register()} 就會出現 \code{/dev/twn_fuse}。
-\item \code{file_operations.unlocked_ioctl}：app 呼叫 \code{ioctl(fd, cmd, arg)} 時，kernel 呼叫的函式。
-\item \code{_IO} / \code{_IOR} / \code{_IOW} / \code{_IOWR}：把「方向、資料大小、類別、編號」編進一個 32-bit 指令碼的巨集。
-\item uapi header：driver 和 app 共用的 \code{twn_fuse_ioctl.h}，只用 \code{__u32}、\code{__u64} 這種兩邊都有的型別。
-\item \code{copy_from_user} / \code{copy_to_user} / \code{get_user} / \code{put_user} / \code{memdup_user}：在 user 和 kernel 記憶體之間安全地搬資料。
-\item \code{in_arena()}：driver 自己的範圍檢查，所有 offset 都要經過它。
+\item misc device：主裝置號固定是 10、次裝置號自動分配的字元裝置，一個 \code{misc_register()} 就出現 \code{/dev/twn_fuse}。
+\item \code{struct file_operations}：把 \code{open}、\code{mmap}、\code{ioctl} 等系統呼叫接到 driver 的函式。
+\item \code{_IO}／\code{_IOR}／\code{_IOW}／\code{_IOWR}：把方向、參數大小、類別、編號編進一個 32-bit 指令碼的巨集。
+\item uapi header \code{twn_fuse_ioctl.h}：driver 與 app 共用，只用 \code{__u32}、\code{__u64} 這種兩邊都有的固定寬度型別。
+\item \code{copy_from_user}／\code{copy_to_user}／\code{memdup_user}：在 user 與 kernel 記憶體之間安全地搬資料；\code{in_arena()}：driver 自己的範圍檢查。
+\item \code{void __user *}：標記「這是 user space 的指標」的型別，和第 2 章的 \code{__iomem} 一樣是給靜態檢查工具 sparse 看的，直接解這種指標會被它擋下。
 \end{itemize}
 \end{tech}
 
 \begin{gain}
 \begin{itemize}
 \item 每個指令就是一段完整、順序固定的暫存器操作，app 不可能漏掉某一步。
-\item 寫進 PL 的位址一定落在 driver 的 buffer 裡；head 的傳輸長度已知，連「從起點到終點」整段範圍都會檢查。
-\item 錯誤用標準錯誤碼回報：位址越界回 \code{EINVAL}、壞指標回 \code{EFAULT}、不認得的指令回 \code{ENOTTY}（板上 7 項錯誤測試，見下）。呼叫端可以自己處理；目前的 HAL 為了不改原本的函式介面，收到錯誤仍然直接結束程式（第 9 節）。
+\item 寫進 PL 的位址一定落在 driver 的 buffer 裡；head 的傳輸長度已知，連「從起點到終點」整段都檢查。
+\item 錯誤用標準錯誤碼回報：越界回 \code{EINVAL}、壞指標回 \code{EFAULT}、不認得的指令回 \code{ENOTTY}。
+\item 介面本身幾乎不花時間：一次 ioctl 來回 \ioctlUs{} µs；跑一幀時，系統呼叫、拿鎖、參數複製與讀回六個 cycle counter 合計 \bbSysUs{} µs，不到幀時間的 0.1\%。
 \end{itemize}
 \end{gain}
 
-\subsection{實際例子：程式碼與板上輸出}
+\subsection{實際例子}
 
-\textbf{介面定義：九個指令。}這段在 \code{twn_fuse_ioctl.h}，driver 和 app 都 include 它：
+\textbf{四個 file operation。}沒有 \code{.read}／\code{.write}：app 呼叫 \code{read()} 會直接得到 \code{-EINVAL}。
+
+\snip{drv_fops}
+
+\code{open} 用 \code{test_and_set_bit} 讓一次只有一個 process 能打開（第 7 章）；\code{file_to_td()} 用 \code{container_of}，從 \code{misc_register} 註冊的 \code{struct miscdevice} 反推回整個 \code{struct twn_dev}，所有 file operation 都靠它找到暫存器、buffer 與鎖：
+
+\snip{drv_file_to_td}
+
+\textbf{介面定義：九個指令。}\code{0xBC} 是這個 driver 的類別（magic），Linux 6.1 的 \code{ioctl-number.rst} 裡沒有人登記；第三個參數是型別，巨集用 \code{sizeof} 把大小編進指令碼：
 
 \snip{uapi_cmds}
-
-\code{0xBC} 是這個 driver 的「類別」（magic）。Linux 6.1 的 \code{Documentation/userspace-api/ioctl/ioctl-number.rst} 裡，\code{0xB8}–\code{0xBF} 沒有人登記。第二個參數是編號，第三個是參數的型別，巨集會用 \code{sizeof} 把大小編進去。例如跑一個 frame 的參數：
-
 \snip{uapi_bb_run}
 
-\textbf{設定 base：最簡單的完整範例。}複製參數、檢查範圍、寫暫存器，三步：
+\textbf{最簡單的完整範例：設定 base。}複製參數、檢查範圍、寫暫存器：
 
 \snip{drv_set_bases}
 
-\textbf{範圍檢查。}檢查三件事：起點 16-byte 對齊（PL 一次搬一個 16-byte 的 beat）、起點在 buffer 內、長度不會超出 buffer 結尾。寫成 \code{len <= size - off} 而不是 \code{off + len <= size}，是為了避免 \code{off + len} 在 64 bits 溢位、繞回一個很小的數字而通過檢查：
+\textbf{範圍檢查。}起點 16-byte 對齊（PL 一次搬一個 16-byte 的 beat）、起點在 buffer 內、長度不超出 buffer 結尾。寫成 \code{len <= size - off} 而不是 \code{off + len <= size}，是為了避免 \code{off + len} 在 64 bits 溢位、繞回一個很小的數而通過檢查：
 
 \snip{drv_in_arena}
 
-\textbf{head 的描述子：長度已知，整段都檢查。}app 已經把形狀、旗標等欄位打包好，driver 只負責檢查三個位址範圍、寫進去、commit：
+\textbf{head 的描述子：長度已知，整段都檢查。}app 已經把形狀、旗標打包好，driver 只檢查三個位址範圍、寫進去、commit。operator 0 的輸入多保留 64 KB，因為 head 會在兩個輸入 slot 之間切換：
 
 \snip{drv_hd_commit}
 
-operator 0（head 的第一層）的輸入多保留 \code{HD_SLOT_OFF}（64 KB），因為 head 的硬體會在兩個輸入區之間切換，第二個輸入區在第一個之後 64 KB。
+描述子表（17 個 block 各 16 個 word）用 \code{memdup_user} 一次複製進來（\code{twn_set_table()}，第 \lineof{drv_set_table} 行），它等於 \code{kmalloc} 加 \code{copy_from_user}，用完要 \code{kfree}。
 
-\textbf{一次複製一整個陣列：\code{memdup_user}。}\code{twn_set_table}（第 \lineof{drv_set_table} 行）要把描述子表（17 個 block × 16 個 word = 272 個 word）複製進來。\code{memdup_user} 等於「\code{kmalloc} + \code{copy_from_user}」，失敗時回傳錯誤指標，用 \code{IS_ERR} / \code{PTR_ERR} 取出錯誤碼；用完要 \code{kfree}。
+\textbf{分派：一個 switch、兩把鎖。}\code{STATUS} 只讀六個暫存器、不拿鎖；backbone 與 head 的指令各拿自己的 mutex（第 7 章）；不認得的指令回 \code{-ENOTTY}：
 
-\textbf{板上：該拒絕的都拒絕了。}
+\snip{drv_ioctl}
 
-\boardfile{A2_board_check_uio_dtb.log}{16-22}
+\textbf{板上：該拒絕的都拒絕了。}\code{Bad address} 就是 \code{EFAULT}：測試程式故意把參數指標設成 16（沒有映射的位址），kernel 回報錯誤而沒有當掉：
 
-\code{Bad address} 就是 \code{EFAULT}：測試程式故意把參數指標設成 16（一個沒有映射的位址），\code{copy_to_user} / \code{memdup_user} 發現後回報錯誤，kernel 沒有當掉。
+\boardfile{H4_board_check.log}{1,13-20}
+
+\textbf{板上：ioctl 要花多少時間。}\code{twn_bench} 第 1 部分把不拿鎖的 \code{STATUS} 連打 100,000 次；第 2 部分同一幀跑 1000 次，比較三個時鐘：app 在 ioctl 前後讀的時間、driver 在 kernel 裡量的時間（拿到參數、檢查完之後開始計時，清完 done 停錶；介面標頭的註解寫成「START -> done」是簡寫）、PL 自己數的 cycle 除以 240 MHz：
+
+\boardfile[：用中斷時]{E3_bench.log}{6-10}
+
+app 比 driver 多的 \bbSysUs{} µs，是系統呼叫進出、拿鎖、\code{copy_from_user}／\code{copy_to_user}，以及讀回六個 cycle counter：driver 在 \code{twn_bb_run()} 裡先停錶、才讀 counter（第 6 章的程式）。同樣讀六個暫存器的 \code{STATUS} 整趟只要 \ioctlUs{} µs，所以這 6 次 MMIO 讀取最多約佔 \bbSysUs{} µs 的一半，這次沒有拆開量。driver 比 PL 多的 \irqWaitUs{} µs 主要是「等」的成本，另含 START 前後的幾次暫存器存取與 block 之間的空檔，第 6 章比較輪詢與中斷時用的就是它。
 
 \subsection{原理}
 
-\textbf{一次 ioctl 的路徑。}
-
-\begin{center}
-\begin{tikzpicture}[font=\footnotesize,
-  b/.style={draw,rounded corners=2pt,align=center,minimum height=8mm,text width=27mm},
-  arr/.style={-{Stealth[length=2mm]},thick}]
-\node[b,fill=user] (a) {app：\code{ioctl(fd,}\\\code{TWN_IOC_BB_RUN, &r)}};
-\node[b,fill=kern,right=6mm of a] (b) {系統呼叫進入 kernel\\\code{vfs_ioctl}};
-\node[b,fill=kern,right=6mm of b] (c) {\code{f_op->unlocked_ioctl}\\= \code{twn_ioctl}};
-\node[b,fill=kern,right=6mm of c] (d) {\code{twn_bb_run}\\複製、檢查、做事};
-\draw[arr] (a)--(b); \draw[arr] (b)--(c); \draw[arr] (c)--(d);
-\draw[dashed,gray] ($(a.east)!0.5!(b.west)+(0,9mm)$) -- ++(0,-18mm) node[below,font=\scriptsize]{user | kernel};
-\end{tikzpicture}
-\end{center}
-
-\textbf{指令碼怎麼編。}Linux 的 \code{_IOC} 把一個 32-bit 數字切成四段（\code{include/uapi/asm-generic/ioctl.h}）：
+\textbf{為什麼沒有 read／write。}\code{read}／\code{write} 是位元組串流的介面，適合一段段流進流出的資料（序列埠、感測器 FIFO）。這顆加速器兩件事都不是：資料每幀幾百 KB，用 \code{read}／\code{write} 要多複製兩次，所以走 mmap；指令有結構（設表、設位址、啟動並等待），用 \code{ioctl} 加固定格式的 struct 最直接。kernel 提供的其他介面各有用途：
 
 \begin{center}
 \small
-\begin{tabular}{cccc}
+\begin{tabularx}{\textwidth}{l X l}
 \toprule
-bits 31--30 & bits 29--16 & bits 15--8 & bits 7--0 \\
-方向 & 參數大小（bytes） & 類別 & 編號 \\
+介面 & 適合 & 這個 driver \\
 \midrule
-3（讀 + 寫） & 48 & \code{0xBC} & 3 \\
+\code{read}／\code{write} & 串流資料；可以用 \code{cat}／\code{echo} 操作 & 沒用 \\
+\code{ioctl} & 對裝置下動作，參數是結構化的 & 九個指令 \\
+\code{mmap} & 大量資料，零複製 & 8 MB buffer \\
+sysfs & 一個檔案一個值的屬性，給人和腳本；算正式的介面約定（ABI） & 狀態與計數器（第 8 章） \\
+debugfs & 只給開發者的除錯介面，不保證穩定 & 暫存器傾印、短幀（第 8 章） \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
-所以 \code{TWN_IOC_BB_RUN} = \code{0xC030BC03}（\code{struct twn_bb_run} 是 3 個 \code{__u64} 加 6 個 \code{__u32}，共 48 bytes）。參數大小也在指令碼裡：struct 的大小一改，指令碼就不同，舊的 app 送來的指令 driver 不認得，回 \code{ENOTTY}。只改欄位順序、大小不變時，這個機制就偵測不到。
+\textbf{指令碼怎麼編。}\code{_IOC} 把 32-bit 數字切成四段：bits 31--30 是方向，29--16 是參數大小，15--8 是類別，7--0 是編號。\code{TWN_IOC_BB_RUN} = \code{0xC030BC03}：讀加寫、48 bytes、類別 \code{0xBC}、編號 3。struct 的大小一改，指令碼就不同，舊 app 送來的指令 driver 不認得而回 \code{ENOTTY}，不會讀錯資料；但只改欄位順序、大小不變時偵測不到。
 
-\textbf{為什麼一定要用 \code{copy_from_user}。}ioctl 的 \code{arg} 是 app 位址空間裡的一個指標，kernel 不能直接解指標，理由有三個：
-\begin{enumerate}
-\item \textbf{位址可能根本沒有映射。}kernel 直接解這種指標會 oops。\code{copy_from_user} 遇到這種 fault 時，kernel 的 exception table（記錄「這幾個指令出錯時跳到哪裡修復」的表）會接手，函式回傳「還有幾個 byte 沒複製」，driver 據此回 \code{-EFAULT}。（頁面只是暫時不在記憶體，例如被 swap 出去，不是問題：fault handler 會把它換回來，兩種寫法都一樣。）
-\item \textbf{位址可能指向 kernel。}app 可以傳一個 kernel 記憶體的位址，想騙 driver 幫它讀寫 kernel。\code{copy_from_user} 先用 \code{access_ok} 檢查整段位址都在 user space 的範圍內。
-\item \textbf{硬體不會幫你擋。}ARMv8.1 起有 PAN（Privileged Access Never），kernel 直接存取 user 記憶體會發生例外。這塊板子的 Cortex-A53 是 ARMv8.0，沒有 PAN 硬體。kernel 雖然編進了 PAN 支援（\code{CONFIG_ARM64_PAN=y}），但在 A53 上偵測不到這個功能，也沒有開軟體模擬（\code{CONFIG_ARM64_SW_TTBR0_PAN} 沒設），所以直接解 user 指標不會被硬體擋下。
-\end{enumerate}
+\textbf{為什麼一定要用 \code{copy_from_user}。}ioctl 的 \code{arg} 是 app 位址空間裡的指標，kernel 不能直接解：位址可能沒有映射，直接解會 oops，\code{copy_from_user} 遇到這種 fault 由 kernel 的 exception table（記錄「出錯時跳到哪裡修復」的表）接手並回傳失敗，driver 據此回 \code{-EFAULT}；位址也可能故意指向 kernel，\code{copy_from_user} 先用 \code{access_ok} 確認整段都在 user 範圍。ARMv8.1 起有 PAN（Privileged Access Never），kernel 直接存取 user 記憶體會發生例外；這塊板子的 Cortex-A53 是 ARMv8.0，沒有 PAN，也沒有開軟體模擬，所以更要靠 \code{copy_from_user}。struct 裡要帶指標時（描述子表的 \code{words}），型別用 \code{__u64}，32 與 64 位元的 app 看到的版面才一樣。
 
-\textbf{為什麼只收 offset，不收實體位址。}這塊板子沒有啟用 SMMU（系統層級的 IOMMU，讓裝置的 DMA 也經過頁表檢查），PL 的 DMA 拿到什麼實體位址就存取什麼。如果 driver 接受 app 給的實體位址，等於讓任何能開 \code{/dev/twn_fuse} 的程式控制一個能讀寫全部記憶體的 DMA 引擎。只收 offset，再由 driver 檢查、加上自己的 DMA 位址，PL 收到的位址就一定落在 driver 的 buffer 裡。
+\textbf{為什麼只收 offset。}PL 的 DMA 拿到什麼位址就存取什麼。如果 driver 接受 app 給的實體位址，等於讓任何能開 \code{/dev/twn_fuse} 的程式控制一個能讀寫全部記憶體的 DMA 引擎。只收 offset，檢查後加上 driver 自己的 DMA 位址，PL 收到的位址就一定在 buffer 裡。這層檢查管的是「driver 寫進暫存器的起點」：head 的三個位址連長度都檢查；backbone 只檢查起點，輸出寫多長取決於描述子表，driver 不逐項解讀；描述子表本身由 PL 解讀，欄位理論上仍可讓 PL 越界。PL 的每一筆存取都檢查，要靠 SMMU（第 11 章）。
 
-\textbf{這個保護的範圍要說清楚。}
-\begin{itemize}
-\item head 的三個位址都有傳輸長度，driver 檢查的是整段範圍。
-\item backbone 只檢查起點：輸出會寫多長，取決於描述子表的內容，driver 不逐項解讀。
-\item 描述子表本身是 PL 解讀的，裡面的欄位理論上仍可讓 PL 越界。
-\item root 程式仍可經 \code{/dev/mem} 繞過 driver（第 4 節）。
-\end{itemize}
-要完全把 PL 的 DMA 關在 buffer 裡，得開 SMMU，讓 PL 的每一次存取都經過頁表檢查。這次沒有做。
+\textbf{介面沒有實作的部分。}沒有 \code{.compat_ioctl}：struct 都是固定寬度型別，32 位元的 app 要用時，填 kernel 現成的 \code{compat_ptr_ioctl} 即可，這次沒有做（app 是 64 位元）。沒有 \code{.poll}：需要等待的指令都會在 ioctl 裡睡，app 要同時做別的事就用執行緒，或把「啟動」和「等待」拆成兩個指令（head 的 \code{HD_START}／\code{HD_WAIT} 就是這樣）。
 
 \subsection{面試會問}
 
-\begin{qa}{為什麼要用 copy\_from\_user？為什麼只收 offset，不收實體位址？}
-ioctl 的參數是 user space 的指標，可能根本沒有映射，也可能故意指向 kernel 記憶體。\code{copy_from_user} 先用 \code{access_ok} 確認位址在 user 範圍；複製時遇到無法處理的 fault，由 exception table 接住並回傳失敗，我就回 \code{-EFAULT}，kernel 不會 oops。A53 是 ARMv8.0，沒有 PAN，硬體不會擋 kernel 直接讀 user 指標，所以更要靠它。只收 offset，是因為 PL 的 DMA 沒經過 SMMU，給什麼實體位址就寫什麼；我讓 app 只能給 buffer 內的 offset，檢查對齊和範圍，連 offset 加長度的溢位都擋掉，再加上 buffer 的 DMA 位址寫進硬體。板上越界都回 \code{EINVAL}，壞指標回 \code{EFAULT}。限制是 backbone 的描述子內容我不解讀，完整隔離要靠 SMMU。
+\begin{qa}{ioctl 和其他介面怎麼選？為什麼要 copy\_from\_user、只收 offset？}
+我依資料的性質選：大量資料用 mmap 零複製；對裝置的動作和結構化參數用 ioctl，指令碼用 \code{_IOWR} 把方向和大小編進去；給人看的狀態用 sysfs，除錯用 debugfs。所以我的 driver 只有 open、release、mmap、ioctl，沒有 read／write。ioctl 的參數是 user 指標，可能沒映射、也可能故意指向 kernel，所以一律 \code{copy_from_user}，失敗回 \code{-EFAULT}；A53 沒有 PAN，硬體不會幫我擋。位址只收 buffer 內的 offset，檢查對齊與範圍，連 offset 加長度的溢位都擋掉，再加上 DMA 位址寫進硬體，app 給不出任意實體位址。板上量到一次 ioctl \ioctlUs{} µs，跑一幀的系統呼叫、複製加讀回 counter 合計 \bbSysUs{} µs，介面不是瓶頸。
 \end{qa}
 
 \subsection{關鍵函式速查}
@@ -130,12 +114,14 @@ ioctl 的參數是 user space 的指標，可能根本沒有映射，也可能�
 \toprule
 名稱 & 位置 & 做什麼 \\
 \midrule
+\code{twn_fops} & \code{twn_fuse.c}:\lineof{drv_fops} & 四個 file operation \\
 九個指令碼 & \code{twn_fuse_ioctl.h}:\lineof{uapi_cmds} & driver 與 app 共用的介面 \\
 \code{in_arena()} & \code{twn_fuse.c}:\lineof{drv_in_arena} & 對齊、起點、長度，含溢位防護 \\
-\code{twn_set_bases()} & \code{twn_fuse.c}:\lineof{drv_set_bases} & 最簡單的完整 ioctl：複製、檢查、寫入 \\
-\code{twn_set_table()} & \code{twn_fuse.c}:\lineof{drv_set_table} & \code{memdup_user} 複製描述子表，跑 PL 的檢查 \\
+\code{twn_set_bases()} & \code{twn_fuse.c}:\lineof{drv_set_bases} & 最簡單的完整 ioctl \\
+\code{twn_set_table()} & \code{twn_fuse.c}:\lineof{drv_set_table} & \code{memdup_user} 複製描述子表 \\
 \code{twn_hd_commit()} & \code{twn_fuse.c}:\lineof{drv_hd_commit} & head 描述子：三段範圍完整檢查 \\
-\code{twn_ioctl()} & \code{twn_fuse.c}:\lineof{drv_ioctl} & 依指令分派，並上鎖（第 7 節） \\
+\code{twn_ioctl()} & \code{twn_fuse.c}:\lineof{drv_ioctl} & 依指令分派、上鎖 \\
+第 1、2 部分 & \code{test/twn_bench.c}:\lineof{bench_status} & ioctl 與一幀的時間 \\
 \bottomrule
 \end{tabularx}
 \end{center}

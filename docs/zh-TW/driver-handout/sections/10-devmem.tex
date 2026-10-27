@@ -1,0 +1,98 @@
+\needspace{20\baselineskip}
+\section{隔離之一：限制 /dev/mem、拿掉保留區}
+\label{sec:devmem}
+
+\begin{oneline}
+driver 自己配 DMA buffer 之後，v1.0.0 為 \code{/dev/mem} 保留的 256 MB 就拿掉了；再打開 \code{STRICT_DEVMEM} 與 \code{IO_STRICT_DEVMEM}，\code{/dev/mem} 不能再映射 kernel 管理的記憶體（System RAM）與 driver 佔用中的暫存器。
+\end{oneline}
+
+\begin{before}
+device tree 保留 256 MB 給 app 經 \code{/dev/mem} 映射（第 3 章），kernel 沒有限制 \code{/dev/mem}。v1.0.0 開機時的紀錄：保留區佔掉 256 MB（\code{MemTotal} 只有 1,773,764 kB）；\code{STRICT_DEVMEM} 沒開；任何 root 程式都能用 \code{devmem} 讀寫 DDR 和加速器的暫存器：
+
+\boardfile{D5_boot_state.log}{26-43}
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item \textbf{拿掉 \code{reserved-memory}}：driver 的 buffer 由 DMA API 配，不再需要保留區。
+\item \code{CONFIG_STRICT_DEVMEM}：\code{/dev/mem} 不能存取 System RAM（\code{/proc/iomem} 裡標成 \code{System RAM} 的範圍）。
+\item \code{CONFIG_IO_STRICT_DEVMEM}：\code{/dev/mem} 也不能存取被 driver 佔用（busy）的 I/O 區間。
+\item kernel 設定片段（\code{.cfg}）加 \texttt{linux-xlnx\_\%.bbappend}：在 PetaLinux 預設的 kernel 設定上只改這幾個選項。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item kernel 可用的記憶體多了約 \memGainMB{} MB：\code{MemTotal} 從 1,773,764 kB 變成 2,035,396 kB。兩次開機的 kernel 不同（v1.1 多開了 SMMU、\code{STRICT_DEVMEM} 等選項），這個差裡也混著兩顆 kernel 本身大小的變化。
+\item \code{/dev/mem} 映射 System RAM 與加速器暫存器都被拒絕（\code{Operation not permitted}）。
+\item driver 載入期間，user space 只能經過 driver 碰暫存器與 buffer，「只給 buffer、不給暫存器」（第 4 章）不能再被 \code{/dev/mem} 繞過。這個保證有邊界：凡是「不是 System RAM、也沒有 driver 佔用」的位址，\code{/dev/mem} 都還能映射，例如 root 卸載 driver 之後的暫存器、DDR 最上面 1 MB（下面實測）。
+\item 代價：v1.0.0 的 UIO 版本 app 在 v1.1 映像上不能跑，v1.1 的 app 一律用 driver。
+\end{itemize}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{kernel 設定。}PetaLinux 的 kernel recipe 把 \code{SRC_URI} 裡的 \code{.cfg} 片段合併進 kernel 設定。片段的註解說 \code{/dev/mem} 不能再映射「any RAM」，精確地說是 System RAM：
+
+\snip[{}]{kcfg}
+\snip[{}]{kbbappend}
+
+\textbf{板上：發佈映像開機後。}\code{reserved-memory} 節點不在了，兩個選項都開了，\code{devmem} 讀 DDR 與暫存器都被拒絕：
+
+\boardfile{H3_boot_state.log}{16-31}
+
+\textbf{限制的邊界。}\code{v11_check.sh devmem} 只讀不寫，依序試 System RAM 裡的一個位址、driver 載入時的暫存器、卸載後的暫存器、重新載入後的暫存器，最後是 System RAM 以外的 DDR：
+
+\boardfile{H8_devmem.log}{1-20}
+
+System RAM 到 \code{0x7fef_ffff} 為止。System RAM 與 driver 佔用中的暫存器都被拒絕；\code{rmmod} 之後 \code{/proc/iomem} 裡沒有 \code{twn_fuse}，同一個暫存器讀得到（\code{0x11} = 17，NBLK 的 reset 值），重新載入後又被拒絕；\code{0x7ff0_0000} 不是 System RAM、也沒有 driver 佔用，所以讀得到。這最上面的 1 MB 不是閒置的記憶體：Vivado 建 block design 時就報告它保留給 PMU（平台管理單元）內部使用，PetaLinux 產生的 \code{/memory} 節點因此沒有涵蓋它。\code{devmem_is_allowed()} 不分讀寫，這裡只測了讀：
+
+\boardfile[：PC 上的 Vivado 建置訊息]{S8_pmu_ddr_reserved.log}{2-3}
+
+\subsection{原理}
+
+\textbf{\code{/dev/mem} 為什麼危險。}它把整個實體位址空間開給 root：kernel 的程式碼與資料、其他 process 的記憶體、所有裝置的暫存器。拿到 root 的程式能直接改 kernel，也能繞過 driver 去動硬體，driver 做的 offset 檢查（第 5 章）全被繞過。
+
+\needspace{13\baselineskip}
+\textbf{兩個選項各擋什麼。}\code{/dev/mem} 的 \code{mmap()} 對每一頁呼叫 \code{devmem_is_allowed()}（Linux 6.1 \code{lib/devmem_is_allowed.c}），參數 \code{pfn}（page frame number）是實體位址除以頁大小 4096：
+
+\nopagebreak
+\begin{lstlisting}[numbers=none,xleftmargin=0pt,title={\scriptsize lib/devmem\_is\_allowed.c（Linux 6.1，節錄）}]
+int devmem_is_allowed(unsigned long pfn)
+{
+	if (iomem_is_exclusive(PFN_PHYS(pfn)))
+		return 0;
+	if (!page_is_ram(pfn))
+		return 1;
+	return 0;
+}
+\end{lstlisting}
+
+\code{STRICT_DEVMEM} 讓這個函式生效：\code{page_is_ram()} 為真就拒絕，依據的是 kernel 管理的記憶體範圍（System RAM），不是「這是不是 DDR」。System RAM 是 \code{/memory} 節點的範圍，扣掉標成 \code{no-map} 的保留區，所以 \code{/memory} 以外、以及 \code{no-map} 保留區裡的 DDR 都不會被擋；v1.0.0 的 256 MB 保留區就是 \code{no-map}，就算當時開了 \code{STRICT_DEVMEM}，UIO 版本也還能經 \code{/dev/mem} 映射它。\code{IO_STRICT_DEVMEM} 讓 \code{iomem_is_exclusive()} 把 busy 的區間也算成獨佔：probe 用的 \code{devm_platform_ioremap_resource()} 會先佔用 \code{reg} 範圍（第 2 章），所以加速器的 64 KB 暫存器被擋下；driver 卸載時釋放這個區間，之後那段暫存器又能映射；重新載入、再次登記時，kernel 會撤銷 \code{/dev/mem} 對這段位址既有的映射（\code{kernel/resource.c} 的 \code{revoke_iomem()}）。沒有登記佔用的周邊也擋不住，例如中斷控制器 GIC 的 driver 用 \code{of_iomap()} 映射、沒有登記，root 仍能經 \code{/dev/mem} 映射它的暫存器（由原始碼推得，沒有在板上測）。要完全不給 \code{/dev/mem}，得關掉 \code{CONFIG_DEVMEM}；這個映像沒有關。
+
+\textbf{為什麼以前需要保留區，現在不需要。}\code{/dev/mem} 只是把一個實體位址映射給 app，不會配置記憶體；要讓 kernel 不去用那塊記憶體，只能在 device tree 事先保留。driver 版本改用 DMA API，記憶體是 kernel 自己配給 driver 的，kernel 知道它被誰用，不需要保留。
+
+\textbf{少掉的 512 kB。}256 MB 是 262,144 kB，\code{MemTotal} 只多了 261,632 kB。kernel 收回這塊記憶體時要為它建立管理結構，例如線性映射（第 3 章）的分頁表；以 4 KB 的頁、每項 8 bytes 計算，256 MB 的分頁表剛好 512 kB。這是推算，沒有逐項查證；而且比較的兩邊是不同設定的 kernel，kernel 映像本身的大小差也混在裡面，沒有拆開。
+
+\subsection{面試會問}
+
+\begin{qa}{為什麼要限制 /dev/mem？限制之後 app 怎麼存取硬體？}
+\code{/dev/mem} 把整個實體位址空間開給 root，等於任何 root 程式都能改 kernel、繞過 driver 動硬體。v1.0.0 需要它，因為 app 要自己映射 DMA buffer，device tree 還得保留 256 MB。driver 版本用 DMA API 配 buffer、只把 buffer mmap 給 app，所以 app 不再需要 \code{/dev/mem}，保留區也拿掉了。我打開 \code{STRICT_DEVMEM} 擋 System RAM、\code{IO_STRICT_DEVMEM} 擋 driver 佔用的暫存器，板上 \code{devmem} 都回 \code{Operation not permitted}，kernel 多了大約 \memGainMB{} MB。邊界我也講得出來：不是 System RAM、也沒有 driver 佔用的位址都還能映射，板上實測卸載 driver 後的暫存器、DDR 最上面那 1 MB 的 PMU 保留區都讀得到，所以這是限制，不是把 \code{/dev/mem} 關掉。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X p{40mm}}
+\toprule
+名稱 & 位置（\code{meta-user/} 指 \code{linux/project-spec/meta-user/}） & 做什麼 \\
+\midrule
+\code{twn-v11.cfg} & \code{meta-user/recipes-kernel/linux/linux-xlnx/twn-v11.cfg}:\lineof{kcfg} & kernel 選項片段 \\
+\texttt{linux-xlnx\_\%.bbappend} & \code{meta-user/recipes-kernel/linux/}\texttt{linux-xlnx\_\%.bbappend}:\lineof{kbbappend} & 把片段加進 kernel recipe \\
+\code{devmem_is_allowed()} & kernel 的 \code{lib/devmem_is_allowed.c} & \code{/dev/mem} 每一頁的檢查 \\
+\code{iomem_is_exclusive()} & kernel 的 \code{kernel/resource.c} & 開了 IO 選項後，busy 的區間也算獨佔 \\
+\code{v11_check.sh devmem} & \code{test/v11_check.sh}:\lineof{chk_devmem} & 限制的邊界（只讀） \\
+\bottomrule
+\end{tabularx}
+\end{center}

@@ -1,0 +1,161 @@
+\needspace{20\baselineskip}
+\section{板上驗證與靜態檢查：證明了什麼、沒證明什麼}
+\label{sec:verify}
+
+\begin{oneline}
+\code{board_check.sh} 一條指令跑完四類檢查（輸出是否逐位元相同、該拒絕的有沒有拒絕、卸載重載是否正常、吞吐量），發佈映像上全部通過；v1.1 新增的機制各有 \code{v11_check.sh} 的一個模式；程式另外過了 \code{W=1} 與 \code{checkpatch}，官方的 \code{dt_binding_check} 與 sparse 沒有跑。
+\end{oneline}
+
+\begin{before}
+v1.0.0 的板上檢查是 \code{board/deploy.sh} 的 \code{verify}（4 張 fixture）與 \code{speed}（吞吐量）：
+
+\snip[bash]{deploy_verify}
+
+只檢查「算得對不對」。沒有錯誤路徑可以檢查，因為 UIO 版本根本不拒絕任何東西。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item bit-exact gate：4 張 fixture 的輸出和 golden 逐位元比對，head 在 PL 和在 CPU 兩種擺法都跑。公開 repo 用的是合成的 fixture（\code{models/mbv2_pose/fixtures_synthetic/}，第 14 章），MPII 的 fixture 只在作者的板子上跑。
+\item \code{twn_errtest}：\errChecks{} 項檢查，其中 \errRefusals{} 項故意做錯一件事、確認 driver 回傳預期的錯誤碼，另外 2 項確認正常的操作會成功；參數 \code{timeout} 加跑逾時，\code{hold} 只留映射。
+\item 卸載測試：裝置開著時、以及只剩映射時，\code{rmmod} 都必須失敗；之後連續 5 次卸載、重載，每次都跑 4 張 fixture。
+\item 吞吐量：pipeline 跑 120 幀、3 次，每次都檢查關節點和 fixture 0 相同。
+\item 靜態檢查：\code{make W=1}（kernel 額外的編譯器警告）與 \code{scripts/checkpatch.pl --strict}（kernel 的程式風格檢查）。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{X l l}
+\toprule
+發佈的 driver 上的檢查（沒有註明的都是開機組 H） & 結果 & 紀錄 \\
+\midrule
+4 張合成 fixture，head 在 PL／在 CPU & 4/4、4/4 & \code{H4} \\
+4 張 MPII fixture，同上 & 4/4、4/4 & \code{H4m} \\
+錯誤路徑 \errChecks{} 項（\errRefusals{} 項拒絕、2 項成功） & \errChecks/\errChecks{} 符合預期 & \code{H4} 第 7--23 行 \\
+被拒絕的表之後，下一個 app 再跑 & 4/4、4/4 & \code{H4} 第 26--27 行 \\
+裝置開著時／只剩映射時 \code{rmmod} & 都被拒絕 & \code{H4} 第 29--30 行 \\
+5 次卸載重載，每次 4 張 fixture & 5 次都 4/4 & \code{H4} 第 31--35 行 \\
+SMMU 關（開機組 I）：10 次各要 64 MB，總量超過 CMA & 10/10 & \code{I1} \\
+SMMU 開：10 次各要 64 MB 的重載 & 10/10 & \code{H10} \\
+pipeline 吞吐量（3 次） & \relFpsA{}／\relFpsB{}／\relFpsC{} fps & \code{H4} 第 37--39 行 \\
+\code{W=1}、\code{checkpatch --strict} & 0 個警告 & \code{S6} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{fixture 檢查。}每一種擺法跑一次 app，數有幾行 \code{PASS | final max|diff|=0}，要剛好 4 行：
+
+\snip[bash]{check_fixtures}
+
+\textbf{錯誤路徑測試的寫法。}每一項都是「做一件事，看回傳值和錯誤碼對不對」：
+
+\snip{test_check}
+\snip{test_call}
+
+\begin{pit}
+\code{twn_errtest} 第一次跑，兩項 \code{mmap} 檢查顯示 \code{FAIL ... -> Success}，看起來像是 driver 沒拒絕。其實錯在測試程式：當時 \code{mmap()} 寫在 \code{CALL} 外面，\code{CALL} 先把 \code{errno} 設成 0 才檢查，於是 \code{mmap} 留下的 \code{EINVAL} 被蓋掉，印出來的「Success」其實是 \code{strerror(0)}。\code{mmap} 本身是失敗的，driver 確實拒絕了。修法是把 \code{mmap()} 放進 \code{CALL} 裡，讓 \code{errno} 在呼叫完的下一刻就被讀取。教訓是：測試說「沒拒絕」時，先檢查測試本身有沒有讀對東西，不要直接去改受測的程式。
+\end{pit}
+
+\textbf{發佈映像上的一次 board check。}中間的錯誤路徑與卸載已經在第 4 到 7 章逐段列出，這裡只印開頭與吞吐量：
+
+\boardfile{H4_board_check.log}{1-6}
+\boardfile{H4_board_check.log}{36-40}
+
+\textbf{v1.1 新增機制的檢查。}\code{v11_check.sh} 的每個模式只測一件事，每條指令先印成一行 \code{\# ...} 再印輸出，紀錄因此可以逐行引用：
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X l}
+\toprule
+模式 & 測什麼 & 紀錄與章節 \\
+\midrule
+\code{ab} & 四組 A/B 的吞吐量（要 UIO，只能在 v1.0.0 的開機檔上跑） & \code{D1}，第 3 章 \\
+\code{bench} & ioctl 成本、backbone 時間拆解、CPU 存取 buffer 的頻寬 & \code{D2}、\code{E3}，第 3、5、6 章 \\
+\code{split} & pipeline 各階段的時間，兩種映射 & \code{D6}，第 3 章 \\
+\code{irqcount} & 1000 幀對應 1000 次中斷，沒有空中斷 & \code{E6}，第 6 章 \\
+\code{irqfps} & 同一次開機，中斷與輪詢交替量吞吐量 & \code{H7}，第 6 章 \\
+\code{debugfs} & debugfs 檔案、短幀、不合法的值、越界讀取 & \code{D3}、\code{E4}，第 8、11 章 \\
+\code{synthetic} & 合成 fixture，兩種 head 擺法 & \code{D4}、\code{E5}、\code{H5}，第 9 章 \\
+\code{boot} & 開機自動載入、中斷、\code{/dev/mem}、記憶體、密碼期限 & \code{H3}，第 10、14 章 \\
+\code{devmem} & \code{/dev/mem} 還碰得到什麼（只讀） & \code{H8}，第 10 章 \\
+\code{smmu} & IOMMU group、fixture、吞吐量、越界讀取 & \code{H6}，第 11 章 \\
+\code{state} & 載入中的 driver：module 資訊、綁定、buffer、sysfs、映射、10 次重載 & \code{H10}、\code{I1}，第 1、3、8 章 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{driver 版本和 UIO 版本比快慢。}driver v1.0 剛完成時（開機組 A：v1.0.0 的開機檔，driver 靠輪詢），同一次開機、同一份 app 分別連結兩個 HAL，board check 的吞吐量是 UIO \fpsUioMean{} fps、driver \fpsDrvMean{} fps：
+
+\boardfile{A2_board_check_uio_dtb.log}{40-45}
+
+當時 driver 一起改了三件事（等硬體的地方、buffer 位置、CPU 端的記憶體屬性），只能說「沒有變慢」。v1.1 的 A/B 實驗把記憶體屬性單獨拆出來，差距來自它；另外兩件事是一起換的，合起來看不出影響（第 3 章）。中斷對吞吐量的影響另外在同一次開機上量（第 6 章）。
+
+\textbf{靜態檢查。}審稿時重跑發現 \code{twn_fuse_ioctl.h} 有 1 個 WARNING（檔案裡寫了自己的檔名）與 1 個 CHECK（一行超過 100 欄），修掉之後，對著發佈映像那一顆 kernel 的建置樹重跑，兩個檔案都是 0：
+
+\boardfile[：第 3--5 行是發佈 kernel 的選項，第 18--19 行證明 W=1 真的傳到了編譯器]{S6_static_checks.log}{1-6,10-13,16-20,22,24,28,30}
+
+\subsection{沒有做到的兩項，以及怎麼補}
+
+\textbf{\code{make dt_binding_check}。}kernel 官方的 binding 檢查會用 JSON Schema 逐條驗證每個屬性的格式（例如 \code{reg} 的 cell 數），需要 Python 套件 \code{dtschema}（\code{yamllint} 沒裝時只會略過 YAML 的格式檢查）。這次的工作環境不允許從網路安裝新套件，所以沒有跑，只有 \code{binding_check.py} 的部分檢查（第 1 章）。補的方法：
+
+\begin{cmdline}
+pip install dtschema yamllint     # yamllint is optional
+cp linux/driver/twn_fuse/wjhuang,twn-fuse.yaml <kernel>/Documentation/devicetree/bindings/misc/
+make -C <kernel> dt_binding_check DT_SCHEMA_FILES=misc/wjhuang,twn-fuse.yaml
+\end{cmdline}
+
+要送進 mainline 還得登記 vendor prefix（第 1 章），這次沒有做。
+
+\textbf{sparse（\code{make C=2}）。}kernel 專用的靜態分析工具，最常抓到的是 \code{__user} 指標被直接取值、\code{__iomem} 指標沒經過 \code{readl()} 就使用（第 5 章的 \code{__user} 與第 2 章的 \code{__iomem} 就是給它看的標記）、大小端型態混用。同樣需要另外安裝，所以沒有跑。補的方法：\code{apt install sparse} 之後在 driver 資料夾執行 \code{make C=2}（\code{C=1} 只檢查這次重新編譯的檔案，driver 已經編過時要先 \code{make clean}）。
+
+\subsection{原理}
+
+\textbf{每一項證明了什麼、沒證明什麼。}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+檢查 & 證明了 & 沒有證明 \\
+\midrule
+fixture bit-exact & driver 版本對這 4 張輸入算出和 golden 完全相同的結果，兩種 head 擺法都是 & 其他輸入。證明的是這顆 v1.1 bitstream 加上 v1.1 driver 的組合；bitstream 和 v1.0.0 不同（加中斷、改 AxPROT，第 12 章） \\
+\errChecks{} 項錯誤路徑 & 每一條檢查規則至少在一種錯誤上有效，而且回報的是預期的錯誤碼 & 所有可能的錯誤組合 \\
+\code{rmmod} 被拒、5 次重載 & module 的參考計數有效（開著與只剩映射兩種）；重新 probe 之後硬體仍正常 & 長時間反覆載入（5 次，加上 \code{state} 的 10 次） \\
+10 次 64 MB（SMMU 關） & 每次卸載都把 buffer 還給 CMA（第 3 章） & SMMU 開著時從一般記憶體配的頁有沒有歸還（不經過 CMA，640 MB 也小於可用記憶體，量不出來） \\
+吞吐量 & driver 版本沒有變慢；中斷比輪詢快約 0.8\%（第 6 章） & 長時間執行的穩定性 \\
+\code{W=1}、\code{checkpatch} & 沒有編譯器警告與風格問題 & sparse 的位址空間檢查、binding 的格式檢查 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{量測時不碰板子。}吞吐量都是在同一條 ssh 指令裡連續跑完的，量測期間沒有其他連線去查板子的狀態，避免查詢本身干擾量測。
+
+\textbf{合成 fixture 與 MPII fixture。}合成的 fixture 為什麼也能當驗證，見第 14 章；同一個映像上 MPII fixture 也全部通過（\code{H4m}），兩組結果一致。
+
+\subsection{面試會問}
+
+\begin{qa}{你怎麼證明 driver 是對的，而且沒有讓系統變慢？}
+正確性：4 張 fixture，head 放在 PL 和放在 CPU 兩種擺法，都和 golden 逐位元相同。錯誤路徑：\errChecks{} 項測試，其中 \errRefusals{} 項故意給越界 offset、壞指標、重複開啟、PL 會拒絕的表，都回傳預期的錯誤碼，逾時在 \timeoutSec{} 秒回來，之後下一個 app 照常跑。生命週期：裝置開著、或只剩映射時，\code{rmmod} 都被拒絕；連續 5 次卸載重載都 4/4；SMMU 關掉時連續 10 次各配 64 MB，總量超過 CMA，證明 buffer 有歸還。效能：driver v1.0 剛完成時比 UIO 版本快約 0.8\%，但同時改了三件事分不出原因，後來用四組 A/B 實驗把記憶體屬性單獨拆出來，差距來自它。靜態檢查做了 \code{W=1} 和 \code{checkpatch --strict}；官方的 \code{dt_binding_check} 與 sparse 因為環境不能安裝工具沒有跑，我會直接說出來，並說明怎麼補。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{board_check.sh} & \code{linux/driver/twn_fuse/test/} & 四類檢查一次跑完，最後印 PASS／FAIL \\
+\code{fixtures()} & \code{board_check.sh}:\lineof{check_fixtures} & 兩種 head 擺法各數 4 行 PASS \\
+\code{CALL}／\code{check()} & \code{twn_errtest.c}:\lineof{test_call} & 呼叫後立刻讀 \code{errno}，比對預期錯誤碼 \\
+\code{v11_check.sh} & \code{linux/driver/twn_fuse/test/} & v1.1 新增機制的板上檢查，一個模式一件事 \\
+\code{bind.sh} & \code{linux/driver/twn_fuse/} & 用 \code{driver_override} 在 UIO 與 driver 之間切換，也可帶 module 參數重新載入；UIO 版本的 app 只能在 v1.0.0 的開機檔上跑（要有保留區與 \code{/dev/mem}） \\
+\bottomrule
+\end{tabularx}
+\end{center}

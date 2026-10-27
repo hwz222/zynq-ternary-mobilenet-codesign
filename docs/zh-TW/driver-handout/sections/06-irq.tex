@@ -1,0 +1,154 @@
+\needspace{20\baselineskip}
+\section{等待完成：從輪詢到中斷}
+\label{sec:irq}
+
+\begin{oneline}
+driver 啟動一幀後要等 PL 做完：v1.1 在 RTL 加了一根 level 中斷線，driver 睡在 completion 上、由中斷處理函式（ISR）叫醒；沒有中斷的舊硬體則退回每 13--50 µs 讀一次 done 位元的輪詢，兩者都有 3 秒逾時。
+\end{oneline}
+
+\begin{before}[原本怎麼做（v1.0.0 的 app 輪詢，driver v1.0 的 kernel 輪詢）]
+v1.0.0 的 app 在 user space 做完整個流程：清殘留的 done、等 busy 結束、寫位址、寫 START，再用 \code{nanosleep} 輪詢（第 263 行），逾時直接 \code{exit(1)}（第 243、271 行）：
+
+\snip{v100_uio_run_frame}
+
+driver v1.0 把同樣的順序搬進 kernel，等待用 \code{readl_poll_timeout()}，但 bitstream 沒有中斷線（block design 把 PS 的中斷輸入接成常數 0），所以仍是輪詢。代價可以量：v1.1 的 driver 以 \code{use_irq=0} 載入時，輪詢的程式和 driver v1.0 相同（\code{readl_poll_timeout}，每次最多睡 50 µs），在開機組 E 量到 driver 比 PL 多等 \pollWaitUs{} µs，而且這個 process 每幀花掉 \pollCpuUs{} µs 的 CPU 時間（11\%）。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item \textbf{RTL}：新暫存器 IRQ（offset \code{0x0064}）放兩個致能位元；中斷輸出是暫存器輸出、level high。
+\item \textbf{IP 封裝與 block design}：\code{ipx::infer_bus_interface} 把 \code{interrupt} 這個 port 宣告成 Vivado 的 interrupt 介面（\code{SENSITIVITY = LEVEL_HIGH}），block design 接到 \code{ps/pl_ps_irq0}；PetaLinux 讀 XSA（Vivado 匯出的硬體描述檔）後自動在節點寫 \code{interrupts = <0 89 4>}。
+\item \textbf{kernel}：\code{platform_get_irq_optional()}、\code{devm_request_irq()}、ISR 回傳 \code{irqreturn_t}；\code{struct completion} 的 \code{init_completion()}、\code{reinit_completion()}、\code{complete()}、\code{wait_for_completion_timeout()}；沒有中斷時的 \code{readl_poll_timeout()}；module parameter \code{use_irq}。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item 啟動與等待的整套順序只有一份，在 kernel 裡；逾時回 \code{-ETIMEDOUT} 並在 \code{dmesg} 印出暫存器值，呼叫端可以自己處理，重新載入描述子表就能繼續用。
+\item \textbf{CPU 時間}：每幀從 \pollCpuUs{} µs 降到 \irqCpuUs{} µs；\textbf{等待}：driver 比 PL 多的時間從 \pollWaitUs{} µs 降到 \irqWaitUs{} µs（開機組 E，同一次開機、同一個程式，只差 \code{use_irq}）。
+\item \textbf{吞吐量}：同一次開機交替跑三輪，中斷 \hIrqFps{} fps、輪詢 \hPollFps{} fps（+0.8\%），三次中斷都比三次輪詢快。
+\item 1000 幀剛好 1000 次中斷，沒有多出來的空中斷；device tree 沒有中斷的舊 bitstream，driver 自動退回輪詢。
+\end{itemize}
+\end{gain}
+
+\subsection{硬體：RTL 加一根線}
+
+每個 clock 都把「致能 AND done」重新算一次，存進暫存器 \code{irq}。\code{ap_done} 是 backbone 做完、\code{hd_done_l} 是 head 做完的黏著位元（設起來後一直保持，直到被清掉），所以 \code{irq} 在 done 設起來的下一個 cycle 拉高，在 done 被清掉的下一個 cycle 放下；\code{ifdef CSR_IRQ_BREAK_MASK} 是故意做壞的版本，只給模擬用：
+
+\snip[Verilog]{csr_irq_reg}
+
+致能放在自己的 IRQ 暫存器，不沿用 CTRL 的 bit 2，因為 CTRL 每一次寫入都會把 bit 2 一起寫掉。driver 啟動寫的是 \code{0x1}、清 done 寫的是 \code{0x2}，bit 2 都是 0，若致能放在 CTRL[2]，每次啟動都會把中斷關掉：
+
+\snip[Verilog]{csr_irq_wr}
+\snip[Verilog]{csr_ctrl_wr}
+
+\textbf{gate。}單元 testbench 跑三次：原設計必須 PASS，兩個故意做壞的版本（忽略致能、致能放在 CTRL[2]）必須 FAIL，證明 testbench 抓得到這兩種錯：
+
+\boardfile[：PC 上的 Vivado xsim]{S1_csr_irq_gate.log}{2,4-7,9-15}
+
+head 路徑的整合 gate 用改過的 \code{twn_csr.v} 重跑，4 個 operator、434,176 bytes 逐位元相同：
+
+\boardfile{S2_hd_int_gate.log}{86,626,631,634}
+
+\textbf{從 IP 到 device tree。}封裝 IP 時把 port 宣告成 interrupt 介面，沒有這一步，Vivado 只把它當一條普通的線，PetaLinux 也不會寫出中斷；block design 再把它接到 PS：
+
+\snip[tcl]{pkg_irq}
+\snip[tcl]{bd_irq}
+
+PetaLinux 產生的節點（反組譯發佈的 \code{system.dtb}）：\code{interrupts = <0x00 0x59 0x04>} 的 0 表示 SPI（Shared Peripheral Interrupt，所有 CPU 共用的外部中斷），\code{0x59} = 89 是 SPI 編號，4 是 \code{IRQ_TYPE_LEVEL_HIGH}；GIC（ARM 的中斷控制器）內部的編號是 SPI 編號加 32，所以 \code{/proc/interrupts} 顯示 121：
+
+\boardfile[：PC 上反組譯，節點原文]{S3_binding_check.log}{24-34}
+
+改 RTL 就得重建 bitstream，而這個設計在 240 MHz 沒有時序餘裕；第 12 章講怎麼讓它收斂。
+
+\subsection{driver：ISR、completion 與輪詢的退路}
+
+\textbf{probe 時申請中斷。}device tree 有中斷、且 \code{use_irq} 沒被關掉，就用 \code{devm_request_irq()} 註冊 ISR，再寫 IRQ 暫存器打開兩個致能；沒有中斷就留著輪詢：
+
+\snip{drv_probe_irq}
+
+\code{platform_get_irq_optional()} 找不到中斷時不在 kernel log 印錯誤，因為對舊 bitstream 這是正常的。它回傳 \code{-EPROBE_DEFER}（中斷控制器還沒準備好）時，probe 直接回傳，kernel 稍後再呼叫一次 probe，不能當成「沒有中斷」而退回輪詢。之後 \code{misc_register()} 若失敗，probe 先關掉致能再回傳。
+
+\textbf{ISR。}看哪一個 done 設起來，就清掉它、叫醒等它的人；兩個都看完之後讀回一次 IRQ 暫存器，確保清除已經到達 PL 才返回：
+
+\snip{drv_isr}
+
+\textbf{等待。}\code{wait_done()} 有中斷時睡在 completion 上，沒有時走 \code{wait_bit()} 輪詢；兩者都是 3 秒逾時：
+
+\snip{drv_wait_done}
+\snip{drv_wait_bit}
+
+\textbf{啟動一幀。}等 busy 變 0（PL 在忙時寫的 START 會被丟掉）；清 done（START 不清 done，殘留的 done 會讓等待立刻結束）；\code{reinit_completion()}；寫兩個位址，再寫 START（\code{writel} 的 barrier 保證 app 寫的輸入比 START 先被 PL 看到，第 2 章）；等 done，清 done，停錶，再讀六個 cycle counter，連同耗時交回 app：
+
+\snip{drv_bb_run}
+
+head 的兩個指令也一樣：\code{twn_hd_start()} 在 START 之前 \code{reinit_completion(&td->hd_done)}，\code{twn_hd_wait()} 呼叫 \code{wait_done()}。啟動與等待拆成兩個指令，app 才能在兩者之間讓 backbone 跑下一幀（第 7 章）。
+
+\subsection{板上}
+
+driver 開機時就用中斷，\code{/proc/interrupts} 有一條 GIC 121、Level：
+
+\boardfile{H3_boot_state.log}{11-15}
+
+\textbf{中斷與輪詢比一比。}同一次開機、同一個 \code{twn_bench}，先用中斷，再用 \code{use_irq=0} 重新載入改成輪詢：
+
+\boardfile[：前一段是中斷，後一段是輪詢]{E3_bench.log}{6-10,14-23}
+
+輪詢時 process 每 13--50 µs 醒來一次，用中斷時一幀只醒一次。剩下的 \irqWaitUs{} µs 裡有 START 前的幾次暫存器存取、中斷延遲、ISR、喚醒與排程、done 之後清 done 的那次寫入，以及 PL 在 block 之間的空檔（\code{cycles_total} 不算空檔）；讀六個 cycle counter 發生在 driver 停錶之後，算在 app 那 \bbSysUs{} µs 裡（第 5 章）。推測空檔佔其中一部分，但沒有計數器可以拆開，沒有量。
+
+\textbf{吞吐量：同一次開機交替量。}每一輪先載入中斷版、再載入輪詢版，各跑一次 120 幀的 pipeline，共三輪：
+
+\boardfile[：交替的中斷與輪詢]{H7_irq_vs_poll_fps.log}{1-5,7,9,11,13,15,17,19,21,23,25}
+
+每一次中斷都比每一次輪詢快，兩組都隨時間略降（233.84→232.71、231.33→231.19）。每一輪都是先中斷後輪詢，這個固定順序不能抵銷漂移；但輪詢三次之間只差 0.14 fps，遠小於兩組約 1.87 fps 的差，結論不受影響。換算成每幀週期，中斷平均 4.290 ms、輪詢 4.324 ms，短了約 35 µs（開機組 H，pipeline）。開機組 E 的 \code{twn_bench}（只跑 backbone、1000 幀）量到 backbone 的等待少了 25.3 µs；兩者是不同的開機與程式，推測其餘來自 head 的等待也改成中斷（沒有分開量）。
+
+\textbf{每一幀剛好一次中斷。}跑 1000 幀前後，ISR 自己的計數和 kernel 的計數（\code{/proc/interrupts}，ISR 回傳 \code{IRQ_NONE} 的呼叫也算在內）都剛好加 1000：
+
+\boardfile{E6_irqcount.log}{4-11}
+
+\textbf{逾時在 3 秒回來。}測試程式先載入一張 PL 會拒絕的描述子表，PL 因此忽略 START，done 永遠不會來；\code{dmesg} 同時印出 driver 的訊息，之後重新載入正確的表，fixture 照樣逐位元相同：
+
+\boardfile{H4_board_check.log}{20-27}
+
+\subsection{原理}
+
+\textbf{輪詢的退路怎麼睡。}\code{readl_poll_timeout(addr, val, cond, 50, 3000000)} 反覆「讀暫存器、檢查條件、\code{usleep_range(13, 50)}」，直到成立或逾時；逾時後再讀一次，避免「睡過頭的那一刻其實已經完成」被誤判。不用 \code{msleep(1)}：這個 kernel 的 \code{HZ=250}，\code{msleep} 至少睡一個 4 ms 的 jiffy，等於白多等一幀；\code{usleep_range} 用 hrtimer（高解析度計時器）。也不 busy-wait：kernel 是 \code{PREEMPT_NONE}，系統呼叫裡空轉 4 ms 會佔住一顆核心。\code{usleep_range} 的上限是硬到期時間，CPU 閒著時多半睡滿 50 µs，一幀大約醒 80 次（估計，沒有量），每次要排程進出、設定下一個 hrtimer、讀一次暫存器，這些算在 process 的 CPU 時間裡，累積起來每幀約 0.45 ms；計時器中斷本身多半在 CPU 閒置時發生，算在 idle（下一段）。
+
+\textbf{CPU 時間怎麼量。}\code{twn_bench} 用 \code{getrusage(RUSAGE_SELF)}，只算這個 process 的 user 與 kernel 時間。這顆 kernel 沒開 \code{IRQ_TIME_ACCOUNTING}，CPU 閒置時進來的中斷（ISR 與 hrtimer）算在 idle，所以 \irqCpuUs{} µs 不含 ISR 本身的成本。
+
+\textbf{為什麼用 level，ISR 為什麼一定要清 done。}level 中斷是「線拉高的期間一直成立」。GIC 在 ISR 結束（EOI）後重新看這條線，done 沒清，線還是高，ISR 會立刻再被呼叫，形成中斷風暴（interrupt storm）。level 的好處是不會漏：兩個 done 幾乎同時設起來，線會一直高到兩個都被處理。
+
+\textbf{為什麼清完還要讀一次。}\code{writel()} 是 posted write：CPU 送出就繼續往下走，不等寫入真的到達 PL。ISR 若馬上返回，GIC 可能還看到舊的高電位，多進一次 ISR。讀同一個裝置的暫存器會等前面的寫入完成，讀回來時，清除的寫入已經到了 PL。這是「完成」的問題，barrier 只管「順序」，解決不了（第 2 章）。
+
+\textbf{\code{reinit_completion()} 為什麼放在 START 之前。}completion 是一個計數加一個等待佇列：\code{complete()} 把計數加一並叫醒等待者，\code{wait_for_completion_timeout()} 在計數大於 0 時減一並返回。若歸零放在 START 之後，PL 很快做完時，ISR 的 \code{complete()} 可能先發生、接著被歸零，等待的人就睡到 3 秒逾時。放在 START 之前，PL 還沒開始，不可能有中斷搶先。
+
+\textbf{ISR 為什麼可以在硬體中斷裡做完。}它只做幾次暫存器讀寫和 \code{complete()}，都不會睡，可以在 interrupt context（CPU 被中斷打斷、還沒回到任何 process 時執行的程式，不能睡眠）執行，不需要 threaded IRQ（把處理函式放到 kernel 執行緒、可以睡眠的處理方式）。
+
+\textbf{初始化、申請、打開致能的順序。}probe 先 \code{init_completion()}，再 \code{devm_request_irq()}，最後打開致能；remove 先關掉致能，再由 \code{devm} 釋放中斷。對這條沒有共用的線，順序反過來其實也不會出現「送到 CPU 卻沒人處理」的中斷：GIC 端的線在 \code{request_irq()} 裡才啟動，最後一個 handler 釋放時就關掉。這個順序真正保護的是兩件事：ISR 一被呼叫就會用到 completion，所以它必須先初始化；若中斷線和別的裝置共用，沒人清的 level 中斷會被 kernel 判成「nobody cared」而把整條線關掉。
+
+\subsection{面試會問}
+
+\begin{qa}{你怎麼把輪詢改成中斷？從硬體講到軟體。}
+硬體上，我在控制暫存器模組加了一個暫存器輸出的 level-high 中斷，等於「致能 AND done」；致能放在獨立的暫存器，因為 CTRL 每次寫入都會覆蓋原本的 bit 2，driver 一啟動就會把中斷關掉，這個錯誤我在 testbench 裡故意做出來、確認抓得到。IP 封裝時宣告成 interrupt 介面，block design 接到 \code{pl_ps_irq0}，PetaLinux 就在 device tree 寫出 SPI 89、level high。driver 在 probe 用 \code{devm_request_irq()} 註冊 ISR；ISR 清 done、\code{complete()}，返回前讀回一次確保清除已經到達；等待的一邊用 \code{wait_for_completion_timeout()}，\code{reinit_completion()} 放在 START 之前避免漏掉中斷。在同一次開機上只切換 \code{use_irq} 比較：每幀 CPU 時間從 \pollCpuUs{} µs 降到 \irqCpuUs{} µs；另一次開機交替量三輪，pipeline 從 \hPollFps{} 變 \hIrqFps{} fps。device tree 沒有中斷時自動退回 \code{readl_poll_timeout} 輪詢。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{irq} 暫存器 & \code{rtl/fuse/twn_csr.v}:\lineof{csr_irq_assign} & 致能 AND done，level high \\
+interrupt 介面 & \code{vivado/package_fuse_ip.tcl}:\lineof{pkg_irq} & \code{SENSITIVITY = LEVEL_HIGH} \\
+接到 PS & \code{vivado/build_bd_fuse.tcl}:\lineof{bd_irq} & \code{pl_ps_irq0} \\
+\code{use_irq} & \code{twn_fuse.c}:\lineof{drv_param_irq} & 可以關掉中斷，退回輪詢 \\
+probe 的中斷段 & \code{twn_fuse.c}:\lineof{drv_probe_irq} & 申請中斷、打開致能 \\
+\code{twn_isr()} & \code{twn_fuse.c}:\lineof{drv_isr} & 清 done、\code{complete()}，返回前讀回 \\
+\code{wait_done()} & \code{twn_fuse.c}:\lineof{drv_wait_done} & completion 或輪詢，3 秒逾時 \\
+\code{wait_bit()} & \code{twn_fuse.c}:\lineof{drv_wait_bit} & \code{readl_poll_timeout}，50 µs、3 s \\
+\code{twn_bb_run()} & \code{twn_fuse.c}:\lineof{drv_bb_run} & 等閒置、清 done、寫位址、START、等 done \\
+\bottomrule
+\end{tabularx}
+\end{center}

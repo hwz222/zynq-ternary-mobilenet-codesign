@@ -52,7 +52,7 @@ Every number with its source entry and the full table: [docs/RESULTS.md](docs/RE
 | run it on the board | [docs/QUICKSTART.md](docs/QUICKSTART.md) (the v1.1 image needs no toolchain) |
 | rebuild the bitstream or Linux | [docs/REBUILD.md](docs/REBUILD.md) |
 | read the RTL | [rtl/](rtl/README.md) |
-| use or study the Linux kernel driver | [linux/driver/twn_fuse/](linux/driver/twn_fuse/README.md); study handouts in Traditional Chinese: [v1.0](docs/zh-TW/driver-handout/), [v1.1](docs/zh-TW/driver-handout-2/) |
+| use or study the Linux kernel driver | [linux/driver/twn_fuse/](linux/driver/twn_fuse/README.md); study handout in Traditional Chinese: [docs/zh-TW/driver-handout/](docs/zh-TW/driver-handout/) |
 | train or export a model | [train/](train/README.md) |
 | check correctness | [docs/VERIFICATION.md](docs/VERIFICATION.md) |
 | see all results | [docs/RESULTS.md](docs/RESULTS.md) |

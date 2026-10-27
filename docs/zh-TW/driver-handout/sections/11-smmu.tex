@@ -1,13 +1,13 @@
 \needspace{20\baselineskip}
-\section{SMMU：限制 PL 能碰的記憶體}
+\section{隔離之二：SMMU 限制 PL 能碰的記憶體}
 \label{sec:smmu}
 
 \begin{oneline}
 v1.1 打開 SMMU（ARM 的 IOMMU）並登記加速器四個 HP 埠的 stream ID，讓帶著這些 ID 的 Non-secure 交易只能存取 driver 映射的那 8 MB；第一次打開沒有效果，因為 PL 送出的是 Secure 交易。
 \end{oneline}
 
-\begin{before}
-driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底位址落在 buffer 內（第一冊第 5 節）。PL 執行時用「基底加上描述子裡的偏移」去存取 DDR，描述子由 app 提供，PL 也可能因為 RTL 的錯誤而越界。沒有 SMMU 時，越界的存取不會被任何東西擋下。開機組 D 的測試：\code{dma_fault}（第 5 節）讓 PL 從 buffer 結尾之後讀輸入，結果「frame done」，沒有任何錯誤：
+\begin{before}[原本怎麼做（沒有 SMMU：v1.0.0 的開機檔，v1.1 的 driver）]
+driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底位址落在 buffer 內（第 5 章）。PL 執行時用「基底加上描述子裡的偏移」去存取 DDR，描述子由 app 提供，PL 也可能因為 RTL 的錯誤而越界。沒有 SMMU 時，越界的存取不會被任何東西擋下。v1.0.0 的開機檔上（開機組 D，沒有 SMMU），\code{dma_fault}（第 8 章）讓 PL 從 buffer 結尾之後讀輸入，結果「frame done」，沒有任何錯誤：
 
 \boardfile{D3_debugfs.log}{68-71}
 \end{before}
@@ -17,7 +17,7 @@ driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底�
 \item \textbf{SMMU（MMU-500）}：替 CPU 以外的匯流排主控端（PS 的 DMA 周邊，以及 PL 經 HP 埠進來的交易）做位址轉換與權限檢查，概念和 CPU 的 MMU 相同。
 \item \textbf{stream ID}：每筆交易進 SMMU 時帶的來源編號。ZynqMP 的組成是「TBU 編號（bit 14:10）、埠的 master ID（bit 9:6）、AXI ID（bit 5:0）」。
 \item \textbf{device tree 的 \code{iommus}}：告訴 kernel 這個裝置用哪些 stream ID；kernel 就把裝置放進一個 IOMMU group（一組必須共用同一套轉換的裝置），並給它一個 IOMMU domain（一套轉換表）。
-\item \textbf{DMA API 與 IOMMU}：driver 的資料路徑不用改，\code{dma_alloc_coherent()} 在有 IOMMU 時自動配一段 I/O 虛擬位址（IOVA）、建好映射，回傳的 \code{dma_addr_t} 就是 IOVA。只有量測用的 \code{map_device} 路徑加了一個檢查：有 IOMMU 時 buffer 沒有固定的實體位址可以映射，driver 拒絕。
+\item \textbf{DMA API 與 IOMMU}：driver 的資料路徑不用改，\code{dma_alloc_coherent()} 在有 IOMMU 時自動配一段 IOVA、建好映射，回傳的 \code{dma_addr_t} 就是 IOVA（第 3 章）。只有量測用的 \code{map_device} 路徑加了一個檢查：有 IOMMU 時 buffer 沒有固定的實體位址可以映射，driver 拒絕（第 4 章）。
 \item \textbf{AxPROT 與 TrustZone}：AXI 交易的 bit 1 標示 Secure 或 Non-secure；Linux 只設定 SMMU 的 Non-secure 那一側。
 \item \textbf{診斷參數 \code{arm_smmu.disable_bypass=1}}：沒登記的 stream ID 一律擋下並回報，用來找出真正的 stream ID。發佈的 kernel 沒有加這個參數，沒登記的 stream ID 直接通過（bypass），見「原理」最後一段。
 \end{itemize}
@@ -25,8 +25,8 @@ driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底�
 
 \begin{gain}
 \begin{itemize}
-\item PL 越界的存取被擋下：同一個越界讀取測試，SMMU 打開時 kernel 回報 context fault，關掉時只有「frame done」，沒有任何東西察覺。前提是交易是 Non-secure、帶著登記過的 stream ID（「原理」最後一段）。
-\item 正確性與效能不受影響：開機組 E（SMMU 開）4 張 fixture 在兩種 head 位置都逐位元相同，pipeline 三次平均 \smmuOnFps{} fps；開機組 G（SMMU 關）是 \smmuOffFps{} fps，差距在兩次執行之間的正常變動之內。
+\item PL 越界的存取被擋下：同一個越界讀取測試，SMMU 打開時 kernel 回報 context fault，關掉時只有「frame done」。前提是交易是 Non-secure、帶著登記過的 stream ID（「原理」最後一段）。
+\item 正確性與效能不受影響：同一組開機檔只換 \code{system.dtb}，SMMU 開與關的 4 張 fixture 都逐位元相同，pipeline 三次平均 \smmuOnFps{} 對 \smmuOffFps{} fps，差距在兩次執行之間的正常變動之內。
 \item driver 的資料路徑不用改：DMA API 自己處理 IOVA 與頁表。
 \item v1.1 的發佈映像預設就打開 SMMU；PS 的 DMA 周邊也因此一起被放到 SMMU 後面（Ethernet 與 SD 卡在所有測試裡都用到，USB 與 DisplayPort 沒有測）。
 \end{itemize}
@@ -34,11 +34,11 @@ driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底�
 
 \subsection{第一次：打開了，卻沒有效果}
 
-\code{smmu_dtb.sh} 在 \code{system.dtb} 的副本上做兩件事：打開 SMMU 節點，並在加速器節點寫入 stream ID。第一次用的版本寫入的是我推算的三個 ID（\code{0xe80}、\code{0x1280}、\code{0x1680}）；下面印出的是量到 ID 之後的現行版本，第 9--14 行的註解與第 24 行的四個值都是量到的：
+\code{smmu_dtb.sh} 在 \code{system.dtb} 的副本上做兩件事：打開 SMMU 節點，並在加速器節點寫入 stream ID。第一次用的版本寫入的是我推算的三個 ID（\code{0xe80}、\code{0x1280}、\code{0x1680}）；下面印出的是量到 ID 之後的現行版本，註解與 \code{iommus} 的四個值都是量到的：
 
 \snip[bash]{smmu_dtb}
 
-開機後 SMMU 正常啟動，加速器也被放進自己的 IOMMU group，buffer 位址變成 IOVA \code{0xff_ff80_0000}：
+開機後 SMMU 正常啟動，加速器也被放進自己的 IOMMU group，buffer 位址變成 IOVA \mbox{\code{0xff_ff80_0000}}：
 
 \boardfile{first_bitstream/F1_smmu_guessed_ids.log}{11-20}
 
@@ -56,25 +56,26 @@ driver 的 \code{in_arena()} 只能保證 driver 自己寫進暫存器的基底�
 
 \boardfile[：只登記了推算的 0xe80、0x1280、0x1680]{F0_smmu_find_stream_ids.log}{2-3,5-8,11-12,17-22}
 
-HP0 的交易已經經過 Non-secure 的轉換：第 22 行有一個 context fault 帶著 \code{cbfrsynra=0xe80}（這次開機做過哪些存取沒有記下，這一筆是哪一個存取造成的沒有查）。另外三個埠的 ID 沒有登記，SMMU 回報 global fault，沒登記的 ID 是 \code{0x12c0}、\code{0x1300}、\code{0x1740}。\code{uniq -c} 數到的 6、1、3 次加起來正好 10，等於 kernel 印這類訊息的速率上限（5 秒內最多 10 次），所以這些次數不代表各埠的流量，某個 ID 也可能被限流吃掉；F1 登記了四個 ID 之後一次 global fault 都沒有，補上了這個漏洞。拆開來看：TBU 4 的 master ID 1011、TBU 4 的 1100、TBU 5 的 1101，正好接在 HP0 的 1010 後面。所以 HP1 是 \code{0x12c0}、HP2 是 \code{0x1300}、HP3 是 \code{0x1740}；我原本以為 HP1 與 HP2 共用 \code{0x1280}、HP3 是 \code{0x1680}，兩個都錯了。
+HP0 的交易已經經過 Non-secure 的轉換：第 22 行有一個 context fault 帶著 \code{cbfrsynra=0xe80}（這次開機做過哪些存取沒有記下，這一筆是哪一個存取造成的沒有查）。另外三個埠的 ID 沒有登記，SMMU 回報 global fault，沒登記的 ID 是 \code{0x12c0}、\code{0x1300}、\code{0x1740}。\code{uniq -c} 數到的 6、1、3 次加起來正好 10，等於 kernel 印這類訊息的速率上限（5 秒內最多 10 次），所以這些次數不代表各埠的流量，某個 ID 也可能被限流吃掉；\code{F1_smmu_measured_ids.log} 登記了四個 ID 之後一次 global fault 都沒有，補上了這個漏洞。拆開來看：TBU 4 的 master ID 1011、TBU 4 的 1100、TBU 5 的 1101，正好接在 HP0 的 1010 後面。所以 HP1 是 \code{0x12c0}、HP2 是 \code{0x1300}、HP3 是 \code{0x1740}；我原本以為 HP1 與 HP2 共用 \code{0x1280}、HP3 是 \code{0x1680}，兩個都錯了。
 
-把四個 ID 都登記上（現行的 \code{smmu_dtb.sh}），同樣開著 \code{disable_bypass}：global fault 一個都沒有，表示 PL 的每一筆交易都找得到登記；fixture 全部逐位元相同：
+把四個 ID 都登記上（現行的 \code{smmu_dtb.sh}），同樣開著 \code{disable_bypass}：fixture 全部逐位元相同，越界讀取被擋下（context fault），global fault 一個都沒有，表示 PL 的每一筆交易都找得到登記：
 
-\boardfile[：四個 ID 都登記]{F1_smmu_measured_ids.log}{14-21,51-54}
+\boardfile[：四個 ID 都登記]{F1_smmu_measured_ids.log}{16-21,30,37-38,51-54}
 
 \subsection{發佈映像：預設打開 SMMU}
 
-量到 stream ID 之後，\code{system-user.dtsi} 直接打開 SMMU 並登記這四個 ID，PetaLinux 產生的節點因此帶著 \code{iommus}。開機組 E 開機後，加速器在 iommu group 15，DMA buffer 的位址是 IOVA：
+量到 stream ID 之後，\code{system-user.dtsi} 直接打開 SMMU 並登記這四個 ID（第 1 章的 \code{fuse_0} 節點），PetaLinux 產生的節點因此帶著 \code{iommus}。發佈映像開機後，加速器在 iommu group 15，DMA buffer 的位址是 IOVA；越界讀取被 SMMU 擋下、回報 context fault，\code{cbfrsynra=0xe80} 就是 HP0 的 stream ID：
 
-\boardfile{E1_boot_state.log}{11-13}
+\boardfile{H6_smmu.log}{11-15}
+\boardfile{H6_smmu.log}{30-31,37-38}
 
-\needspace{8\baselineskip}
-\textbf{越界讀取，開與關的比較。}開機組 E：SMMU 擋下讀取，回報 context fault，\code{cbfrsynra=0xe80} 就是 HP0 的 stream ID；開機組 G：一樣的測試只說 frame done：
+同一個測試在 SMMU 關掉時（開機組 G）只說 frame done，buffer 位址是 CMA 裡的實體位址：
 
-\boardfile[：SMMU 開]{E4_debugfs.log}{37-41}
 \boardfile[：SMMU 關]{G4_debugfs.log}{37-40}
 
-context fault 裡的 \code{iova=0x00000000} 是因為 buffer 剛好在 $2^{40}$ 下面，buffer 結尾之後的第一個位址是 $2^{40}$，寫進 40 bits 的位址暫存器就變成 0；不論是哪一個，都不在映射範圍內。擋下之後，下一個 app 照常執行，4 張 fixture 仍然正確（\code{E4_debugfs.log} 第 42--43 行）。
+context fault 裡的 \code{iova=0x00000000} 是因為 buffer 剛好在 $2^{40}$ 下面，buffer 結尾之後的第一個位址是 $2^{40}$，寫進 40 bits 的位址暫存器就變成 0；不論是哪一個，都不在映射範圍內。擋下之後，下一個 app 照常執行，4 張 fixture 仍然正確（\code{H6_smmu.log} 第 39 行起）。
+
+開與關的效能比較要用同一組開機檔、只換 \code{system.dtb}，這是開機組 E 與 G（發佈的開機檔加候選版 rootfs；它的 driver 和發佈版只差兩個 probe 錯誤路徑，不影響這裡量的東西）：
 
 \begin{center}
 \small
@@ -83,20 +84,18 @@ context fault 裡的 \code{iova=0x00000000} 是因為 buffer 剛好在 $2^{40}$ 
 同一個映像，只差 \code{system.dtb} & E：SMMU 開 & G：SMMU 關 \\
 \midrule
 pipeline，三次的平均（\code{E2}/\code{G2} 第 37--39 行） & \smmuOnFps{} fps & \smmuOffFps{} fps \\
-每幀 CPU 時間，中斷（\code{E3}/\code{G3} 第 10 行） & 10.7 µs & 10.8 µs \\
-等待延遲，中斷（第 9 行） & 14.0 µs & 14.3 µs \\
-越界讀取 & context fault & 沒有察覺 \\
+每幀 CPU 時間，中斷（\code{E3}/\code{G3} 第 10 行） & \irqCpuUs{} µs & 10.8 µs \\
+等待延遲，中斷（第 9 行） & \irqWaitUs{} µs & 14.3 µs \\
+越界讀取（\code{E4}/\code{G4} 第 37--41 行） & context fault & 沒有察覺 \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-\textbf{有了 IOMMU，buffer 不必實體連續。}沒有 SMMU 時，PL 拿到的是實體位址，8 MB 必須是一塊實體連續的記憶體，所以從 CMA 配。有 SMMU 時，PL 看到的是 IOVA，DMA API 改從一般記憶體配頁，再在 IOVA 上排成連續的 8 MB。開機組 E 的 \code{CmaFree} 比開機組 G 多了 8,256 kB（261,632 對 253,376 kB，\code{E1}/\code{G1} 的 meminfo）：其中 8 MB（8,192 kB）就是 driver 的 buffer；另外 64 kB 沒有查，推測是 SMMU 打開後同樣改走 IOMMU 的 PS 裝置。
-
-\textbf{為什麼 SMMU 沒有拖慢 PL。}每次轉換都要查頁表，但 SMMU 的 TBU 有自己的 TLB（轉換結果的快取）；PL 又是順序地串流讀寫同一塊 buffer，大部分的存取會落在剛查過的頁上。量到的吞吐量差距在正常變動之內；TLB 命中率本身沒有量，用了多大的頁也沒有查。
+\textbf{為什麼 SMMU 沒有拖慢 PL。}每次轉換都要查頁表，但 SMMU 的 TBU 有自己的 TLB（轉換結果的快取）；PL 又是順序地串流讀寫同一塊 buffer，大部分的存取會落在剛查過的頁上。量到的吞吐量差距在正常變動之內；TLB 命中率本身沒有量，用了多大的頁也沒有查。buffer 的實體頁在 SMMU 開與關時從哪裡來，見第 3 章。
 
 \subsection{原理}
 
-\textbf{SMMU 怎麼轉換。}SMMU 的結構和 CPU 的 MMU 很像：每個 IOMMU domain 有一套頁表，裝置發出的位址（IOVA）經頁表轉成實體位址，沒有映射的位址會產生 context fault。kernel 的 DMA API 在有 IOMMU 時，從裝置的 DMA mask 往下配 IOVA（這裡的 mask 是 40 bits，所以 IOVA 是 \code{0xff_ff80_0000}，緊貼在 $2^{40}$ 下面），再把 buffer 的實體頁映射上去。
+\textbf{SMMU 怎麼轉換。}SMMU 的結構和 CPU 的 MMU 很像：每個 IOMMU domain 有一套頁表，裝置發出的位址（IOVA）經頁表轉成實體位址，沒有映射的位址會產生 context fault。kernel 的 DMA API 在有 IOMMU 時，從裝置的 DMA mask 往下配 IOVA（這裡的 mask 是 40 bits，所以 IOVA 是 \mbox{\code{0xff_ff80_0000}}，緊貼在 $2^{40}$ 下面），再把 buffer 的實體頁映射上去。
 
 \textbf{stream ID 怎麼算。}ZynqMP 的 SMMU 有 6 個 TBU（轉換單元），各自負責幾個匯流排埠。PL 經 HP0 進來的交易走 TBU 3，HP1、HP2 走 TBU 4，HP3 走 TBU 5；HP0 的 master ID 是 \code{1010}，HP1 到 HP3 依序是 \code{1011}、\code{1100}、\code{1101}（開機組 F 量到的）。AXI ID 由 RTL 決定，這個設計的 master 都送 0。所以 HP0 是 \code{(3 << 10) | (0b1010 << 6) = 0xe80}。
 
@@ -105,7 +104,7 @@ pipeline，三次的平均（\code{E2}/\code{G2} 第 37--39 行） & \smmuOnFps{
 \textbf{SMMU 能保護什麼、不能保護什麼。}對帶著登記過的 stream ID 的 Non-secure 交易，它保證 PL 只能存取 driver 為它映射的頁，描述子給錯的偏移、或 PL 的位址計算錯誤，都碰不到 kernel 和其他 process 的記憶體。但有兩種交易它擋不住：
 \begin{itemize}
 \item \textbf{沒有登記的 stream ID}：發佈的 kernel 沒有開 \code{ARM_SMMU_DISABLE_BYPASS_BY_DEFAULT}，命令列也沒有 \code{arm_smmu.disable_bypass=1}，所以 SMMU 對沒登記的 ID 直接放行。stream ID 的低 6 位元是 AXI ID，只要 PL 送出非 0 的 AXI ID（RTL 的錯誤，或換了另一顆 bitstream），交易就以實體位址直通整個 DDR。
-\item \textbf{Secure 交易}（AxPROT[1] = 0）：完全不經過 Linux 設定的轉換。這正是本節第一次失敗的情形，也是一種 RTL 錯誤。
+\item \textbf{Secure 交易}（AxPROT[1] = 0）：完全不經過 Linux 設定的轉換。這正是本章第一次失敗的情形，也是一種 RTL 錯誤。
 \end{itemize}
 要擋住第一種，可以在命令列加 \code{arm_smmu.disable_bypass=1}；發佈映像沒有這樣做，因為它會擋下所有沒有登記 stream ID 的主控端，這個組合只在開機組 F 用過，沒有完整測過 PS 的各個周邊。第二種只能靠 RTL 本身正確。另外，SMMU 也不檢查 buffer 內部的存取是否合理（例如輸出寫到權重區），那仍然要靠 driver 的 offset 檢查。
 

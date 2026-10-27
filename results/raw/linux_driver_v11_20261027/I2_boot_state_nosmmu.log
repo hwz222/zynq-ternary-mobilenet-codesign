@@ -1,0 +1,44 @@
+== 2026-10-27 03:09 UTC  6.1.30-xilinx-v2023.2  BOOT.BIN 5d226057efc8760b  system.dtb 6ceadb90b64b6a98  twn_fuse.ko aec4477e2c520faf
+# cat /proc/cmdline
+earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw uio_pdrv_genirq.of_id=generic-uio
+# lsmod | grep twn_fuse
+twn_fuse               20480  0
+# modinfo -n twn_fuse; grep -h twn_fuse /etc/modules-load.d/* 2>/dev/null
+/lib/modules/6.1.30-xilinx-v2023.2/extra/twn_fuse.ko
+twn_fuse
+# readlink /sys/bus/platform/devices/a0000000.twn_fuse/driver
+../../../../bus/platform/drivers/twn_fuse
+# dmesg | grep 'twn_fuse a0000000'
+[    4.765513] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.387596] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.453910] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.514080] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.574096] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.638146] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.706039] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.758103] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.818083] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.870108] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.930084] twn_fuse a0000000.twn_fuse: NBLK 17, 65536 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+[  122.999809] twn_fuse a0000000.twn_fuse: NBLK 17, 8192 KB DMA buffer at 0x000000006a100000, /dev/twn_fuse, interrupt
+# grep twn_fuse /proc/interrupts
+ 54:       6012          0     GICv2 121 Level     a0000000.twn_fuse
+# grep -E 'MemTotal|CmaTotal|CmaFree' /proc/meminfo
+MemTotal:        2035396 kB
+CmaTotal:         262144 kB
+CmaFree:          253376 kB
+# ls /proc/device-tree/reserved-memory 2>/dev/null || echo no reserved-memory node
+no reserved-memory node
+# zcat /proc/config.gz 2>/dev/null | grep -E 'STRICT_DEVMEM|ARM_SMMU=' || echo no /proc/config.gz
+CONFIG_ARM_SMMU=y
+CONFIG_STRICT_DEVMEM=y
+CONFIG_IO_STRICT_DEVMEM=y
+# devmem 0x60000000 32; echo exit $?
+devmem: mmap: Operation not permitted
+exit 1
+# devmem 0xa0000008 32; echo exit $?
+devmem: mmap: Operation not permitted
+exit 1
+# cut -d: -f1,3 /etc/shadow | grep -E '^(root|petalinux):'
+root:20753
+petalinux:0

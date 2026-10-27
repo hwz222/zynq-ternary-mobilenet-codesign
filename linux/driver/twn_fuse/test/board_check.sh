@@ -14,7 +14,8 @@
 #      keypoints checked against fixture 0
 # Leaves the device bound to twn_fuse. Prints "BOARD CHECK: PASS" only if every check passed.
 # The UIO backend runs only where the device tree still reserves its buffer (the v1.0.0 boot
-# files); the v1.1 image has neither that reservation nor /dev/mem, and checks the driver alone.
+# files); the v1.1 image has no reservation and /dev/mem refuses System RAM, so it checks the
+# driver alone.
 cd "$(dirname "$0")" || exit 1
 fail=0
 fixtures() {   # <app> -> number of fixtures that passed, for each head placement

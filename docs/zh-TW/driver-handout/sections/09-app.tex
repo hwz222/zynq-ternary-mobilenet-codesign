@@ -1,0 +1,102 @@
+\needspace{20\baselineskip}
+\section{App 端：同一份 HAL 介面，以及影像怎麼進 buffer}
+\label{sec:app}
+
+\begin{oneline}
+app 的演算法與位址計算沒有改：\code{pl_hal_fuse.h} 有兩個實作，編譯時用 \code{HAL=drv}（預設）或 \code{HAL=uio} 選一個；driver 版本回報「buffer 基底位址是 0」，app 算出的位址就自動變成 offset。
+\end{oneline}
+
+\begin{before}
+v1.0.0 的 \code{Makefile.cross} 只有一個實作可選（\code{pl_hal_fuse.c}）：
+
+\snip[make]{v100_make_common}
+
+\code{pl_hal_fuse.c} 裡混著兩種程式：要碰暫存器的（UIO、\code{/dev/mem}），和完全不碰硬體的（head 描述子的編碼與檢查、印 counter）。app（\code{mbv2_fuse_ps.c}）只呼叫這份介面、不直接碰硬體，這個分層正是能換實作的原因。
+\end{before}
+
+\begin{tech}
+\begin{itemize}
+\item HAL（Hardware Abstraction Layer）：上層只依賴一份 header，底下可以換不同的實作；\code{Makefile.cross} 用 \code{HAL} 變數決定編哪一個 \code{.c}。
+\item 重構：不碰硬體的函式搬到 \code{pl_hal_fuse_enc.c}，兩個實作共用，內容一字不改。
+\item 「基底 0」：driver 版本的 \code{fuse_arena_init()} 回報實體位址 0。
+\item \code{_Static_assert}：編譯時期的檢查，buffer 配置超過 6 MB 就編譯失敗。
+\end{itemize}
+\end{tech}
+
+\begin{gain}
+\begin{itemize}
+\item 兩個版本跑的是同一份 app，量到的差異只來自 HAL 底下那一層，比較才有意義（第 3、13 章）。
+\item UIO 版本保留下來，給 v1.0.0 的開機檔與 A/B 實驗用；v1.1 的映像只用 driver 版本。
+\item app 本身只改了一處：要求的 buffer 從整塊 256 MB 改成實際需要的 6 MB。
+\end{itemize}
+\end{gain}
+
+\subsection{實際例子}
+
+\textbf{在 Makefile 選實作。}\code{HAL} 是 \code{drv} 就編 \code{pl_hal_fuse_drv.c}，否則編 \code{pl_hal_fuse.c}；輸出放在不同資料夾：
+
+\snip[make]{app_make_hal}
+
+\textbf{每個 HAL 函式都變成一個 ioctl。}共用的錯誤處理，與跑一幀的函式：
+
+\snip{app_xioctl}
+\snip{app_run_frame}
+
+和 UIO 版本 61 行的 \code{fuse_run_frame()}（第 6 章）比，這裡只剩填參數、呼叫、存下 counter。注意其中的 \code{exit(1)}：\code{fuse_run_frame()} 的介面沒有錯誤回傳值，為了不改介面，driver 回的錯誤碼在這裡仍然變成結束程式；要讓 app 自己處理逾時，得連 \code{pl_hal_fuse.h} 一起改。
+
+\textbf{「基底 0」怎麼讓 app 不用改。}app 算位址的方式一直是「基底加區段 offset」：
+
+\snip{app_run_call}
+
+UIO 版本的 \code{g_arena_pa} 是 \code{0x6000_0000}，傳下去的是實體位址，HAL 直接寫進暫存器；driver 版本的 \code{g_arena_pa} 是 0（第 4 章），傳下去的就是 offset，HAL 原封不動交給 ioctl，driver 再加上真正的 DMA 位址。同一行 app 程式，在兩個實作底下都對。
+
+\textbf{板上：兩個版本，同樣的答案。}v1.0.0 的開機檔上，同一份 app 分別連結兩個 HAL，四張合成 fixture 都逐位元相同：
+
+\boardfile{D4_synthetic.log}{1,7-8,12,19-20,24}
+
+\subsection{影像怎麼進 buffer：以攝影機 app 為例}
+
+\code{sw/app/main_cam.c} 從 USB 攝影機讀影像，經過五步才變成 PL 能吃的格式：
+\begin{enumerate}
+\item \textbf{從攝影機拿一幀}：攝影機由 kernel 的 uvcvideo driver 管，app 用 V4L2（Video4Linux2）的 ioctl 操作：\code{VIDIOC_S_FMT} 設 640×480 與格式（YUYV 或 MJPEG），\code{VIDIOC_REQBUFS} 請 kernel 配 capture buffer 並 \code{mmap} 進來，每幀 \code{VIDIOC_DQBUF} 取一格、用完 \code{VIDIOC_QBUF} 還回去。用法和 \code{/dev/twn_fuse} 一樣是「ioctl 下指令、mmap 給資料」；uvcvideo 的 \code{.read} 直接回 \code{-EINVAL}。
+\item \textbf{解碼成 RGB}：YUYV 用固定小數點換算；MJPEG 用 libturbojpeg。
+\item \textbf{裁切與縮放}：從畫面中間取正方形、略往下移，nearest 取樣成 256×256。
+\item \textbf{量化成 int8}：訓練時的輸入是「像素 ÷ 255、減 ImageNet 平均、除標準差、除模型的輸入 scale、四捨五入」。這串浮點運算事先算成每個 channel 256 格的表（\code{tools/gen_input_qlut.py} 從模型的 \code{model_meta.c} 產生 \code{input_qlut.h}），執行時查表：
+\snip{cam_prep_input}
+\item \textbf{換排列、寫進 buffer}：上一步得到的是 CHW（三張平面），PL 要的是 HWC（每個像素的 R、G、B 連在一起），每列補齊到 128 bytes 的倍數，直接寫進 mmap 來的 buffer（第 3 章的 \code{OFF_IN}）：
+\snip{app_write_input}
+\end{enumerate}
+
+接著 \code{ioctl(TWN_IOC_BB_RUN)} 只傳這塊輸入的 offset；driver 寫 START 時，\code{writel} 的 barrier 保證剛寫的影像比 START 先被 PL 看到（第 2 章）。推論結束後，app 讀回 head 的 heatmap，找出 14 個關節點，畫在 \code{/dev/fb0}（framebuffer，又是一個 mmap 出來的記憶體）上。
+
+PL 吃的是量化後的 256×256 int8，攝影機給的是 640×480 的 YUYV 或 JPEG，每個像素都要 CPU 處理一次，所以讓 PL 直接讀攝影機的 buffer（dma-buf 共用）在這裡沒有意義。查表這一步也沒有 fixture 驗證，因為 fixture 存的是量化好的 tensor；app 留了 \code{CAM_QSTAT=1} 印出量化後的範圍供人工檢查。攝影機 app 的 \code{--selftest}（把 fixture 走完同樣的推論並逐位元比對）只在 v1.0.0 的 UIO 版本上做過（\code{results/board_results.json} 的 \code{camera_app_selftest}）；driver 版本的攝影機 app 有編出來，但 v1.1 的板上檢查沒有跑它。
+
+\subsection{原理}
+
+\textbf{為什麼在連結時選，不在執行時選。}執行時選（例如函式指標表）要多一層間接呼叫，兩個實作也都會編進同一個執行檔。這裡兩個版本不會在同一個程式裡同時用到，用 Makefile 在連結時選最簡單：每個執行檔只含一個實作，函式名稱完全相同，app 看不出差別。
+
+\textbf{為什麼不乾脆讓 app 直接呼叫 ioctl。}那得改動 app 裡每一處算位址、每一次啟動與等待，UIO 版本也保留不了。守住 HAL 這一層，差異都關在兩個 \code{.c} 裡，app 不用改，也就不會因為改 app 而引入新的錯誤。不碰硬體的編碼函式搬到共用檔、內容不改，兩個版本就不會悄悄產生不同的結果。
+
+\subsection{面試會問}
+
+\begin{qa}{換成 driver 之後，上層的 app 改了多少？攝影機的影像怎麼送進去？}
+演算法和位址計算都沒改。app 本來就只透過 \code{pl_hal_fuse.h} 碰硬體，我替它寫了第二個實作，用 Makefile 的 \code{HAL=drv} 在連結時選。關鍵是 driver 版本回報 buffer 基底位址為 0：app 用「基底加 offset」算位址，基底是 0 時算出來的就是 offset，正好是 ioctl 要的。攝影機那邊：用 V4L2 的 ioctl 和 mmap 拿到一幀，解碼成 RGB、裁切成 256×256、每個 channel 查表量化成 int8，再轉成 PL 要的 HWC 排列直接寫進 mmap 來的 DMA buffer，最後一個 ioctl 只傳 offset。driver 寫 START 時 \code{writel} 的 barrier 保證影像比 START 先被 PL 看到。
+\end{qa}
+
+\subsection{關鍵函式速查}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+名稱 & 位置 & 做什麼 \\
+\midrule
+\code{HAL} 變數 & \code{Makefile.cross}:\lineof{app_make_hal} & 選 \code{pl_hal_fuse_drv.c} 或 \code{pl_hal_fuse.c} \\
+\code{xioctl()} & \code{pl_hal_fuse_drv.c}:\lineof{app_xioctl} & 呼叫 ioctl，失敗時印出是哪一個 \\
+\code{fuse_run_frame()} & \code{pl_hal_fuse_drv.c}:\lineof{app_run_frame} & 一個 \code{TWN_IOC_BB_RUN} \\
+\code{prep_input()} & \code{main_cam.c}:\lineof{cam_prep_input} & 裁切、縮放、查表量化 \\
+\code{mbv2_fuse_write_input()} & \code{mbv2_fuse_ps.c}:\lineof{app_write_input} & CHW 轉 HWC，寫進 buffer \\
+\code{pl_hal_fuse_enc.c} & \code{sw/app/} & 兩個實作共用的編碼與檢查 \\
+\bottomrule
+\end{tabularx}
+\end{center}

@@ -1,52 +1,44 @@
-\clearpage
-\section{MMIO：ioremap 與 readl / writel}
+\needspace{20\baselineskip}
+\section{MMIO：ioremap、readl／writel 與 barrier}
 \label{sec:mmio}
 
 \begin{oneline}
-暫存器的實體位址 \code{0xA000_0000} 要先經 \code{ioremap} 換成一個 kernel 虛擬位址，之後用自帶順序保證（barrier）的 \code{readl} / \code{writel} 讀寫。
+暫存器的實體位址 \code{0xA000_0000} 要先經 \code{ioremap} 換成 kernel 虛擬位址，之後用 kernel 提供、而且自帶順序保證（barrier）的 \code{readl}／\code{writel} 讀寫。
 \end{oneline}
 
 \begin{before}
-app 把 \code{/dev/uio4} \code{mmap} 進來（第 1 節 \code{fuse_hal_init} 第 132 行），得到一個 \code{volatile} 指標 \code{g_ctrl}，直接用陣列下標讀寫暫存器：
+app 把 \code{/dev/uio4} \code{mmap} 進來（第 1 章 \code{fuse_hal_init()}），得到一個 \code{volatile} 指標 \code{g_ctrl}，直接用陣列下標讀寫暫存器（第 78--79 行）。app 還得自己處理順序：先把輸入寫進 DDR、再寫 START，兩者是不同的記憶體區段，CPU 不保證先後，所以 v1.0.0 手寫了一個 barrier（第 93 行的 \code{dsb sy}）：
 
-\snip{uio_wr_rd}
+\snip{v100_uio_wr_rd}
+\snip{v100_uio_wmb}
 
-app 還要自己處理順序：先把輸入寫進 DDR，再寫 START。兩者是不同的記憶體區段，CPU 不保證先後，所以 v1.0.0 手寫了一個 barrier（第 93 行的 \code{dsb sy}）：
-
-\snip{uio_wmb}
-
-問題：
-\begin{itemize}
-\item 第 78–79 行：任何能開 \code{/dev/uio4} 的程式都能寫任何暫存器。
-\item 第 93 行：barrier 要每個寫 app 的人自己記得加；漏了，PL 可能讀到還沒寫完的輸入。
-\item kernel 不知道這段位址被誰占用。
-\end{itemize}
+問題：任何能開 \code{/dev/uio4} 的程式都能寫任何暫存器；barrier 要每個寫 app 的人自己記得加，漏了，PL 可能讀到還沒寫完的輸入；kernel 也不知道這段位址被誰佔用。
 \end{before}
 
 \begin{tech}
 \begin{itemize}
-\item \code{devm_platform_ioremap_resource(pdev, 0)}：取出節點 \code{reg} 的第 0 段位址、向 kernel 登記「這段我用了」、建立映射，一次做完，並在 driver 離開時自動解除。
+\item \code{devm_platform_ioremap_resource(pdev, 0)}：取出節點 \code{reg} 的第 0 段、向 kernel 登記「這段我用了」、建立映射，一次做完，driver 離開時自動解除。
 \item \code{void __iomem *}：標記「這是 I/O 位址」的指標型別，靜態檢查工具 sparse 會擋下直接解指標的寫法。
-\item \code{readl()} / \code{writel()}：32-bit 的暫存器讀寫，內含 barrier。
-\item \code{lower_32_bits()} / \code{upper_32_bits()}：把 64-bit 位址拆成兩個 32-bit 暫存器。
+\item \code{readl()}／\code{writel()}：kernel 在 \code{<linux/io.h>} 提供的 32-bit 暫存器讀寫，內含 barrier；同族還有 8、16、64-bit 的 \code{readb}／\code{readw}／\code{readq}。
+\item \code{lower_32_bits()}／\code{upper_32_bits()}：把 64-bit 位址拆成兩個 32-bit 暫存器。
 \end{itemize}
 \end{tech}
 
 \begin{gain}
 \begin{itemize}
-\item 正常使用路徑上，app 不再映射暫存器（第 4 節用 \code{/proc/<pid>/maps} 比較）。限制：這個 kernel 沒開 \code{CONFIG_STRICT_DEVMEM}，root 權限的程式仍可經 \code{/dev/mem} 自己映射 CSR，driver 擋不住（第 4 節）。
-\item 位址範圍登記在 \code{/proc/iomem}，名字是 \code{a0000000.twn_fuse}，別的 driver 無法再登記同一段（板上輸出見下）。
-\item 順序保證由 \code{writel} 負責，不靠每個 app 自己加 barrier。
+\item 正常使用路徑上，app 不再映射暫存器（第 4 章用 \code{/proc/<pid>/maps} 確認）；\code{/dev/mem} 這條旁路由第 10 章的 kernel 選項限制。
+\item 位址範圍登記在 \code{/proc/iomem}，名字是 \code{a0000000.twn_fuse}，別的 driver 無法再登記同一段。
+\item 順序保證由 \code{writel}／\code{readl} 負責，driver 裡沒有任何手寫的 barrier。
 \end{itemize}
 \end{gain}
 
-\subsection{實際例子：程式碼與板上輸出}
+\subsection{實際例子}
 
-\textbf{暫存器表。}位址和位元定義都照 \code{rtl/fuse/twn_csr.v}。注意 \code{R_CTRL} 的第 1 位元讀和寫的意思不一樣：讀到的是 busy，寫進去是「清除 done」。\code{R_STATUS} 的完整欄位在第 8 節：
+\textbf{暫存器表。}位址和位元定義照 \code{rtl/fuse/twn_csr.v}。\code{R_CTRL} 的第 1 位元讀和寫意思不同：讀到的是 busy，寫進去是「清除 done」。\code{R_IRQ} 是 v1.1 加的中斷致能（第 6 章）：
 
 \snip{drv_regs}
 
-\textbf{三個存取函式。}除了兩處直接把位址交給 \code{readl_poll_timeout} 的等待（第 6 節），driver 都透過這三個函式碰暫存器。\code{wr_addr} 把「buffer 的 DMA 位址 + offset」拆成高低兩個 word 寫進去；硬體只用高位 word 的低 8 位元，所以位址是 40 bits：
+\textbf{三個存取函式。}除了兩處把位址直接交給 \code{readl_poll_timeout} 的輪詢（第 6 章），以及 debugfs 的暫存器傾印（\code{debugfs_create_regset32()} 自己用 \code{readl} 讀，第 8 章），driver 都透過這三個函式碰暫存器。\code{wr_addr} 把「buffer 的 DMA 位址加 offset」拆成高低兩個 word；硬體只用高位 word 的低 8 位元，所以位址是 40 bits：
 
 \snip{drv_rd}
 \snip{drv_wr}
@@ -57,20 +49,15 @@ app 還要自己處理順序：先把輸入寫進 DDR，再寫 START。兩者是
 \snip{drv_probe_map}
 \snip{drv_probe_nblk}
 
-NBLK 的 reset 值是 17。這顆 RTL 沒有 ID 暫存器，NBLK 的 reset 值是唯一的指紋。讀錯只印警告、不拒絕綁定，因為 UIO 版本的除錯功能 \code{fuse_set_nblk()} 會改寫它，上一次除錯後再載入 driver 就會讀到別的值。
+NBLK 的 reset 值是 17。這顆 RTL 沒有 ID 暫存器，NBLK 的 reset 值是唯一的指紋。讀錯只印警告、不拒絕綁定，因為除錯時可以改寫它（第 8 章的 debugfs \code{nblk}），上一次除錯後再載入 driver 就會讀到別的值。
 
 \textbf{板上：位址範圍有了主人，probe 讀到 17。}
 
-\boardfile{A3_driver_state.txt}{9-15}
+\boardfile{H10_driver_state.log}{1,14-18,23-24}
 
 \subsection{原理}
 
-\textbf{為什麼不能直接用指標存取 \code{0xA000_0000}。}CPU 開了 MMU（Memory Management Unit，把虛擬位址翻譯成實體位址的硬體）以後，程式裡的每個指標都是虛擬位址。arm64 Linux 的虛擬位址分兩半：低的一半屬於 user process，高的一半屬於 kernel。\code{0xA0000000} 這個數字當成虛擬位址，落在 user 那一半，查的是「當下那個 process 的頁表」，跟實體位址 \code{0xA000_0000} 沒有關係：
-\begin{itemize}
-\item 如果當下的 process 沒有映射這個位址，就是 page fault（存取到頁表裡沒有的位址）。kernel 程式出這種錯會 oops（kernel 印出錯誤現場並終止目前的工作）。
-\item 如果剛好有映射，存取會靜默落在某塊 user 記憶體上，更危險。
-\end{itemize}
-kernel 自己的頁表一開始只把 DDR 線性對應進來（linear map），周邊的實體位址不在裡面。所以周邊一定要先 \code{ioremap}，拿到一個屬於 kernel 那一半的虛擬位址。
+\textbf{為什麼不能直接用指標存取 \code{0xA000_0000}。}開了 MMU（把虛擬位址翻譯成實體位址的硬體）之後，程式裡的每個指標都是虛擬位址。arm64 Linux 的虛擬位址分兩半：低的一半屬於 user process，高的一半屬於 kernel。\code{0xA0000000} 當成虛擬位址落在 user 那一半，查的是當下 process 的頁表，跟實體位址 \code{0xA000_0000} 沒有關係：沒有映射就是 page fault，kernel 程式出這種錯會 oops（印出錯誤現場並終止目前的工作）；剛好有映射，則會靜默寫到某塊 user 記憶體上，更危險。kernel 自己的頁表一開始只對應 DDR，周邊的實體位址不在裡面，所以一定要先 \code{ioremap}。
 
 \begin{center}
 \begin{tikzpicture}[font=\footnotesize,
@@ -86,42 +73,31 @@ kernel 自己的頁表一開始只把 DDR 線性對應進來（linear map），�
 \end{tikzpicture}
 \end{center}
 
-\code{ioremap} 在 kernel 的頁表加一筆：某段虛擬位址對應到 \code{0xA000_0000}，而且標成 Device 記憶體。在 arm64 的 Linux 6.1，\code{ioremap} 用的屬性是 \code{PROT_DEVICE_nGnRE}（\code{arch/arm64/include/asm/io.h} 第 145 行）。三個字母的意思：
-\begin{itemize}
-\item \textbf{nG}（non-Gathering）：不把多次存取合併成一次。寫兩次暫存器就是兩次匯流排交易。
-\item \textbf{nR}（non-Reordering）：對同一個裝置的存取不重排順序。
-\item \textbf{E}（Early write acknowledgement）：允許匯流排中途就回報「寫完了」。UIO 的 \code{mmap} 用的是更嚴格的 \code{nE}（\code{drivers/uio/uio_core.c} 第 786 行的 \code{pgprot_noncached}）。
-\end{itemize}
-Device 記憶體也不經過 cache，不會被 CPU 預先讀取，所以讀一次 done 位元就真的去硬體讀一次。
+\code{ioremap} 在 kernel 的頁表加一筆，屬性是 Device 記憶體；arm64 的 Linux 6.1 用 \code{PROT_DEVICE_nGnRE}。nG（non-Gathering）：不把多次存取合併；nR（non-Reordering）：對同一個裝置的存取不重排；E（Early write acknowledgement）：允許匯流排中途就回報寫完。UIO 的 \code{mmap} 給的是更嚴格的 nE。Device 記憶體也不經過 cache、不會被預先讀取，所以讀一次 done 位元就真的去硬體讀一次。
 
-\textbf{\code{writel} 裡面多了什麼。}Linux 6.1 的通用實作（\code{include/asm-generic/io.h} 第 273 行）節錄如下，刪去兩行追蹤用的程式，也省略了位元組順序轉換（\code{__cpu_to_le32}，在 little-endian 的 arm64 上不做任何事）：
+\textbf{barrier 是什麼。}程式寫的順序不等於實際發生的順序：compiler 只要單一執行緒看起來一樣就可以重排；ARM 是弱記憶體順序（weakly ordered）的架構，CPU 會亂序執行，store 先進 write buffer（CPU 送出寫入前暫放的小緩衝區），寫 DDR 和寫 PL 暫存器走不同的路徑，誰先到沒有保證。對 CPU 自己看不出差別，但 PL 是另一個觀察者。barrier 是一道「順序」指令：寫在它前面的存取，一定比後面的先被別人看到。它不搬資料、不清 cache，也不是鎖。
+
+\textbf{\code{readl}／\code{writel} 裡面多了什麼。}Linux 6.1 的通用實作（\code{include/asm-generic/io.h}），省略追蹤與位元組順序轉換（在 little-endian 的 arm64 上不做事）：
 
 \begin{lstlisting}[numbers=none,xleftmargin=0pt]
-static inline void writel(u32 value, volatile void __iomem *addr)
-{
-	__io_bw();                 /* arm64: dma_wmb() = dmb oshst */
-	__raw_writel(value, addr); /* the store itself */
-	__io_aw();
-}
+writel(value, addr):  __io_bw();  __raw_writel(value, addr);   /* __io_bw = dma_wmb() = dmb oshst */
+readl(addr):          v = __raw_readl(addr);  __io_ar(v);      /* __io_ar = dma_rmb() = dmb oshld ... */
 \end{lstlisting}
 
-store 之前的 \code{dma_wmb()} 保證：這行之前寫進 DDR 的資料，會比這次暫存器寫入先被其他裝置看到。driver 寫 START 正需要這個保證，app 寫好的輸入影像必須在 PL 開始讀之前就到達 DDR。
-
-兩種 barrier 的差別：
+在這個 driver 裡它們各解決一個實際問題：
 \begin{itemize}
-\item \code{dsb}（Data Synchronization Barrier）：等前面所有記憶體存取\textbf{真的完成}，CPU 才往下執行。
-\item \code{dmb}（Data Memory Barrier）：只保證前後存取被別人看到的\textbf{順序}，不必停下來等。
+\item \textbf{寫 START 之前}：app 剛把輸入影像寫進 DDR 的 buffer。\code{writel} 先做 \code{dma_wmb()}，保證這些寫入比 START 先被 PL 看到；否則 PL 可能讀到上一幀或寫到一半的影像，而且不是每次都發生，很難查。
+\item \textbf{讀到 done 之後}：\code{readl} 讀完再做 \code{dma_rmb()}，保證之後讀 buffer 裡的輸出，不會被 CPU 提前到讀 done 之前，才不會讀到 PL 還沒寫完的結果。
 \end{itemize}
-後綴 \code{oshst} 的 \code{osh} 是 outer shareable，指「CPU 和其他會存取記憶體的裝置」這個範圍；\code{st} 表示只管寫入。v1.0.0 手寫的 \code{dsb sy} 是最重的那種：等所有存取完成、範圍是整個系統。\code{writel} 用的 \code{dmb oshst} 只排好寫入的順序，已經足夠。
 
-\code{readl} 則在讀完之後加讀取 barrier：讀到 done 之後，接下來讀 DDR 的動作不會被提早到 done 之前，所以不會讀到 PL 還沒寫完的輸出。
+ARM 有兩種 barrier 指令：\code{dsb}（Data Synchronization Barrier）等前面所有存取\textbf{真的完成}才往下執行；\code{dmb}（Data Memory Barrier）只保證\textbf{順序}。後綴 \code{osh}（outer shareable）指「CPU 和會存取記憶體的裝置」這個範圍，\code{st}／\code{ld} 表示只管寫或讀。v1.0.0 手寫的 \code{dsb sy} 是最重的一種；\code{writel} 的 \code{dmb oshst} 只排好寫入順序，已經足夠。\code{readl_relaxed}／\code{writel_relaxed} 則拿掉這些 barrier，用在確定不需要順序的地方。
 
-\textbf{為什麼要「登記」位址範圍。}\code{devm_platform_ioremap_resource} 內部先呼叫 \code{request_mem_region}，在 \code{/proc/iomem} 記下這段位址屬於誰。另一個 driver 再要同一段就會失敗。它擋不住 \code{/dev/mem}：\code{/dev/mem} 不經過這個登記，要靠 \code{CONFIG_STRICT_DEVMEM} 才能擋（第 4 節）。
+\textbf{為什麼要「登記」位址範圍。}\code{devm_platform_ioremap_resource} 內部先呼叫 \code{request_mem_region}，在 \code{/proc/iomem} 記下這段位址屬於誰，另一個 driver 再要同一段就會失敗。它本身擋不住 \code{/dev/mem}；那要靠第 10 章的 \code{IO_STRICT_DEVMEM}，而它正是以這份登記為依據。
 
 \subsection{面試會問}
 
-\begin{qa}{為什麼要先 ioremap，不能直接用指標存取 0xA000\_0000？}
-因為開了 MMU 之後指標都是虛擬位址。\code{0xA0000000} 當成虛擬位址屬於 user 那一半，查的是當下 process 的頁表，跟周邊的實體位址無關；kernel 的頁表裡也沒有周邊的對應，直接存取會 page fault。\code{ioremap} 幫我建一筆頁表，把一段 kernel 虛擬位址對到這個實體位址，屬性是 Device-nGnRE：不走 cache、不合併、不重排。之後我用 \code{readl} / \code{writel} 存取，不直接解指標，因為 \code{writel} 寫入前有 \code{dma_wmb}，保證 app 先寫進 DDR 的輸入，會在 START 之前就讓 PL 看得到。我用 \code{devm_platform_ioremap_resource}，它還會在 \code{/proc/iomem} 登記這段位址，driver 離開時自動解除。
+\begin{qa}{為什麼要先 ioremap？readl／writel 跟直接解指標差在哪？}
+開了 MMU 之後指標都是虛擬位址。\code{0xA0000000} 當成虛擬位址屬於 user 那一半，跟周邊的實體位址無關，kernel 的頁表裡也沒有周邊，直接存取會 page fault。\code{ioremap} 建一筆頁表，把一段 kernel 虛擬位址對到實體位址，屬性是 Device-nGnRE：不走 cache、不合併、不重排。存取一律用 kernel 的 \code{readl}／\code{writel}：它們保證每次真的讀寫到硬體，而且帶 barrier。\code{writel} 寫入前有 \code{dma_wmb}，所以 app 先寫進 DDR 的輸入一定比 START 先讓 PL 看到；\code{readl} 讀到 done 之後有 \code{dma_rmb}，之後讀輸出不會被提前。我的 driver 沒有手寫任何 barrier，全部靠這兩個函式。
 \end{qa}
 
 \subsection{關鍵函式速查}
@@ -133,11 +109,10 @@ store 之前的 \code{dma_wmb()} 保證：這行之前寫進 DDR 的資料，會
 名稱 & 位置 & 做什麼 \\
 \midrule
 暫存器表 & \code{twn_fuse.c}:\lineof{drv_regs} & 位址與位元，照 \code{twn_csr.v} \\
-\code{rd()} / \code{wr()} & \code{twn_fuse.c}:\lineof{drv_rd} & \code{readl} / \code{writel} 的包裝 \\
-\code{wr_addr()} & \code{twn_fuse.c}:\lineof{drv_wr_addr} & 寫入 40-bit 位址：DMA 位址 + offset \\
+\code{rd()}／\code{wr()} & \code{twn_fuse.c}:\lineof{drv_rd} & \code{readl}／\code{writel} 的包裝 \\
+\code{wr_addr()} & \code{twn_fuse.c}:\lineof{drv_wr_addr} & 寫入 40-bit 位址：DMA 位址加 offset \\
 probe 第 1、2 步 & \code{twn_fuse.c}:\lineof{drv_probe_map} & ioremap、讀 NBLK \\
-\code{devm_platform_ioremap_resource} & kernel & 登記位址範圍 + ioremap + 自動解除 \\
-\code{writel} & kernel \code{include/asm-generic/io.h}:273 & \code{dma_wmb()} 之後才寫暫存器 \\
+\code{readl}／\code{writel} & kernel \code{include/asm-generic/io.h} & 讀後 \code{dma_rmb()}、寫前 \code{dma_wmb()} \\
 \bottomrule
 \end{tabularx}
 \end{center}

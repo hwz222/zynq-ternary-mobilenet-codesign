@@ -1,4 +1,4 @@
-\clearpage
+\needspace{20\baselineskip}
 \section{mmap：只把 buffer 給 user space}
 \label{sec:mmap}
 
@@ -7,24 +7,14 @@ driver 的 \code{mmap} 只把 DMA buffer 那幾頁放進 app 的頁表，app 不
 \end{oneline}
 
 \begin{before}
-v1.0.0 的 app 自己做兩次映射。暫存器（第 132 行，\code{/dev/uio4} 的 64 KB）：
-
-\snip{uio_map_regs}
-
-和整塊實體記憶體（第 150 行，\code{/dev/mem} 從 \code{0x6000_0000} 起 256 MB）：
-
-\snip{uio_map_mem}
-
-板上 app 執行時，它的位址空間裡就是這兩段：
+v1.0.0 的 app 自己做兩次映射：暫存器（\code{/dev/uio4} 的 64 KB，第 1 章「原本怎麼做」的 \code{fuse_hal_init()}）和整塊實體記憶體（\code{/dev/mem} 從 \code{0x6000_0000} 起 256 MB，第 3 章「原本怎麼做」的 \code{fuse_arena_init()}）。板上 app 執行時，它的位址空間最後兩行就是這兩個映射；app 的任何一個錯誤指標，都可能寫到暫存器或那 256 MB 的任何地方：
 
 \boardfile{A4_uio_state.txt}{5-12}
-
-框裡前三行是指令；接著三行是程式本身的映射；最後兩行就是上面兩個 \code{mmap} 的結果。app 的任何一個錯誤指標，都可能寫到暫存器，或寫到那 256 MB 的任何地方。
 \end{before}
 
 \begin{tech}
 \begin{itemize}
-\item \code{file_operations.mmap}：app 呼叫 \code{mmap()} 時，kernel 先建立一段位址範圍，再呼叫 driver 的這個函式，由 driver 決定這段範圍對應到哪些實體頁。
+\item \code{file_operations.mmap}：app 呼叫 \code{mmap()} 時，kernel 先建立一段位址範圍，再呼叫 driver 的這個函式，由 driver 決定這段範圍對應到哪些實體頁、用什麼屬性。
 \item \code{struct vm_area_struct}（VMA）：描述這段範圍，包括起點 \code{vm_start}、終點 \code{vm_end}，以及 app 要求的 offset \code{vm_pgoff}（以頁為單位）。
 \item \code{dma_mmap_coherent()}：把 \code{dma_alloc_coherent} 配的 buffer 映射到 user space，屬性和 kernel 端一樣是 non-cacheable。
 \end{itemize}
@@ -32,78 +22,48 @@ v1.0.0 的 app 自己做兩次映射。暫存器（第 132 行，\code{/dev/uio4
 
 \begin{gain}
 \begin{itemize}
-\item app 的位址空間裡只剩一段 8 MB 的 \code{/dev/twn_fuse}，沒有暫存器，也沒有 \code{/dev/mem}（下方板上輸出）。
-\item 要求超過 buffer 大小，或 offset 不是 0，都會被拒絕（\code{-EINVAL}，第 10 節錯誤測試的兩項）。
-\item 仍然是 zero-copy：輸入影像和 heatmap 不必經過 \code{read()} / \code{write()} 複製。
+\item app 的位址空間裡只剩一段 8 MB 的 \code{/dev/twn_fuse}，沒有暫存器，也沒有 \code{/dev/mem}。
+\item 要求超過 buffer 大小，或 offset 不是 0，都會被拒絕（\code{-EINVAL}）。
+\item 仍然是 zero-copy：輸入影像與 heatmap 不必經過 \code{read()}／\code{write()} 複製；CPU 端是 Normal non-cacheable，寫入可以合併（第 3 章）。
 \end{itemize}
 \end{gain}
 
-\subsection{實際例子：程式碼與板上輸出}
+\subsection{實際例子}
 
-\textbf{driver 端：只映射 buffer。}先檢查 offset 和長度，再交給 DMA API：
+\textbf{driver 端：只映射 buffer。}先檢查 offset 與長度，再交給 DMA API。中間的 \code{map_device} 分支只給第 3 章的 A/B 實驗用：它改用 \code{remap_pfn_range()} 加 \code{pgprot_noncached()}，得到和 \code{/dev/mem} 一樣的 Device 屬性；有 SMMU 時 buffer 沒有固定的實體位址可以這樣映射，所以拒絕：
 
 \snip{drv_mmap}
 
-\code{file_to_td(f)} 從 \code{struct file} 找回 driver 的 \code{struct twn_dev}（第 7 節說明它怎麼做）。
+\code{file_to_td(f)} 從 \code{struct file} 找回 driver 的 \code{struct twn_dev}（第 5 章）。
 
 \textbf{app 端：問大小、映射、回報「基底位址 0」。}
 
 \snip{app_arena_init}
 
-\code{*phys = 0} 這一行是 app 其他部分不用改的關鍵：app 原本用「基底位址 + offset」算每一塊資料的實體位址，現在基底是 0，算出來的就是 offset，正好是 driver 的 ioctl 要的東西（第 9 節）。
+\code{*phys = 0}：回報基底位址 0，app 用「基底加 offset」算出的位址就變成 offset，正好是 ioctl 要的東西（為什麼這樣 app 就不用改，見第 9 章）。
 
-\textbf{板上：app 的位址空間只剩 buffer。}
+\textbf{板上：app 的位址空間只剩 buffer。}pipeline app 執行中，看它的 \code{/proc/<pid>/maps} 與開著的檔案：
 
-\boardfile{A3_driver_state.txt}{44-49}
+\boardfile{H10_driver_state.log}{56-58}
 
-\code{0xffffabb0d000 - 0xffffab30d000 = 0x800000}，正好 8 MB。和前面 v1.0.0 的輸出相比，\code{/dev/mem} 和 \code{/dev/uio4} 都不見了。
+\code{0xffff95afd000 - 0xffff952fd000 = 0x800000}，正好 8 MB。和前面 v1.0.0 的輸出相比，\code{/dev/mem} 與 \code{/dev/uio4} 都不見了。越界的要求被拒絕：
 
-\textbf{板上：越界的要求被拒絕。}
-
-\boardfile{A2_board_check_uio_dtb.log}{13-15}
+\boardfile{H4_board_check.log}{10-12}
 
 \subsection{原理}
 
-\textbf{\code{mmap} 做了什麼。}app 呼叫 \code{mmap(NULL, len, ..., fd, offset)} 時：
-\begin{enumerate}
-\item kernel 在 app 的位址空間找一段空的範圍，建立一個 VMA，記下長度和 offset（\code{vm_pgoff = offset / 4096}）。
-\item kernel 呼叫 driver 的 \code{.mmap}。driver 負責填頁表：這段虛擬位址對應到哪些實體頁、用什麼屬性。
-\item driver 回傳錯誤碼的話，整個 \code{mmap()} 失敗，VMA 被撤銷，app 收到 \code{MAP_FAILED}。
-\end{enumerate}
+\textbf{\code{mmap} 做了什麼。}app 呼叫 \code{mmap(NULL, len, ..., fd, offset)} 時，kernel 在 app 的位址空間找一段空的範圍，建立 VMA，記下長度與 offset（\code{vm_pgoff = offset / 4096}），再呼叫 driver 的 \code{.mmap} 填頁表。driver 回傳錯誤碼，整個 \code{mmap()} 就失敗。
 
-\textbf{\code{dma_mmap_coherent} 的內部。}這塊板子沒有 IOMMU，最後呼叫的是 \code{kernel/dma/direct.c} 第 555 行的 \code{dma_direct_mmap}（PFN 是 page frame number，實體位址除以 4096）：
+\textbf{\code{dma_mmap_coherent} 的內部。}沒有 SMMU 時走 \code{kernel/dma/direct.c} 的 \code{dma_direct_mmap}：用 \code{dma_pgprot} 把屬性改成 non-cacheable（同一塊記憶體若被 kernel 和 user 用不同的 cache 屬性映射，CPU 可能看到不一致的資料），檢查範圍不超出 buffer，再用 \code{remap_pfn_range} 把這段連續的實體頁一次填進頁表。發佈映像打開了 SMMU，buffer 的實體頁不連續（第 3 章），改走 \code{drivers/iommu/dma-iommu.c} 的 \code{iommu_dma_mmap}，逐頁映射。對 driver 來說都是同一個呼叫。
 
-\begin{lstlisting}[numbers=none,xleftmargin=0pt,title={\scriptsize\ttfamily kernel/dma/direct.c : 559--576（Linux 6.1，「...」處刪去與本板無關的六行）}]
-	unsigned long user_count = vma_pages(vma);
-	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-	unsigned long pfn = PHYS_PFN(dma_to_phys(dev, dma_addr));
-	int ret = -ENXIO;
+\textbf{app 為什麼碰不到暫存器。}app 的位址空間裡有什麼，完全由 kernel 建的頁表決定。CSR 只在 kernel 裡做過 \code{ioremap}，driver 的 \code{.mmap} 只映射 buffer，所以 app 的頁表裡沒有任何一項指向 \code{0xA000_0000}。剩下的旁路是 root 自己開 \code{/dev/mem}：發佈映像用 \code{STRICT_DEVMEM} 與 \code{IO_STRICT_DEVMEM} 擋住 System RAM 與 driver 佔用中的暫存器，但有邊界（第 10 章）。
 
-	vma->vm_page_prot = dma_pgprot(dev, vma->vm_page_prot, attrs);
-	...
-	if (vma->vm_pgoff >= count || user_count > count - vma->vm_pgoff)
-		return -ENXIO;
-	return remap_pfn_range(vma, vma->vm_start, pfn + vma->vm_pgoff,
-			user_count << PAGE_SHIFT, vma->vm_page_prot);
-\end{lstlisting}
-
-三件事：
-\begin{itemize}
-\item \code{dma_pgprot}：對 non-coherent 的裝置，把屬性改成 non-cacheable，和 kernel 端一致。同一塊記憶體若被 kernel 和 user 用不同的 cache 屬性映射，CPU 可能看到不一致的資料（kernel 線性映射（linear map）裡那個 cacheable 位址，在配置時已經清乾淨、之後不再使用，第 3 節）。
-\item 範圍檢查：要求超出 buffer 會回 \code{-ENXIO}。driver 自己先檢查並回 \code{-EINVAL}，讓「不收非 0 offset」這條規則寫在 driver 裡，讀程式的人一看就知道。
-\item \code{remap_pfn_range}：把 buffer 的實體頁一次全部填進頁表，之後 app 存取不會再進 kernel。
-\end{itemize}
-
-\textbf{app 在正常使用時為什麼碰不到暫存器。}app 的位址空間裡有什麼，完全由 kernel 建的頁表決定。CSR 只在 kernel 裡做過 \code{ioremap}，driver 的 \code{.mmap} 只會映射 buffer；UIO 也不再管這個裝置。所以 driver 版本的 app 頁表裡，沒有任何一項指向 \code{0xA000_0000}。
-
-\textbf{這個保護的限制。}上面的說法只限於「經由 driver」。這個 kernel 沒開 \code{CONFIG_STRICT_DEVMEM}，\code{drivers/char/mem.c} 不檢查位址範圍，所以任何 root 權限的程式仍然可以自己 \code{open("/dev/mem")}，把 CSR 和全部 DDR 映射進來；driver 用 \code{request_mem_region} 做的登記擋不住 \code{/dev/mem}。板上的 app 都以 root 執行（\code{/dev/twn_fuse} 的權限也是 \code{crw------- root}）。所以 driver 防的是 app 的錯誤，不是惡意的 root 程式。要真正擋住，得開 \code{CONFIG_STRICT_DEVMEM}（再加 \code{CONFIG_IO_STRICT_DEVMEM}）重建 kernel，並拿掉 UIO 路徑。
-
-\textbf{映射的生命週期。}VMA 會持有 \code{struct file} 的參考。就算 app 關掉 fd，只要映射還在，檔案就不算關閉，module 也就不能卸載。板上測過：程式映射 buffer 後先關掉 fd、只留映射，這時 \code{rmmod} 被拒絕（第 7 節）。這保證 buffer 不會在 app 還在用的時候被釋放。
+\textbf{映射的生命週期。}VMA 持有 \code{struct file} 的參考。就算 app 關掉 fd，只要映射還在，檔案就不算關閉，module 也就不能卸載（第 7 章的板上測試）。這保證 buffer 不會在 app 還在用的時候被釋放。
 
 \subsection{面試會問}
 
-\begin{qa}{app 為什麼只看得到 buffer，看不到暫存器？}
-因為 app 的頁表內容完全由 kernel 決定。我的 driver 只實作了一個 \code{.mmap}，它只把 \code{dma_alloc_coherent} 配的那塊 buffer 用 \code{dma_mmap_coherent} 映射給 app，而且會檢查長度不能超過 buffer、offset 必須是 0。暫存器只在 kernel 裡 \code{ioremap} 過，從來沒有經由 driver 映射到 user space。板上 \code{/proc/<pid>/maps} 可以看到：UIO 版本有 256 MB 的 \code{/dev/mem} 和 64 KB 的 \code{/dev/uio4}，driver 版本只剩 8 MB 的 \code{/dev/twn_fuse}。限制是這個 kernel 沒開 \code{STRICT_DEVMEM}，root 程式仍可自己開 \code{/dev/mem}；driver 防的是 app 的錯誤，不是惡意的 root。
+\begin{qa}{app 為什麼只看得到 buffer，看不到暫存器？為什麼用 mmap 不用 read／write？}
+app 的頁表完全由 kernel 決定。我的 driver 的 \code{.mmap} 只把 \code{dma_alloc_coherent} 配的 buffer 用 \code{dma_mmap_coherent} 映射給 app，並檢查長度不超過 buffer、offset 必須是 0；暫存器只在 kernel 裡 \code{ioremap}，從來沒有映射出去。板上 \code{/proc/<pid>/maps} 可以看到：UIO 版本有 256 MB 的 \code{/dev/mem} 和 64 KB 的 \code{/dev/uio4}，driver 版本只剩 8 MB 的 \code{/dev/twn_fuse}。資料走 mmap 是因為每幀幾百 KB，用 \code{read}／\code{write} 要經 \code{copy_from_user}／\code{copy_to_user} 多複製兩次；mmap 讓 app 和 PL 看同一塊記憶體。
 \end{qa}
 
 \subsection{關鍵函式速查}
@@ -115,9 +75,9 @@ v1.0.0 的 app 自己做兩次映射。暫存器（第 132 行，\code{/dev/uio4
 名稱 & 位置 & 做什麼 \\
 \midrule
 \code{twn_mmap()} & \code{twn_fuse.c}:\lineof{drv_mmap} & 檢查 offset 與長度，映射 buffer \\
-\code{fuse_arena_init()}（driver 版） & \code{pl_hal_fuse_drv.c}:\lineof{app_arena_init} & 問大小、\code{mmap}、回報基底 0 \\
+\code{map_device} 的檢查 & \code{twn_fuse.c}:\lineof{drv_mmap_iommu} & 有 SMMU 時拒絕 Device 映射 \\
+\code{fuse_arena_init()} & \code{pl_hal_fuse_drv.c}:\lineof{app_arena_init} & 問大小、\code{mmap}、回報基底 0 \\
 \code{dma_mmap_coherent} & kernel & 映射 coherent buffer，屬性與 kernel 端一致 \\
-\code{dma_direct_mmap} & kernel \code{kernel/dma/direct.c}:555 & 檢查範圍、\code{remap_pfn_range} \\
 \bottomrule
 \end{tabularx}
 \end{center}

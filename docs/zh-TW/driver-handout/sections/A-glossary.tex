@@ -1,82 +1,133 @@
 \clearpage
 \section{名詞表}
 
-依英文字母排序（不分大小寫）。「節」是第一次詳細說明的地方，「導」是導讀。
+依英文字母排序（不分大小寫）。「章」是第一次詳細說明的地方，「導」是導讀，「C」是附錄 C。
 
-\small
+\footnotesize
 \begin{xltabular}{\textwidth}{l X c}
 \toprule
-名詞 & 一句話說明 & 節 \\
+名詞 & 一句話說明 & 章 \\
 \midrule
 \endhead
+A/B 實驗 & 兩組設定只差一件事，用來確定是哪一件事造成差異 & 3 \\
+ABI & 給使用者程式的介面約定；改了就會讓舊程式壞掉 & 8 \\
 \code{access_ok} & 檢查一段位址是否完全落在 user space 範圍內 & 5 \\
-arena & 本講義對「PL 讀寫的那塊 DDR buffer」的稱呼 & 導 \\
-AXI & ARM 定義的晶片內部匯流排，CPU 與 PL、PL 與 DDR 之間都用它 & 導 \\
+arena、buffer & PL 讀寫的那塊 DDR；v1.0.0 是 256 MB 保留區（arena），driver 版本是 8 MB DMA buffer & 導 \\
+AXI、beat & ARM 的晶片內部匯流排／它一次傳輸的資料量，這個設計是 16 bytes & 導 \\
+AxPROT & AXI 交易附帶的 3 個保護位元；bit 1 是 0 表示 Secure、1 表示 Non-secure & 11 \\
 barrier & 限制 CPU 記憶體存取先後順序的指令 & 2 \\
-beat & AXI 一次傳輸的資料量；這個設計是 128 bits = 16 bytes & 導 \\
+binding & device tree 節點的規格檔，寫明可以有哪些屬性 & 1 \\
 bit-exact & 逐位元相同：輸出和標準答案的每個 byte 都一樣 & 導 \\
-cache line & cache 管理記憶體的最小單位，A53 上是 64 bytes & 3 \\
-CCI & Cache Coherent Interconnect，會去查 CPU cache 的互連，HPC port 經過它 & 3 \\
-CMA & Contiguous Memory Allocator，開機預留、平時借給一般用途的連續記憶體區 & 3 \\
+block RAM tile & FPGA 晶片上固定大小的記憶體區塊，計算 block RAM 用量的單位 & 12 \\
+\code{boot.scr}、bootargs & U-Boot 開機時執行的指令稿／U-Boot 傳給 kernel 的命令列參數 & C \\
+bypass & SMMU 對沒有登記的 stream ID 不做轉換、直接放行；發佈的 kernel 是這樣設定 & 11 \\
+CCI & Cache Coherent Interconnect，會去查 CPU cache 的互連，HPC 埠經過它 & 3 \\
+checkpatch & kernel 的程式風格檢查腳本 \code{scripts/checkpatch.pl} & 13 \\
+CLB & configurable logic block，FPGA 裡放 LUT 與暫存器的基本區塊 & 12 \\
+CMA & Contiguous Memory Allocator，開機劃出、平時借給可搬移用途的連續記憶體區 & 3 \\
 coherent（一致） & CPU 和裝置看到的記憶體內容保證相同 & 3 \\
 \code{compatible} & device tree 節點上的硬體名字，格式「製造商,型號」 & 1 \\
 completion & kernel 的同步機制：一方等待，另一方（常是 ISR）呼叫 \code{complete()} 叫醒它 & 6 \\
 \code{container_of} & 由 struct 中某個欄位的位址，算出整個 struct 的位址 & 7 \\
+context fault & 交易在 SMMU 轉換時找不到對應的頁，被擋下並回報 & 11 \\
 \code{copy_from_user} & 安全地從 user 記憶體複製到 kernel，失敗時回傳未複製的 byte 數 & 5 \\
 CSR & Control/Status Registers，加速器的控制暫存器 & 導 \\
-\code{dc zva} & 一次把一整條 cache line 清成 0 的指令，Device 記憶體上不允許 & 3 \\
-descriptor table & 描述子表：17 個 block 的設定，app 寫進 CSR、PL 依表執行 & 導 \\
+debugfs & 只給開發者用的 kernel 檔案系統，掛在 \code{/sys/kernel/debug} & 8 \\
+depmod & 掃描所有 module、產生 \code{modules.alias} 等對照表的工具 & 14 \\
+descriptor table & 描述子表：17 個 block 的設定，經 driver 寫進 CSR，PL 依表執行 & 導 \\
 device tree & 描述硬體有哪些周邊、位址在哪的資料結構，開機時交給 kernel & 1 \\
-Device 記憶體 & 給周邊用的記憶體屬性：不走 cache、不預讀；nG/nR/E 決定能否合併、重排、提早回應 & 2 \\
-\code{devm_*} & device-managed 資源，driver 離開時自動釋放 & 1 \\
-DMA & Direct Memory Access，裝置不經 CPU 直接讀寫記憶體 & 3 \\
-DMA mask & 裝置能定址的位元數，這裡是 40 & 3 \\
-\code{dma_addr_t} & 裝置看到的位址；沒有 IOMMU 時等於實體位址 & 3 \\
-\code{dmb} / \code{dsb} & 兩種 barrier：\code{dmb} 只排順序，\code{dsb} 要等存取真的完成 & 2 \\
+Device 記憶體 & 給周邊用的記憶體屬性：不走 cache、不預讀；nGnRnE 表示不合併、不重排、寫入要等終點回應 & 2 \\
+\code{devm_*} & device-managed 資源，driver 離開或 probe 失敗時自動釋放 & 1 \\
+directive & 同一個 Vivado 指令的不同最佳化模式 & 12 \\
+\code{dma_addr_t} & 裝置看到的位址；沒有 IOMMU 時等於實體位址，有 SMMU 時是 IOVA & 3 \\
+DMA、DMA mask & 裝置不經 CPU 直接讀寫記憶體／裝置能定址的位元數，這裡是 40 & 3 \\
+\code{dmb}／\code{dsb} & 兩種 barrier：\code{dmb} 只排順序，\code{dsb} 要等存取真的完成 & 2 \\
 \code{driver_override} & sysfs 檔案，強制指定裝置只能交給哪個 driver & 1 \\
+DSP & FPGA 晶片上的硬體乘加單元 & 12 \\
+dt-schema & 用 JSON Schema 寫 device tree binding 的格式與檢查工具 & 1 \\
+ECO & engineering change order，在已經 route 好的設計上只改一小部分 & 12 \\
+\code{-EPROBE_DEFER} & probe 的回傳值，表示依賴的東西還沒準備好，kernel 稍後會再呼叫一次 probe & 6 \\
 errno & 系統呼叫失敗時的錯誤碼，例如 \code{EINVAL}、\code{EFAULT} & 5 \\
 exception table & kernel 記錄「這些指令出錯時跳到哪裡修復」的表 & 5 \\
 fixture & 測試輸入加上它的標準答案（golden） & 導 \\
-GIC / SPI & ARM 的中斷控制器 / 它給周邊用的中斷編號 & 6 \\
+GIC、SPI & ARM 的中斷控制器／所有 CPU 共用的外部中斷，GIC 編號是 SPI 編號加 32 & 6 \\
 HAL & Hardware Abstraction Layer，上層只依賴介面，底下可換實作 & 9 \\
-heatmap & 每個關節一張的位置機率圖，head 的輸出 & 導 \\
-HP / HPC port & PL 存取 DDR 的高速 AXI 埠；HP 不經 CPU cache，HPC 可以經 CCI 保持一致 & 3 \\
-hrtimer & 高解析度計時器，可以精確到 µs & 6 \\
+HP／HPC 埠 & PL 存取 DDR 的 AXI 埠；HP 不經 CPU cache，HPC 可以經 CCI 保持一致 & 3 \\
+hrtimer & kernel 的高精度計時器，\code{usleep_range} 靠它叫醒 & 6 \\
+initramfs & 開機時整個載入記憶體的 root file system，重開機就回到原樣 & 14 \\
+interrupt context & CPU 被中斷打斷、還沒回到任何 process 時執行的程式，不能睡眠 & 6 \\
+interrupt storm & level 中斷的來源沒清掉，ISR 被一直重複呼叫 & 6 \\
 ioctl & 對裝置檔下指令的系統呼叫 & 5 \\
-IOMMU / SMMU & 讓裝置的 DMA 也經過頁表檢查的硬體；ARM 上叫 SMMU & 5 \\
+IOMMU group／domain & group 是必須共用同一套轉換的一組裝置；domain 是一套轉換表 & 11 \\
+IOMMU、SMMU & 替裝置做位址轉換與存取檢查的硬體；ARM 上叫 SMMU，ZynqMP 用 MMU-500 & 11 \\
 \code{ioremap} & 在 kernel 頁表建立對周邊實體位址的映射 & 2 \\
+\code{IO_STRICT_DEVMEM} & kernel 選項：\code{/dev/mem} 也不能存取被 driver 佔用中的 I/O 區間 & 10 \\
+IOVA & I/O 虛擬位址：經過 SMMU 時，裝置看到的位址 & 11 \\
 ISR & Interrupt Service Routine，中斷發生時 kernel 呼叫的 driver 函式 & 6 \\
 jiffy & kernel 的時間刻度，\code{HZ=250} 時是 4 ms & 6 \\
-linear map & kernel 頁表裡把整個 DDR 一對一對應進來的那一段 & 2 \\
+level／edge & 中斷的兩種觸發方式：線保持高電位的期間都算／只在變化的瞬間算一次 & 6 \\
+linear map（線性映射） & kernel 頁表裡把整個 DDR 一對一對應進來的那一段 & 3 \\
+LUT & look-up table，FPGA 裡實作組合邏輯的基本單元 & 12 \\
+mainline & Linus Torvalds 維護的官方 kernel 原始碼樹 & 1 \\
 misc device & 主裝置號 10、次裝置號自動分配的字元裝置 & 5 \\
 \code{mmap} & 把裝置或檔案的內容映射進 process 的位址空間 & 4 \\
 MMIO & Memory-Mapped I/O，用讀寫記憶體位址的方式操作暫存器 & 2 \\
-MMU & 把虛擬位址翻譯成實體位址的硬體 & 2 \\
-mutex & 拿不到就睡眠等待的鎖 & 7 \\
+modalias & 裝置的識別字串，udev 用它找出該載入哪個 module & 14 \\
+module parameter & 載入 module 時可以給的參數，例如 \code{use_irq=0} & 1 \\
+MPII & 一個人體姿態資料集；v1.0.0 的 fixture 是其中的照片，含人物，不能再散布 & 14 \\
+mutex、spinlock & 拿不到就睡眠等待的鎖／拿不到就空轉等待的鎖，拿著時不能睡 & 7 \\
 NBLK & 「這一幀跑幾個 block」的暫存器，平常是 17，reset 值也是 17 & 導 \\
-Normal non-cacheable & 一般記憶體屬性但不走 cache；可合併、可非對齊存取 & 3 \\
+netlist & 合成產生的電路元件與連線清單 & 12 \\
+Normal non-cacheable & 一般記憶體屬性但不走 cache；寫入可以合併，可以非對齊存取 & 3 \\
 oops & kernel 程式出錯時印出錯誤現場並終止目前工作的機制 & 2 \\
-operator & head 裡的一個運算層；head 有四個（op61–op64） & 導 \\
 outer shareable & barrier 的範圍之一：CPU 與其他會存取記憶體的裝置 & 2 \\
+out-of-tree module & 原始碼不在 kernel 原始碼樹裡、另外編譯的 module & 14 \\
 page cache & kernel 快取檔案內容的記憶體 & 3 \\
-page fault & 存取到頁表裡沒有（或權限不符）的位址時發生的例外 & 2 \\
+PAM & Linux 的登入驗證框架；\code{login} 與 sshd 都經過它檢查密碼與帳號狀態 & 14 \\
 PAN & Privileged Access Never，ARMv8.1 起的功能，禁止 kernel 直接存取 user 記憶體；A53 沒有 & 5 \\
-PFN & page frame number，實體位址除以頁大小（4096） & 4 \\
-platform device / driver & 不能自動列舉的 SoC 周邊，和它們的 driver & 1 \\
-\code{probe()} / \code{remove()} & driver 接管、放開裝置時被呼叫的函式 & 1 \\
-PS / PL & Zynq 的 CPU 部分 / FPGA 邏輯部分 & 導 \\
+\code{passwd-expire} & Yocto \code{EXTRA_USERS_PARAMS} 的指令，把密碼設成已過期，下次登入必須先改 & 14 \\
+pblock & Vivado 的位置限制：把某些邏輯放在晶片的某一塊區域 & 12 \\
+PFN & page frame number，實體位址除以頁大小（4096） & 10 \\
+phys\_opt\_design & Vivado 在 placement 或 route 之後，針對 timing 做的局部最佳化 & 12 \\
+pipeline & 量吞吐量用的 app，讓 backbone 與 head 在不同幀上重疊 & 導 \\
+placement／route & 決定每個邏輯單元放在晶片的哪個位置／決定它們之間怎麼繞線 & 12 \\
+platform device／driver & 不能自動列舉的 SoC 周邊，和它們的 driver & 1 \\
+PMU & Platform Management Unit，ZynqMP 的平台管理處理器；DDR 最上面 1 MB 保留給它 & 10 \\
+posted write & 寫入送出後 CPU 就繼續執行，不等寫入真正到達 & 6 \\
+\code{probe()}／\code{remove()} & driver 接管、放開裝置時被呼叫的函式 & 1 \\
+PS／PL & Zynq 的 CPU 部分／FPGA 邏輯部分 & 導 \\
 \code{readl_poll_timeout} & 輪詢暫存器直到條件成立或逾時的巨集 & 6 \\
-ring overrun & PL 的列緩衝區被寫滿時仍寫入，或讀到已被覆蓋的列；STATUS bit 16 記錄它 & 8 \\
+recipe & Yocto 的建置描述檔（\code{.bb}），說明一個套件怎麼取得、編譯、安裝 & 14 \\
+retiming & 把暫存器搬過組合邏輯，讓前後兩段路徑的延遲比較平均 & 12 \\
+ring overrun & PL 的列緩衝區在滿的時候被寫入；STATUS bit 16 記錄它 & 8 \\
+rootfs & root file system，開機後掛成根目錄的整個檔案系統 & 14 \\
+Secure／Non-secure & ARM TrustZone 的兩個世界；Linux 跑在 Non-secure & 11 \\
+slack、WNS、WHS、TNS & 路徑的時間餘裕；最差的 setup 餘裕／最差的 hold 餘裕／所有違規路徑的負餘裕加總 & 12 \\
 SoC & System on Chip，把 CPU 與周邊做在同一顆晶片上 & 1 \\
-spinlock & 拿不到就空轉等待的鎖，拿著時不能睡 & 7 \\
+sparse & kernel 專用的靜態分析工具，用 \code{make C=2}（或 \code{C=1}，只檢查重新編譯的檔案）執行 & 13 \\
+SPDX & 用標準化的授權名稱寫在原始檔第一行的授權宣告 & 14 \\
+strategy & Vivado 預先組好的一整組 place \& route 選項 & 12 \\
+stream ID & 每筆交易進 SMMU 時帶的來源編號，SMMU 用它決定用哪一組轉換 & 11 \\
 streaming DMA & 用 cacheable 記憶體，每次傳輸前後手動做 cache 維護 & 3 \\
+\code{STRICT_DEVMEM} & kernel 選項：\code{/dev/mem} 不能存取 System RAM & 10 \\
 sysfs & 把 kernel 物件攤成檔案樹的檔案系統，掛在 \code{/sys} & 8 \\
-TWN / fuse & Ternary Weight Network（三值權重網路）／把一個 block 的三層融合成一次串流 & 導 \\
+System RAM & kernel 管理的記憶體範圍（\code{/proc/iomem} 裡的同名項目）：device tree 的 \code{/memory} 節點，扣掉標成 \code{no-map} 的保留區 & 10 \\
+systemd & 這個映像的 init 系統；\code{systemd-modules-load} 是其中載入 module 的服務 & 14 \\
+TBU & SMMU 的轉換單元，ZynqMP 有 6 個，各自負責一組匯流排埠 & 11 \\
+threaded IRQ & 把中斷處理函式放到一個 kernel 執行緒裡、可以睡眠的處理方式 & 6 \\
+TLB & translation lookaside buffer，位址轉換結果的快取 & 11 \\
+TrustZone & ARM 把系統分成 Secure 與 Non-secure 兩個世界的硬體機制 & 11 \\
 uapi header & kernel 和 user space 共用的介面定義檔 & 5 \\
-uevent / udev & kernel 通知 user space「有裝置出現」的訊息／收到後負責載入 module 的程式 & 1 \\
+U-Boot & 開機載入程式：從 SD 卡讀 kernel、device tree 與 rootfs，再啟動 kernel & C \\
+uevent／udev & kernel 通知 user space「有裝置出現」的訊息／收到後負責載入 module 的程式；udev 啟動後重送既有裝置的事件叫 coldplug & 14 \\
 UIO & Userspace I/O，把裝置的暫存器開給 user space 的通用 driver & 1 \\
+vendor prefix & \code{compatible} 字串逗號前面那一段，代表廠商或作者 & 1 \\
+vermagic & module 裡記錄的 kernel 版本與主要設定字串，載入時必須和執行中的 kernel 相同 & 14 \\
 VMA & \code{vm_area_struct}，描述 process 位址空間中一段連續範圍 & 4 \\
-WNS & worst negative slack，timing 最差的路徑還剩多少時間；負的就是不收斂 & 6 \\
+W=1 & kernel 編譯時打開額外警告的選項 & 13 \\
+write gathering & 把連續的小寫入在 CPU 內合併成一筆大寫入 & 3 \\
+XSA & Vivado 匯出的硬體描述檔，PetaLinux 用它產生 device tree & 6 \\
+Yocto & PetaLinux 底下用來建置整個 Linux 映像的系統 & 14 \\
 \bottomrule
 \end{xltabular}
 \normalsize

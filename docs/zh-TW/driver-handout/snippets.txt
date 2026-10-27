@@ -1,72 +1,123 @@
-# <repo-relative file> | <selector> | <label>        (read by extract.py; selectors: fn:NAME, at:TEXT)
+# <repo-relative file> | <selector> | <label>        (read by extract.py; selectors: fn:NAME, at:TEXT, atN:TEXT)
+# Every label without a git: prefix is the current (v1.1) code. The "原本怎麼做" boxes quote older code
+# by commit: git:3bdd485 is the v1.0.0 release (UIO + /dev/mem), git:7615324 is driver v1.0.
+# Labels v100_* are v1.0.0, v10_* are driver v1.0.
 
-# ---- the driver ----
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:/* ---- registers         | drv_regs
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_dev                   | drv_struct
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:rd                        | drv_rd
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:wr                        | drv_wr
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:wr_addr                   | drv_wr_addr
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:in_arena                  | drv_in_arena
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:wait_bit                  | drv_wait_bit
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_set_table             | drv_set_table
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_set_bases             | drv_set_bases
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_bb_run                | drv_bb_run
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_hd_commit             | drv_hd_commit
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_hd_start              | drv_hd_start
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_hd_wait               | drv_hd_wait
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:file_to_td                | drv_file_to_td
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_open                  | drv_open
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_mmap                  | drv_mmap
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_ioctl                 | drv_ioctl
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_fops                  | drv_fops
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:TWN_REG_ATTR              | drv_reg_attr
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:TWN_REG_ATTR(cycles_total | drv_reg_attr_use
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_attrs                 | drv_attrs
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_probe                 | drv_probe
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:/* 1. map the node         | drv_probe_map
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:/* 2. is this our hardware | drv_probe_nblk
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:/* 3. the DMA buffer      | drv_probe_dma
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:/* 4. the character device | drv_probe_misc
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_remove                | drv_remove
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_of_match              | drv_of_match
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | fn:twn_driver                | drv_driver
-git:7615324:linux/driver/twn_fuse/twn_fuse_ioctl.h | fn:twn_bb_run          | uapi_bb_run
-git:7615324:linux/driver/twn_fuse/twn_fuse_ioctl.h | fn:twn_hd_desc         | uapi_hd_desc
-git:7615324:linux/driver/twn_fuse/twn_fuse_ioctl.h | at:#define TWN_IOC_STATUS | uapi_cmds
-git:7615324:linux/driver/twn_fuse/bind.sh            | at:case "$1" in     | bind_case
-git:7615324:linux/driver/twn_fuse/patch_dtb.sh       | at:set -e           | patch_dtb
+# ---- 1. probe and binding ----
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_of_match                      | drv_of_match
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_driver                        | drv_driver
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_probe                         | drv_probe
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_remove                        | drv_remove
+linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:&fuse_0 { | dtsi_fuse0
+linux/driver/twn_fuse/wjhuang,twn-fuse.yaml      | at19:required:                       | yaml_rules
+git:3bdd485:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:&fuse_0 { | v100_dt_uio_node
+git:3bdd485:sw/app/pl_hal_fuse.c                 | fn:fuse_hal_init                     | v100_uio_hal_init
 
-# ---- the v1.0.0 UIO path, quoted in the "原本怎麼做" boxes ----
-git:7615324:sw/app/pl_hal_fuse.c | at:static inline void   wr(             | uio_wr_rd
-git:7615324:sw/app/pl_hal_fuse.c | fn:fuse_wmb                            | uio_wmb
-git:7615324:sw/app/pl_hal_fuse.c | fn:fuse_hal_init                        | uio_hal_init
-git:7615324:sw/app/pl_hal_fuse.c | fn:fuse_arena_init                      | uio_arena_init
-git:7615324:sw/app/pl_hal_fuse.c | fn:fuse_run_frame                       | uio_run_frame
-git:7615324:sw/app/pl_hal_fuse.c | fn:fuse_hd_start                        | uio_hd_start
-git:7615324:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:reserved-memory | dt_reserved
-git:7615324:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:&fuse_0 {   | dt_uio_node
+# ---- 2. MMIO ----
+linux/driver/twn_fuse/twn_fuse.c                 | at:/* ---- registers                 | drv_regs
+linux/driver/twn_fuse/twn_fuse.c                 | fn:rd                                | drv_rd
+linux/driver/twn_fuse/twn_fuse.c                 | fn:wr                                | drv_wr
+linux/driver/twn_fuse/twn_fuse.c                 | fn:wr_addr                           | drv_wr_addr
+linux/driver/twn_fuse/twn_fuse.c                 | at:/* 1. map the node                | drv_probe_map
+linux/driver/twn_fuse/twn_fuse.c                 | at:/* 2. is this our hardware        | drv_probe_nblk
+git:3bdd485:sw/app/pl_hal_fuse.c                 | at:static inline void   wr(          | v100_uio_wr_rd
+git:3bdd485:sw/app/pl_hal_fuse.c                 | fn:fuse_wmb                          | v100_uio_wmb
 
-# ---- the app side ----
-git:7615324:sw/app/pl_hal_fuse_drv.c | fn:fuse_arena_init                  | app_arena_init
-git:7615324:sw/app/pl_hal_fuse_drv.c | fn:fuse_run_frame                   | app_run_frame
-git:7615324:sw/app/pl_hal_fuse_drv.c | fn:fuse_hd_commit                   | app_hd_commit
-git:7615324:sw/app/pl_hal_fuse_drv.c | fn:xioctl                           | app_xioctl
-git:7615324:sw/app/Makefile.cross    | at:# HAL=uio (default)              | app_make_hal
-git:7615324:sw/app/mbv2_fuse_ps.c    | at:#define OFF_WEIGHTS              | app_arena_map
-git:7615324:sw/app/mbv2_fuse_ps.c    | fn:mbv2_fuse_frame_pl               | app_frame_pl
-git:7615324:linux/driver/twn_fuse/test/twn_errtest.c | fn:check            | test_check
-git:7615324:sw/app/mbv2_fuse_ps.c    | at:    uint64_t pl_ns = fuse_run_frame(g_arena_pa + OFF_IN,  | app_run_call
-git:7615324:sw/app/mbv2_fuse_ps.c    | at:_Static_assert(OFF_HD_OUT        | app_static_assert
-git:7615324:linux/driver/twn_fuse/test/twn_errtest.c | at:#define CALL(       | test_call
-git:7615324:linux/driver/twn_fuse/test/board_check.sh | at:fixtures() {      | check_fixtures
+# ---- 3. DMA buffer ----
+linux/driver/twn_fuse/twn_fuse.c                 | at:/* 3. the DMA buffer              | drv_probe_dma
+linux/driver/twn_fuse/twn_fuse.c                 | at1:static unsigned int arena_mb     | drv_param_arena
+sw/app/mbv2_fuse_ps.c                            | at:#define OFF_WEIGHTS                 | app_arena_map
+linux/driver/twn_fuse/test/ab_measure.sh         | at:run() {                           | ab_run
+linux/driver/twn_fuse/test/twn_bench.c           | at:	/* 3. the CPU's own access      | bench_copy
+git:3bdd485:linux/project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi | at:reserved-memory | v100_dt_reserved
+git:3bdd485:sw/app/pl_hal_fuse.c                 | fn:fuse_arena_init                   | v100_uio_arena_init
 
-# ---- added after review round 1 ----
-git:7615324:sw/app/pl_hal_fuse.c | at:    int fd = open(uio, O_RDWR        | uio_map_regs
-git:7615324:sw/app/pl_hal_fuse.c | at:    int fd = open("/dev/mem", O_RDWR | uio_map_mem
-git:7615324:sw/app/pl_hal_fuse.c | fn:fuse_read_counters                            | uio_counters
-git:3bdd485:sw/app/Makefile.cross | at:COMMON =                          | v100_make_common
-git:7615324:board/deploy.sh      | at:verify)                                        | deploy_verify
-git:7615324:sw/app/mbv2_fuse_ps.c | at:#define FUSE_ARENA_NEED                     | app_arena_need
-git:7615324:sw/app/Makefile.cross | at:HAL     ?= uio                              | app_make_hal_var
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:TWN_REG_ATTR(nblk,                 | drv_attr_nblk
-git:7615324:linux/driver/twn_fuse/twn_fuse.c | at:	ret = readl_poll_timeout(td->regs + R_STATUS | drv_table_poll
+# ---- 4. mmap ----
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_mmap                          | drv_mmap
+linux/driver/twn_fuse/twn_fuse.c                 | at1:device_iommu_mapped(td->dev)     | drv_mmap_iommu
+sw/app/pl_hal_fuse_drv.c                         | fn:fuse_arena_init                   | app_arena_init
+
+# ---- 5. ioctl ----
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_fops                          | drv_fops
+linux/driver/twn_fuse/twn_fuse.c                 | fn:file_to_td                        | drv_file_to_td
+linux/driver/twn_fuse/twn_fuse_ioctl.h           | at:#define TWN_IOC_STATUS              | uapi_cmds
+linux/driver/twn_fuse/twn_fuse_ioctl.h           | fn:twn_bb_run                        | uapi_bb_run
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_set_bases                     | drv_set_bases
+linux/driver/twn_fuse/twn_fuse.c                 | fn:in_arena                          | drv_in_arena
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_hd_commit                     | drv_hd_commit
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_set_table                     | drv_set_table
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_ioctl                         | drv_ioctl
+linux/driver/twn_fuse/test/twn_bench.c           | at:	t0 = now_ns();                  | bench_status
+
+# ---- 6. interrupt ----
+git:3bdd485:sw/app/pl_hal_fuse.c                 | fn:fuse_run_frame                    | v100_uio_run_frame
+rtl/fuse/twn_csr.v                               | at:// level interrupt from the registered state | csr_irq_reg
+rtl/fuse/twn_csr.v                               | at1:irq <= (bb_irq_en & ap_done)     | csr_irq_assign
+rtl/fuse/twn_csr.v                               | at:// IRQ write:                     | csr_irq_wr
+rtl/fuse/twn_csr.v                               | at12:A_CTRL: begin                   | csr_ctrl_wr
+vivado/package_fuse_ip.tcl                       | at:# The interrupt output: declare it | pkg_irq
+vivado/build_bd_fuse.tcl                         | at:# --- interrupt: the accelerator  | bd_irq
+linux/driver/twn_fuse/twn_fuse.c                 | at:/* 4. the interrupt, if the device | drv_probe_irq
+linux/driver/twn_fuse/twn_fuse.c                 | at:static bool use_irq               | drv_param_irq
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_isr                           | drv_isr
+linux/driver/twn_fuse/twn_fuse.c                 | fn:wait_done                         | drv_wait_done
+linux/driver/twn_fuse/twn_fuse.c                 | fn:wait_bit                          | drv_wait_bit
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_bb_run                        | drv_bb_run
+
+# ---- 7. locks ----
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_open                          | drv_open
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_dev                           | drv_struct
+sw/app/mbv2_fuse_ps.c                            | fn:mbv2_fuse_frame_pl                | app_frame_pl
+
+# ---- 8. sysfs and debugfs ----
+git:7615324:sw/app/pl_hal_fuse_drv.c             | at:int fuse_set_nblk(uint32_t n) {   | v10_hal_stubs
+linux/driver/twn_fuse/twn_fuse.c                 | fn:TWN_REG_ATTR                      | drv_reg_attr
+linux/driver/twn_fuse/twn_fuse.c                 | at:TWN_REG_ATTR(cycles_total         | drv_reg_attr_use
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_attrs                         | drv_attrs
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_debugfs_init                  | drv_debugfs_init
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_nblk_set                      | drv_nblk_set
+sw/app/pl_hal_fuse_drv.c                         | fn:dbg_reg                           | hal_dbg_reg
+sw/app/pl_hal_fuse_drv.c                         | fn:fuse_set_nblk                     | hal_set_nblk
+
+# ---- 9. the app ----
+git:3bdd485:sw/app/Makefile.cross                | at:COMMON =                          | v100_make_common
+sw/app/Makefile.cross                            | at:# HAL=drv (default since v1.1)    | app_make_hal
+sw/app/pl_hal_fuse_drv.c                         | fn:xioctl                            | app_xioctl
+sw/app/pl_hal_fuse_drv.c                         | fn:fuse_run_frame                    | app_run_frame
+sw/app/mbv2_fuse_ps.c                            | at:    uint64_t pl_ns = fuse_run_frame(g_arena_pa + OFF_IN, | app_run_call
+sw/app/main_cam.c                                | fn:prep_input                        | cam_prep_input
+sw/app/mbv2_fuse_ps.c                            | fn:mbv2_fuse_write_input             | app_write_input
+
+# ---- 10. /dev/mem ----
+linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx/twn-v11.cfg | at11:# v1.1 kernel options | kcfg
+linux/project-spec/meta-user/recipes-kernel/linux/linux-xlnx_%.bbappend | at5:FILESEXTRAPATHS | kbbappend
+linux/driver/twn_fuse/test/v11_check.sh          | at1:devmem)                          | chk_devmem
+
+# ---- 11. SMMU ----
+linux/driver/twn_fuse/smmu_dtb.sh                | at:# Stream ID = TBU number          | smmu_dtb
+rtl/src/twn_axi_rd.v                             | at4:    assign arcache = 4'b0011;    | axi_rd_prot
+rtl/src/twn_axi_rd.v                             | at1:assign arprot                    | axi_arprot
+linux/driver/twn_fuse/twn_fuse.c                 | fn:twn_fault_set                     | drv_fault_set
+
+# ---- 12. timing closure ----
+vivado/build.cmd                                 | at9:set "FUSE_HD_PROBE=1"            | build_recipe
+vivado/build.cmd                                 | at1:if not defined FUSE_TAG          | build_tag
+vivado/build_bd_fuse.tcl                         | at15:# The implementation strategy can end | postroute
+
+# ---- 13. verification ----
+git:3bdd485:board/deploy.sh                      | at:verify)                           | deploy_verify
+linux/driver/twn_fuse/test/board_check.sh        | at:fixtures() {                      | check_fixtures
+linux/driver/twn_fuse/test/twn_errtest.c         | fn:check                             | test_check
+linux/driver/twn_fuse/test/twn_errtest.c         | at:#define CALL(                     | test_call
+
+# ---- 14. image and release ----
+linux/project-spec/meta-user/recipes-modules/twn-fuse/twn-fuse.bb | at18:SUMMARY =      | recipe_bb
+linux/project-spec/meta-user/recipes-modules/twn-fuse/files/Makefile | at9:obj-m       | recipe_make
+linux/project-spec/meta-user/conf/petalinuxbsp.conf | at:# v1.1: the accelerator's kernel driver | bsp_install
+linux/project-spec/meta-user/conf/petalinuxbsp.conf | at1:IMAGE_INSTALL:append = " twn-fuse" | bsp_install_line
+linux/build_linux.sh                             | at:# the kernel driver's recipe builds | build_copy_src
+linux/build_linux.sh                             | at1:for f in twn_fuse.c twn_fuse_ioctl.h | build_copy_for
+linux/build_linux.sh                             | at:# root password: kept out of the repo | build_pw
+linux/build_linux.sh                             | at1:BOARD_PW=twn-v1.1; EXPIRE         | build_pw_line
+tools/make_synthetic_fixtures.py                 | at25:def images():                   | syn_images
+board/make_kit.sh                                | at5:--strip-all                      | kit_strip
