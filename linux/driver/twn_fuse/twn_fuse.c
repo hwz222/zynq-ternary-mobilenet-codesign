@@ -578,7 +578,7 @@ static void twn_debugfs_init(struct twn_dev *td)
 static int twn_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct twn_dev *td;
+	struct twn_dev *td; /* 硬體的所有狀態: register 位址、buffer、mutex、interrupt 編號、/dev/twn_fuse */
 	u32 nblk;
 	int ret;
 
@@ -668,6 +668,15 @@ static const struct of_device_id twn_of_match[] = {
 	{ .compatible = "wjhuang,twn-fuse-1.0" },
 	{ }
 };
+/*
+ * driver 還沒載入時, 系統怎麼知道要載入它?
+ * MODULE_DEVICE_TABLE 把同一份 match table 寫進 .ko 的資訊區, 給 user space 工具看:
+ *  1. 建映像時 depmod 掃描所有 module, 整理成 modules.alias,
+ *     也就是「這種裝置 -> 該載入哪個 module」的對照表。
+ *  2. 開機時 kernel 對每個裝置發出 uevent, 內容帶著識別字串
+ *     MODALIAS=of:N...T...Cwjhuang,twn-fuse-1.0。
+ *  3. udev 收到後查 modules.alias, 找到 twn_fuse, 自動載入。
+ */
 MODULE_DEVICE_TABLE(of, twn_of_match);
 
 static struct platform_driver twn_driver = {
@@ -685,6 +694,13 @@ static struct platform_driver twn_driver = {
 		.suppress_bind_attrs = true,
 	},
 };
+
+/*
+ * 載入 driver 時會呼叫 platform_driver_register(&twn_driver),
+ * 向 platform bus 登記「我是一個 driver」並交出 match table。
+ * bus 拿 compatible 字串去比對還沒有 driver 的裝置,
+ * 字串相同就呼叫 twn_probe(pdev); pdev 即 step 6 建出來的裝置, 兩者就此配對。
+ */
 module_platform_driver(twn_driver);
 
 MODULE_AUTHOR("Wei-Jhe Huang");
