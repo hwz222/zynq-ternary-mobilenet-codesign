@@ -22,6 +22,8 @@ All notable changes to this project are recorded here. The format follows
   browser): each field on read and on write, what it means to the PL and to the PS (with the driver's
   lines), and the register accesses of probe, app init and one frame with the values of the release.
   Offsets and bit coverage checked against `twn_csr.v` and the driver's `#define`s; content reviewed.
+  Readable without telling colors apart: each field's kind is a one-character badge and a border
+  style, with no pastel fills.
 - `linux/driver/twn_fuse/test/v11_check.sh state`: the loaded driver's module info, binding, claimed
   registers, device file, buffer, sysfs after one frame, a running app's mappings, ten reloads with a
   64 MB buffer.
