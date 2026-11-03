@@ -11,6 +11,9 @@
 先前分成兩冊（第一冊講 driver v1.0、第二冊講 v1.1 的延伸），兩冊在 tag `v1.1.0` 裡
 （`docs/zh-TW/driver-handout/` 與 `docs/zh-TW/driver-handout-2/`，各自的審稿紀錄也在那裡）；這一本取代它們。
 
+直接閱讀：[`twn_fuse_driver_handout.pdf`](twn_fuse_driver_handout.pdf)（99 頁），由這個資料夾的原始碼建置，
+GitHub 網頁上可以直接預覽。
+
 ## 建置
 
 需要 TeX Live（XeLaTeX、latexmk）與 Python 3。字型用 Windows 內建的 Microsoft JhengHei、Segoe UI、Consolas；
@@ -19,10 +22,14 @@
     cd docs/zh-TW/driver-handout
     latexmk            # 先跑 extract.py 抽出程式碼，再編譯；輸出 build/handout.pdf
 
+改了講義，或改了它引用的程式碼與紀錄之後，要重新建置，並把 `build/handout.pdf` 複製成
+`twn_fuse_driver_handout.pdf`，和原始碼放在同一個 commit，repo 裡的 PDF 才會和原始碼一致。
+
 ## 檔案
 
 | 檔案 | 用途 |
 |---|---|
+| `twn_fuse_driver_handout.pdf` | 建置好的講義（99 頁），和同一個 commit 的原始碼一致 |
 | `handout.tex` | 主檔：版面、固定的框（原本怎麼做／用了什麼技術／改善了什麼／面試會問／踩過的坑）、程式碼與紀錄框、換頁規則 |
 | `sections/` | 導讀、第 1–14 章、附錄 A 名詞表、B 面試題 30 秒版本、C 如何重現 |
 | `sections/numbers.tex` | 講義裡會重複出現的量測數字，只寫在這裡一次，各附紀錄檔與行號 |

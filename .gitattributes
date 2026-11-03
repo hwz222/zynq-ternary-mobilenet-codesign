@@ -13,6 +13,7 @@ Makefile*   text eol=lf
 *.scr       binary
 *.u-boot    binary
 Image       binary
+*.pdf       binary
 
 # Everything under linux/ is read by Linux tools: LF (listed last so it wins over *.cmd)
 linux/boot.cmd text eol=lf

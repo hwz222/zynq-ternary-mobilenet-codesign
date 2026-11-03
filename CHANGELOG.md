@@ -18,6 +18,9 @@ All notable changes to this project are recorded here. The format follows
 
 ### Added
 
+- `docs/zh-TW/driver-handout/twn_fuse_driver_handout.pdf`: the handout built from the sources of
+  the same commit (99 pages), so it can be read on GitHub. The folder's README says to rebuild it and
+  commit it together with any change to the handout or to the code and logs it prints.
 - `docs/zh-TW/register-map.html`: every register of `twn_csr` bit by bit (Traditional Chinese, open in a
   browser): each field on read and on write, what it means to the PL and to the PS (with the driver's
   lines), and the register accesses of probe, app init and one frame with the values of the release.
