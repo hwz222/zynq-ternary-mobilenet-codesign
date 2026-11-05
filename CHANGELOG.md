@@ -18,6 +18,14 @@ All notable changes to this project are recorded here. The format follows
 
 ### Added
 
+- `docs/zh-TW/block-table/`: a reference sheet (Traditional Chinese, 9-page PDF) for the backbone block
+  table the driver writes with `TWN_IOC_SET_TABLE`: the table's shape and addresses, the bit layout of
+  each of the 16 words, the 38 fields with their units and which hardware path reads them, blocks 1 and 2
+  decoded field by field, all 17 rows decoded, the raw words, and the boot check's error codes.
+  `gen_block_table.py` takes the field positions from the `assign`s of `twn_desctab.v`, decodes
+  `tools/fuse_desctab.h`, and writes the tables only after the words re-encode exactly, the fields match
+  the model's shape file and weight index, the weight-file regions chain, and neighbouring blocks do
+  not overlap on chip. Content reviewed.
 - `docs/zh-TW/driver-handout/twn_fuse_driver_handout.pdf`: the handout built from the sources of
   the same commit (99 pages), so it can be read on GitHub. The folder's README says to rebuild it and
   commit it together with any change to the handout or to the code and logs it prints.

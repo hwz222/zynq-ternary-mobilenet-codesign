@@ -1,0 +1,7 @@
+gen/
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.xdv

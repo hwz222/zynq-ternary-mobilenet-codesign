@@ -1,0 +1,330 @@
+% Backbone block table 對照表
+% build: python gen_block_table.py [--model-dir DIR]  (checks, then writes gen/*.tex); then latexmk -xelatex block_table.tex
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=14mm]{geometry}
+\usepackage{xeCJK}
+\setCJKmainfont{Microsoft JhengHei}
+\setCJKsansfont{Microsoft JhengHei}
+\setCJKmonofont{Microsoft JhengHei}
+\usepackage{booktabs,longtable,array,multirow,bytefield,amsmath}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\sloppy
+\setlength{\parskip}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\newcommand{\f}[1]{\texttt{#1}}
+\input{gen/consts.tex}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+% one word's bit layout: #1 = caption line, #2 = boxes (MSB first)
+\newenvironment{wlayout}[1]{%
+  \par\smallskip\noindent\textbf{#1}\par\nobreak\noindent
+  \begin{bytefield}[bitwidth=1.6em,bitheight=2.3ex,endianness=big]{32}
+  \bitheader{0-31}\\}{\end{bytefield}\par\medskip}
+\newcommand{\un}[1]{\bitbox{#1}{\footnotesize 未用，恆為 0}}
+
+\title{Backbone block table 對照表\\[2pt]\large \f{TWN\_IOC\_SET\_TABLE} 寫進 PL 的那 272 個字}
+\author{}
+\date{依 \f{tools/fuse\_desctab.h}（由 \f{tools/gen\_desctab.py} 產生、不進版控，全文見第 7 節）與 \f{rtl/fuse/twn\_desctab.v} 的欄位解碼和開機檢查整理}
+
+\begin{document}
+\maketitle
+\vspace{-6ex}
+
+\section*{本表怎麼產生、怎麼驗證}
+所有數值都不是手抄的：腳本 \f{gen\_block\_table.py} 讀 \f{tools/fuse\_desctab.h} 的 272 個字，欄位的位元位置直接從 \f{rtl/fuse/twn\_desctab.v} 的 \f{assign} 敘述讀出，解碼後產生本文件的表格，並做下列核對，全部通過才輸出：
+\input{gen/checks.tex}
+
+% ------------------------------------------------------------------
+\section{Table 的形狀}
+
+\begin{tabular}{@{}lL{155mm}@{}}
+\toprule
+項目 & 值 \\
+\midrule
+列數 & 17 列，一列一個 block（block 0 到 16），由 \f{NBLK} 暫存器決定跑幾列 \\
+每列 & 16 個 32-bit 字（64 bytes），稱為一個 descriptor \\
+總大小 & 17 $\times$ 16 = 272 個字 = 1,088 bytes \\
+PL 容量 & 20 列 $\times$ 16 字 = 320 個字（\f{twn\_desctab.v} 的 \f{NBLK\_MAX = 20}） \\
+寫入位址 & block $b$ 的第 $k$ 個字 $\rightarrow$ 暫存器位移 $\texttt{0x1000} + 4\,(16b + k)$（相對於加速器暫存器基底；driver 的 \f{R\_DESC}） \\
+PL 內部索引 & \f{tab[\{block, word\}]}，即 $16b + k$（9 位元） \\
+來源 & \f{tools/gen\_desctab.py} 產生 \f{tools/fuse\_desctab.h}（C 陣列，編進 app；不進版控，由 \f{docs/REBUILD.md} 第 1 步產生） \\
+誰寫入 & driver \f{twn\_set\_table()} 逐字 \f{writel}，再寫 \f{NBLK}、\f{CHECK} \\
+\bottomrule
+\end{tabular}
+
+\medskip
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+ & 字 0 & 字 1 & $\cdots$ & 字 15 & 位址範圍 \\
+\midrule
+block 0  & \f{0x1000} & \f{0x1004} & $\cdots$ & \f{0x103C} & \f{0x1000}--\f{0x103F} \\
+block 1  & \f{0x1040} & \f{0x1044} & $\cdots$ & \f{0x107C} & \f{0x1040}--\f{0x107F} \\
+$\vdots$ & & & & & \\
+block 16 & \f{0x1400} & \f{0x1404} & $\cdots$ & \f{0x143C} & \f{0x1400}--\f{0x143F} \\
+\bottomrule
+\end{tabular}
+
+\medskip
+16 個字依用途分成三組：
+\begin{itemize}
+\item \textbf{形狀}（字 0、1、2、12）：通道數、尺寸、stride、打包方式、分段數，決定運算電路怎麼跑。
+\item \textbf{參數位置}（字 3--10）：4 種參數在 DDR 權重檔的哪裡、有多長、搬進片上記憶體的哪裡。
+\item \textbf{資料流向與 residual}（字 1 的 slot、字 13--15）：讀寫哪個 activation slot、residual 怎麼加。字 11（\f{res\_slot}）有填值，但目前資料路徑不讀。
+\end{itemize}
+
+PL 用兩組暫存器讀 table：\f{cur} 存正在運算的 block 的全部 16 個字；\f{curf} 存正在預取權重的 block 的字 3--10（通常是下一個 block；每幀開頭是 block 0 本身）。開機檢查（\f{CHECK}）讀每列的字 0、1、7、8、9、10，以及下一列的字 1。
+
+% ------------------------------------------------------------------
+\section{每個字的位元配置}
+左邊是 bit 31，右邊是 bit 0。單一位元的欄位用縮寫，縮寫列在該字下方。
+
+\begin{wlayout}{字 0：通道數、stride、residual}
+\bitbox{1}{\scriptsize R}\bitbox{1}{\scriptsize S}\bitbox{10}{\f{c\_out}}\bitbox{10}{\f{c\_mid}}\bitbox{10}{\f{c\_in}}
+\end{wlayout}
+\vspace{-2ex}{\footnotesize R = \f{has\_res}（bit 31）；S = \f{s\_dw}（bit 30）}
+
+\begin{wlayout}{字 1：尺寸、pack、slot}
+\bitbox{4}{\f{out\_slot}}\bitbox{4}{\f{in\_slot}}\bitbox{3}{\f{pack\_p}}\bitbox{3}{\f{pack\_e}}\bitbox{9}{\f{w\_in}}\bitbox{9}{\f{h\_in}}
+\end{wlayout}
+
+\begin{wlayout}{字 2：一列像素在 DDR 的位元組數}
+\bitbox{16}{\f{row\_bytes\_out}}\bitbox{16}{\f{row\_bytes\_in}}
+\end{wlayout}
+
+\begin{wlayout}{字 3、4、5、6：4 種參數在權重檔的 byte offset（各佔整個字）}
+\bitbox{32}{字 3 \f{off\_tern}；字 4 \f{off\_dw}；字 5 \f{off\_rqa}；字 6 \f{off\_rqd}}
+\end{wlayout}
+
+\begin{wlayout}{字 7、8：4 種參數的字數}
+\bitbox{16}{字 7 \f{n\_dw}；字 8 \f{n\_rqd}}\bitbox{16}{字 7 \f{n\_tern}；字 8 \f{n\_rqa}}
+\end{wlayout}
+
+\begin{wlayout}{字 9：三值權重、depthwise 權重的片上起點}
+\un{8}\bitbox{10}{\f{mb\_dw}}\bitbox{14}{\f{mb\_tern}}
+\end{wlayout}
+
+\begin{wlayout}{字 10：兩種 requant 的片上起點}
+\un{6}\bitbox{13}{\f{mb\_rqd}}\bitbox{13}{\f{mb\_rqa}}
+\end{wlayout}
+
+\begin{wlayout}{字 11：residual 來源 slot（有填值，目前資料路徑不讀）}
+\un{28}\bitbox{4}{\scriptsize\f{res\_slot}}
+\end{wlayout}
+
+\begin{wlayout}{字 12：分段數與打包旗標}
+\un{17}\bitbox{1}{\scriptsize P}\bitbox{1}{\scriptsize E}\bitbox{2}{\scriptsize\f{pk0p}}\bitbox{2}{\scriptsize\f{pk0e}}\bitbox{1}{\scriptsize T}\bitbox{4}{\scriptsize\f{nseg\_p}}\bitbox{4}{\scriptsize\f{nseg\_e}}
+\end{wlayout}
+\vspace{-2ex}{\footnotesize P = \f{msg\_p}（bit 14）；E = \f{msg\_e}（bit 13）；\f{pk0p} = \f{pack0\_p}（bit 12:11）；\f{pk0e} = \f{pack0\_e}（bit 10:9）；T = \f{stem}（bit 8）}
+
+\begin{wlayout}{字 13：residual 的 project 係數與右移量}
+\un{8}\bitbox{6}{\scriptsize\f{sh\_res}}\bitbox{18}{\f{mp\_res}（有號）}
+\end{wlayout}
+
+\begin{wlayout}{字 14：residual 的輸入係數}
+\un{14}\bitbox{18}{\f{mq\_res}（有號）}
+\end{wlayout}
+
+\begin{wlayout}{字 15：residual 輸出夾限}
+\bitbox{16}{\f{hi\_res}（有號）}\bitbox{16}{\f{lo\_res}（有號）}
+\end{wlayout}
+
+% ------------------------------------------------------------------
+\section{欄位對照總表}
+「誰讀」欄：\textbf{執行}＝正在運算的 block（\f{cur}）；\textbf{預取}＝權重搬移器讀正在預取的 block（\f{curf}）；\textbf{檢查}＝開機檢查；\textbf{無}＝資料路徑不讀。
+
+\footnotesize
+\begin{longtable}{@{}c c L{22mm} c L{38mm} L{62mm} L{16mm}@{}}
+\toprule
+字 & 位元 & 欄位 & 寬 & 編碼與單位 & 意義 & 誰讀 \\
+\midrule
+\endhead
+0 & 9:0   & \f{c\_in}    & 10 & 通道數 & block 輸入的通道數 & 執行、檢查 \\
+0 & 19:10 & \f{c\_mid}   & 10 & 通道數 & expand 1$\times$1 之後的通道數（stem 是 3$\times$3 conv 的輸出） & 執行、檢查 \\
+0 & 29:20 & \f{c\_out}   & 10 & 通道數 & project 1$\times$1 之後的通道數 & 執行、檢查 \\
+0 & 30    & \f{s\_dw}    & 1  & 0 = stride 1，1 = stride 2 & 3$\times$3 depthwise 的 stride；2 時輸出高寬減半 & 執行 \\
+0 & 31    & \f{has\_res} & 1  & 0 / 1 & 是否把 block 輸入加回輸出（residual） & 執行 \\
+\midrule
+1 & 8:0   & \f{h\_in}    & 9  & 像素 & 輸入高度 & 執行、檢查 \\
+1 & 17:9  & \f{w\_in}    & 9  & 像素 & 輸入寬度 & 執行、檢查 \\
+1 & 20:18 & \f{pack\_e}  & 3  & $\log_2$：0,1,2,3 $\rightarrow$ 1,2,4,8 & expand 1$\times$1 的打包方式 & 執行 \\
+1 & 23:21 & \f{pack\_p}  & 3  & 同上 & project 1$\times$1 的打包方式 & 執行 \\
+1 & 27:24 & \f{in\_slot} & 4  & slot 編號；\f{0xF} = 不讀 slot & 從哪個 activation slot 讀；\f{0xF} 時從 \f{IN} 讀影像（只有 block 0） & 執行、檢查 \\
+1 & 31:28 & \f{out\_slot}& 4  & slot 編號 & 寫到哪個 activation slot & 執行、檢查 \\
+\midrule
+2 & 15:0  & \f{row\_bytes\_in}  & 16 & bytes，128 的倍數 & 輸入一列像素在 DDR 的跨距 = 通道 $\times$ 寬，補到 128 的倍數 & 執行 \\
+2 & 31:16 & \f{row\_bytes\_out} & 16 & bytes，128 的倍數 & 輸出一列的跨距 & 執行 \\
+\midrule
+3 & 31:0 & \f{off\_tern} & 32 & bytes，64 的倍數 & 三值權重在權重檔裡的位置；PL 實際位址 = \f{W} 基底 + 此值 & 預取 \\
+4 & 31:0 & \f{off\_dw}   & 32 & 同上 & depthwise 權重的位置 & 預取 \\
+5 & 31:0 & \f{off\_rqa}  & 32 & 同上 & expand/project 的 requant 參數位置 & 預取 \\
+6 & 31:0 & \f{off\_rqd}  & 32 & 同上 & depthwise 的 requant 參數位置 & 預取 \\
+\midrule
+7 & 15:0  & \f{n\_tern} & 16 & 片上字數（256 bit/字；檔案中 32 B/字） & 三值權重的長度 & 預取、檢查 \\
+7 & 31:16 & \f{n\_dw}   & 16 & 片上字數（576 bit/字；檔案中補到 80 B/字） & depthwise 權重的長度 & 預取、檢查 \\
+8 & 15:0  & \f{n\_rqa}  & 16 & 片上字數（256 bit/字；檔案中 32 B/字） & expand/project requant 的長度 & 預取、檢查 \\
+8 & 31:16 & \f{n\_rqd}  & 16 & 片上字數（448 bit/字；檔案中補到 64 B/字） & depthwise requant 的長度 & 預取、檢查 \\
+\midrule
+9  & 13:0  & \f{mb\_tern} & 14 & 片上字位址，深度 8,160 & 三值權重放進片上記憶體的起點 & 執行、預取、檢查 \\
+9  & 23:14 & \f{mb\_dw}   & 10 & 片上字位址，深度 240   & depthwise 權重的片上起點 & 執行、預取、檢查 \\
+10 & 12:0  & \f{mb\_rqa}  & 13 & 片上字位址，深度 600   & expand/project requant 的片上起點 & 執行、預取、檢查 \\
+10 & 25:13 & \f{mb\_rqd}  & 13 & 片上字位址，深度 240   & depthwise requant 的片上起點 & 執行、預取、檢查 \\
+\midrule
+11 & 3:0 & \f{res\_slot} & 4 & slot 編號 & residual 來源 slot，產生器一律填成 \f{in\_slot}（與有無 residual 無關）。目前資料路徑不讀它：residual 的輸入列是 loader 讀 \f{in\_slot} 時順便存下的；它只送到觀測輸出 \f{o\_desc\_rest}，開機檢查也不看 & 無 \\
+\midrule
+12 & 3:0   & \f{nseg\_e}  & 4 & 從 1 起算 & expand 權重分成幾段（stem 是分段數 $\times$ kernel 列數） & 執行 \\
+12 & 7:4   & \f{nseg\_p}  & 4 & 從 1 起算 & project 權重分成幾段 & 執行 \\
+12 & 8     & \f{stem}     & 1 & 0 / 1 & 是否為第一層 3$\times$3 stride-2 conv & 執行 \\
+12 & 10:9  & \f{pack0\_e} & 2 & $\log_2$；0 = 與 \f{pack\_e} 相同 & expand 第 0 段另用的 pack & 執行 \\
+12 & 12:11 & \f{pack0\_p} & 2 & $\log_2$；0 = 與 \f{pack\_p} 相同 & project 第 0 段另用的 pack & 執行 \\
+12 & 13    & \f{msg\_e}   & 1 & 0 / 1 & expand 的混合分段旋轉 & 執行 \\
+12 & 14    & \f{msg\_p}   & 1 & 0 / 1 & project 的混合分段旋轉 & 執行 \\
+\midrule
+13 & 17:0  & \f{mp\_res} & 18 & 有號 & residual：project 輸出的乘數 & 執行 \\
+13 & 23:18 & \f{sh\_res} & 6  & 位元數 & residual：相加後右移幾位 & 執行 \\
+14 & 17:0  & \f{mq\_res} & 18 & 有號 & residual：block 輸入的乘數 & 執行 \\
+15 & 15:0  & \f{lo\_res} & 16 & 有號 & residual 輸出的下限 & 執行 \\
+15 & 31:16 & \f{hi\_res} & 16 & 有號 & residual 輸出的上限 & 執行 \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\textbf{residual 的算式}（\f{twn\_res\_add.v}）：$p$ 是 project 的 int8 輸出，$x$ 是 block 自己的輸入，
+\[
+t = p \cdot \texttt{mp\_res} + x \cdot \texttt{mq\_res},\qquad
+r = (t + 2^{\texttt{sh\_res}-1}) \gg \texttt{sh\_res},\qquad
+\text{out} = \operatorname{clamp}(r,\ \texttt{lo\_res},\ \texttt{hi\_res}).
+\]
+$\gg$ 是算術右移；$\texttt{sh\_res} = 0$ 時不加捨入項也不移位，$r = t$。夾限後只保留低 8 位元。
+沒有 residual 的 block 也走同一個加法器，填單位值 $\texttt{mp}=1$、$\texttt{mq}=0$、$\texttt{sh}=0$、夾限 $[-127, 127]$，輸出就等於 $p$。
+
+\textbf{位元組換算}：片上記憶體每字的寬度不是 16 bytes 的倍數時，權重檔裡每字補到整數個 16-byte beat（depthwise 72 $\rightarrow$ \FileBdw{} B，depthwise requant 56 $\rightarrow$ \FileBrqd{} B），每個區域的起點對齊 \AlignB{} bytes。
+
+% ------------------------------------------------------------------
+\newpage
+\section{實例一：block 1 逐位元分解}
+MobileNetV2 的第二個 bottleneck：16 $\rightarrow$ 24 通道、expand 倍率 6、stride 2、沒有 residual。
+
+\subsection*{16 個字的二進位}
+\begin{tabular}{@{}r c l@{}}
+\toprule
+字 & 十六進位 & 二進位（bit 31 $\rightarrow$ bit 0，每 4 位一組） \\
+\midrule
+\input{gen/bits1.tex}
+\end{tabular}
+
+\subsection*{逐欄位解碼}
+\footnotesize
+\begin{longtable}{@{}r c c L{20mm} L{31mm} r L{58mm}@{}}
+\toprule
+字 & 原始字 & 位元 & 欄位 & 欄位的位元 & 值 & 意義 \\
+\midrule
+\endhead
+\input{gen/ex1.tex}
+\end{longtable}
+\normalsize
+
+\textbf{手算一個欄位}：字 0 = \f{0x41818010}。
+\begin{itemize}
+\item \f{c\_in} = bit 9:0 = \f{0x41818010 \& 0x3FF} = \f{0x010} = 16。
+\item \f{c\_mid} = bit 19:10 = \f{(0x41818010 >> 10) \& 0x3FF} = \f{0x060} = 96。
+\item \f{c\_out} = bit 29:20 = \f{(0x41818010 >> 20) \& 0x3FF} = \f{0x018} = 24。
+\item bit 30 = 1（最高的十六進位數字 4 = \f{0100}），所以 stride 2；bit 31 = 0，所以沒有 residual。
+\end{itemize}
+
+\textbf{這一列的兩個規律}：
+\begin{itemize}
+\item 片上起點加字數剛好等於各記憶體深度（8,112 + 48 = 8,160；228 + 12 = 240；570 + 30 = 600；228 + 12 = 240），也就是放在記憶體的最上端；block 2 的字 9、10 全是 0，從最下端開始。從 block 1 起，奇數 block 靠上端、偶數 block 從 0 開始；block 0 的 \f{mb\_tern} = 4,720，剛好接在 block 16 的三值權重（從 0 起、4,720 字）之後。規則是相鄰兩個 block 的片上區域不重疊：block $k$ 運算時，block $k+1$ 的權重可以先預取進來，不會蓋到正在用的權重（開頭的「相鄰 block 不重疊」核對）。16 $\rightarrow$ 0 也算相鄰是打包器（\f{tools/pack\_fuse\_weights.py} 的 \f{\_fits}）的保守做法；目前的硬體在最後一個 block 不預取，block 0 的權重是每幀開頭、還沒有 block 在運算時才載入。
+\item 權重檔裡 4 個區域前後相接：\f{off\_tern} 1,856 + 48 $\times$ 32 = 3,392 = \f{off\_dw}；3,392 + 12 $\times$ 80 = 4,352 = \f{off\_rqa}；4,352 + 30 $\times$ 32 = 5,312 = \f{off\_rqd}；5,312 + 12 $\times$ 64 = 6,080 = block 2 的 \f{off\_tern}。
+\end{itemize}
+
+% ------------------------------------------------------------------
+\newpage
+\section{實例二：block 2（有 residual）}
+16 $\rightarrow$ 24 之後的第一個 24 $\rightarrow$ 24 bottleneck：stride 1、有 residual，所以字 13、14 不再是單位值（字 11 照例等於 \f{in\_slot} = 1）。
+
+\subsection*{16 個字的二進位}
+\begin{tabular}{@{}r c l@{}}
+\toprule
+字 & 十六進位 & 二進位（bit 31 $\rightarrow$ bit 0，每 4 位一組） \\
+\midrule
+\input{gen/bits2.tex}
+\end{tabular}
+
+\subsection*{逐欄位解碼}
+\footnotesize
+\begin{longtable}{@{}r c c L{20mm} L{31mm} r L{58mm}@{}}
+\toprule
+字 & 原始字 & 位元 & 欄位 & 欄位的位元 & 值 & 意義 \\
+\midrule
+\endhead
+\input{gen/ex2.tex}
+\end{longtable}
+\normalsize
+
+這一列的 residual：$\text{out} = \operatorname{clamp}\big((45374\,p + 46742\,x + 2^{15}) \gg 16,\ -127,\ 127\big)$，即約 $0.6924\,p + 0.7132\,x$。
+
+% ------------------------------------------------------------------
+\newpage
+\section{17 列總覽（解碼後）}
+pack 欄已從 $\log_2$ 換回實際值；dw stride 是 3$\times$3 depthwise 的 stride（\f{s\_dw}），block 0 的解析度減半由 stem 的 3$\times$3 stride-2 conv 完成（256 $\rightarrow$ 128）；\f{in\_slot} 的 F 代表 \f{0xF}（從 \f{IN} 讀影像）。block 16 寫 slot 0，BB2HD 開啟時 PL 改寫到 \f{OUT} 加 parity $\times$ 64 KB。
+
+\footnotesize
+\begin{longtable}{@{}rrrrcccrrcccc@{}}
+\toprule
+block & \f{c\_in} & \f{c\_mid} & \f{c\_out} & 輸入 & dw stride & residual & \f{pack\_e} & \f{pack\_p} & 讀 slot & 寫 slot & \f{mb\_tern} & stem \\
+\midrule
+\endhead
+\input{gen/summary.tex}
+\end{longtable}
+\normalsize
+
+\section{原始 272 個字}
+\footnotesize
+\begin{tabular}{@{}r*{8}{c}@{}}
+\toprule
+block & 字 0 & 字 1 & 字 2 & 字 3 & 字 4 & 字 5 & 字 6 & 字 7 \\
+\midrule
+\input{gen/raw_a.tex}
+\end{tabular}
+
+\medskip
+\begin{tabular}{@{}r*{8}{c}@{}}
+\toprule
+block & 字 8 & 字 9 & 字 10 & 字 11 & 字 12 & 字 13 & 字 14 & 字 15 \\
+\midrule
+\input{gen/raw_b.tex}
+\end{tabular}
+\normalsize
+
+% ------------------------------------------------------------------
+\section{PL 的開機檢查（\f{CHECK}）}
+driver 寫 \f{CHECK} = 1 後，PL 從 block 0 走到 \f{NBLK} $-$ 1，遇到第一個錯就停，把錯誤碼放在 \f{STATUS} bit 10:7、block 編號放在 bit 15:11。最後一列的「下一列」是 block 0。同一個 block 有多個條件成立時，只回報編號最小的那一個。
+
+檢查沒過時，driver 的 \f{TWN\_IOC\_SET\_TABLE} 回傳 \f{-EINVAL}，並在 dmesg 印出「descriptor table refused: error 碼 at block 號」（等不到檢查完成則回傳 timeout）；app 印出「SET\_TABLE (refused: see dmesg)」後停止。在 PL 這一端，檢查還沒跑、正在跑、或沒通過時，backbone 的 START 一律被忽略，而且 START 這次寫入本身不會回報任何錯誤。
+
+\begin{tabular}{@{}c L{30mm} L{60mm} L{50mm}@{}}
+\toprule
+錯誤碼 & 名稱 & 條件 & 不擋下會怎樣 \\
+\midrule
+1 & \f{E\_SLOT\_RANGE} & \f{in\_slot} $\ge 2$ 且不是 \f{0xF}，或 \f{out\_slot} $\ge 2$ & 讀寫 activation 區以外的記憶體 \\
+2 & \f{E\_SLOT\_SAME}  & \f{in\_slot} = \f{out\_slot} & 一邊讀一邊蓋掉自己的輸入 \\
+3 & \f{E\_SLOT\_CHAIN} & 本列 \f{out\_slot} $\ne$ 下一列 \f{in\_slot}（下一列是 \f{0xF} 時免檢） & 下一個 block 讀到沒人寫的資料 \\
+4 & \f{E\_TERN\_OVF}   & \f{mb\_tern} + \f{n\_tern} $>$ 8,160 & 三值權重超出片上記憶體 \\
+5 & \f{E\_DW\_OVF}     & \f{mb\_dw} + \f{n\_dw} $>$ 240 & depthwise 權重超出 \\
+6 & \f{E\_RQA\_OVF}    & \f{mb\_rqa} + \f{n\_rqa} $>$ 600 & requant 超出 \\
+7 & \f{E\_RQD\_OVF}    & \f{mb\_rqd} + \f{n\_rqd} $>$ 240 & depthwise requant 超出 \\
+8 & \f{E\_GEOM}        & \f{c\_in}、\f{c\_mid}、\f{c\_out}、\f{h\_in}、\f{w\_in} 任一為 0 & 運算長度為 0 \\
+\bottomrule
+\end{tabular}
+
+\medskip
+檢查\textbf{看不到}的：
+\begin{itemize}
+\item 字 3--6 的 offset 是否指向權重檔裡對的位置，字 7--8 的字數是否等於權重檔裡實際的長度；
+\item 相鄰 block 的片上區域是否重疊（它只比較起點加長度和記憶體深度）；
+\item 字 0 的 \f{s\_dw}、\f{has\_res}，字 1 的 \f{pack\_e}、\f{pack\_p}，字 2 的跨距是否和通道數相符，字 11--15 的內容；
+\item \f{NBLK} 是否 $\le 20$：\f{NBLK} 是 5 位元、PL 不和 table 容量比較，driver 接受到 31；\f{NBLK} = 0 時檢查走不到結束條件。
+\end{itemize}
+offset、字數與片上位置由 \f{tools/pack\_fuse\_weights.py} 決定（相鄰不重疊是它的 \f{\_fits} 規則），\f{tools/gen\_desctab.py} 照它寫出的權重索引抄進 table，並用 \f{assert} 檢查 slot、容量與欄位寬度。所以 table 和權重檔必須出自同一次打包。
+
+\end{document}
